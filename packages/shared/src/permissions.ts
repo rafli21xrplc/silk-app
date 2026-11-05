@@ -20,8 +20,10 @@ export const PERMISSIONS = {
   'account.self': SIGNED_IN,
   /** Data usaha dan izin mitra milik sendiri (`/v1/partners/me`). */
   'partner.self': PARTNER_ROLES,
-  /** Portal faskes M6 dan klaim M7 (ditambah cek `memberships`). */
-  'portal.facility': ['faskes'],
+  /** Portal profil layanan (M6, Fase 2) untuk semua mitra; akses per profil dicek lewat `memberships`. */
+  'portal.facility': PARTNER_ROLES,
+  /** Klaim profil faskes yang sudah ada (M7). */
+  'portal.claims': ['faskes'],
   /** Seluruh `/v1/admin/*` (wajib TOTP). */
   'admin.access': ['moderator', 'admin'],
   /** Antrean dan keputusan verifikasi mitra (wajib TOTP). */

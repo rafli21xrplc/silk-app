@@ -40,7 +40,8 @@ Mengubah skema tabel yang sudah terbit, menambah dependensi besar, mengubah kont
 
 ## Catatan implementasi (repo ini)
 - pnpm dijalankan lewat Corepack: `corepack pnpm <perintah>` bila pnpm belum terpasang global.
-- Batas tarif terbit didefinisikan sekali di VIEW `published_tariffs` (migrasi 0003); jangan menduplikasi logika ini di query lain.
+- Batas tarif terbit didefinisikan sekali di VIEW `published_tariffs` (migrasi 0003, diganti di 0006 untuk `tariffs.active`); jangan menduplikasi logika ini di query lain.
+- Harga dari mitra tidak pernah ditulis langsung ke `tariff_versions`: masuk `tariff_change_requests`, lalu versi baru dibuat saat moderator menyetujui (Fase 2).
 - Append-only `tariff_versions` ditegakkan trigger DB (migrasi 0002), bukan hanya oleh kode.
 - Layanan eksternal (R2, Resend, Turnstile, Sanity, PostHog) memakai adaptor yang tetap jalan tanpa kunci di dev/test:
   penyimpanan lokal di tmpdir dengan signed URL palsu, email ke log/outbox uji, Turnstile dilewati.

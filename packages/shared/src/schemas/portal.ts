@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { DOCUMENT_ALLOWED_MIME, DOCUMENT_MAX_BYTES, CSV_MAX_BYTES } from '../constants';
 import { checkPriceFields } from '../price';
 import { isoDateSchema, priceTypeSchema, rupiahSchema, uuidSchema } from './common';
+import { locationsSchema, schedulesSchema, tariffSourceFields } from './profile';
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
 
@@ -20,10 +21,17 @@ export const facilityUpdateSchema = z
     hours: hoursSchema,
     lat: z.number().min(-90).max(90).optional(),
     lng: z.number().min(-180).max(180).optional(),
+    /** Fase 2: daftar lokasi lengkap (menggantikan semua) dan jadwal per hari. */
+    locations: locationsSchema.optional(),
+    schedules: schedulesSchema.optional(),
   })
   .refine((v) => (v.lat === undefined) === (v.lng === undefined), {
     message: 'lat dan lng harus diisi bersama',
     path: ['lat'],
+  })
+  .refine((v) => !(v.locations && (v.address !== undefined || v.lat !== undefined)), {
+    message: 'Pakai locations atau address/lat/lng, tidak keduanya',
+    path: ['locations'],
   });
 export type FacilityUpdateInput = z.infer<typeof facilityUpdateSchema>;
 
@@ -44,6 +52,8 @@ const tariffFields = {
   effectiveTo: isoDateSchema.nullable().optional(),
   inclusions: optionalText(1000),
   exclusions: optionalText(1000),
+  // Fase 2 (K4): setiap usulan harga wajib menyebut sumbernya; dokumen bukti diunggah terpisah.
+  ...tariffSourceFields,
 };
 
 function refineTariff(

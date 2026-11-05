@@ -7,6 +7,9 @@ export const FACILITY_TYPES = [
   'laboratorium',
   'praktik_dokter',
   'apotek',
+  // Fase 2 (F-02): profil mitra gaya hidup sehat dan rumah duka.
+  'gaya_hidup',
+  'rumah_duka',
 ] as const;
 export type FacilityType = (typeof FACILITY_TYPES)[number];
 
@@ -69,6 +72,23 @@ export const isStaffRole = (role: string | null | undefined): boolean =>
   (STAFF_ROLES as readonly string[]).includes(role ?? '');
 export const partnerTypeForRole = (role: PartnerRole): PartnerType => ROLE_PARTNER_TYPE[role];
 
+/**
+ * Jenis profil layanan (`facilities.type`) untuk mitra baru (Fase 2, K1). Mitra fasilitas memakai
+ * jenis yang dia isi di data mitra.
+ */
+export function profileTypeForPartner(p: { partnerType: PartnerType; facilityKind: FacilityType | null }): FacilityType {
+  switch (p.partnerType) {
+    case 'tenaga_medis':
+      return 'praktik_dokter';
+    case 'gaya_hidup':
+      return 'gaya_hidup';
+    case 'apotek':
+      return 'apotek';
+    case 'fasilitas':
+      return p.facilityKind ?? 'klinik';
+  }
+}
+
 export const DATA_SOURCE_KINDS = ['perda', 'pmk', 'faskes', 'admin', 'lainnya'] as const;
 export type DataSourceKind = (typeof DATA_SOURCE_KINDS)[number];
 
@@ -104,6 +124,39 @@ export const DEFAULT_STALE_AFTER_DAYS = 180;
 export const DOCUMENT_MAX_BYTES = 5 * 1024 * 1024;
 export const DOCUMENT_ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const;
 export type DocumentMime = (typeof DOCUMENT_ALLOWED_MIME)[number];
+
+/* ---------- Fase 2 (F-02): profil layanan ---------- */
+
+/** Jenis jadwal: jam buka tempat, atau jadwal praktik tenaga medis. */
+export const SCHEDULE_KINDS = ['operasional', 'praktik'] as const;
+export type ScheduleKind = (typeof SCHEDULE_KINDS)[number];
+
+/** Hari ISO: Senin = 1 … Minggu = 7. */
+export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+export type Weekday = (typeof WEEKDAYS)[number];
+export const DEFAULT_TIMEZONE = 'Asia/Jakarta';
+export const TIMEZONES = ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'] as const;
+
+export const MEDIA_KINDS = ['foto', 'video'] as const;
+export type MediaKind = (typeof MEDIA_KINDS)[number];
+
+/** Status moderasi untuk revisi profil, media, dan permintaan harga. */
+export const REVIEW_STATUSES = ['pending', 'approved', 'rejected', 'superseded'] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+/** Permintaan harga: satu tarif dari form, atau satu berkas CSV portal. */
+export const TARIFF_REQUEST_KINDS = ['tunggal', 'impor'] as const;
+export type TariffRequestKind = (typeof TARIFF_REQUEST_KINDS)[number];
+
+export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const PHOTO_ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export const PHOTO_MAX_COUNT = 10;
+export const VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+export const VIDEO_ALLOWED_MIME = ['video/mp4', 'video/webm'] as const;
+export const VIDEO_MAX_SECONDS = 120;
+export const VIDEO_MAX_COUNT = 1;
+export const PROFILE_MAX_LOCATIONS = 10;
+export const PROFILE_MAX_SCHEDULES = 70;
 
 /** Batas unggahan CSV (M5, M6). Tetap di bawah batas body tidak relevan karena lewat signed URL. */
 export const CSV_MAX_BYTES = 10 * 1024 * 1024;

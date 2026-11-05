@@ -21,13 +21,15 @@ CREATE TABLE "partner_articles" (
 	"rejection_reason" text,
 	"needs_review" boolean DEFAULT false NOT NULL,
 	"withdrawn_reason" text,
+	"withdrawn_at" timestamp with time zone,
 	"declaration_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "partner_articles_slug_unique" UNIQUE("slug"),
 	CONSTRAINT "partner_articles_published_together" CHECK (("partner_articles"."published_title" IS NULL) = ("partner_articles"."published_body" IS NULL) AND ("partner_articles"."published_summary" IS NULL) = ("partner_articles"."published_body" IS NULL)
         AND ("partner_articles"."published_body" IS NULL) = ("partner_articles"."first_published_at" IS NULL)),
-	CONSTRAINT "partner_articles_published_status" CHECK ("partner_articles"."status" <> 'published' OR "partner_articles"."published_body" IS NOT NULL),
+	CONSTRAINT "partner_articles_published_status" CHECK ("partner_articles"."status" <> 'published' OR ("partner_articles"."published_body" IS NOT NULL AND "partner_articles"."withdrawn_at" IS NULL)),
+	CONSTRAINT "partner_articles_withdrawn_at" CHECK ("partner_articles"."status" <> 'withdrawn' OR "partner_articles"."withdrawn_at" IS NOT NULL),
 	CONSTRAINT "partner_articles_rejection_reason" CHECK ("partner_articles"."status" <> 'rejected' OR "partner_articles"."rejection_reason" IS NOT NULL)
 );
 --> statement-breakpoint

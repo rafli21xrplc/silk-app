@@ -25,6 +25,7 @@ import { tariffsRoutes } from './modules/m2-tariffs/tariffs.routes';
 import { compareRoutes } from './modules/m3-compare/compare.routes';
 import { trustRoutes } from './modules/m4-trust/trust.routes';
 import { portalRoutes } from './modules/m6-portal/portal.routes';
+import { adminArticleRoutes, portalArticleRoutes, publicArticleRoutes } from './modules/articles/articles.routes';
 import { accountRoutes } from './modules/account/account.routes';
 import { partnerRoutes } from './modules/partners/partners.routes';
 
@@ -103,13 +104,20 @@ export function createApp(): Express {
       trustRoutes(r);
       reportsRoutes(r);
       publicContentRulesRoutes(r);
+      publicArticleRoutes(r);
     }),
   );
   app.use('/v1/internal', router(jobsRoutes));
   app.use('/v1/me', loadSession, router(accountRoutes));
   app.use('/v1/partners', loadSession, requirePermission('partner.self'), verifyCsrf, router(partnerRoutes));
-  app.use('/v1/portal', loadSession, requirePermission('portal.facility'), verifyCsrf, router(portalRoutes));
-  app.use('/v1/admin', loadSession, requireAdmin, verifyCsrf, router(adminRoutes));
+  app.use('/v1/portal', loadSession, requirePermission('portal.facility'), verifyCsrf, router((r) => {
+      portalRoutes(r);
+      portalArticleRoutes(r);
+    }));
+  app.use('/v1/admin', loadSession, requireAdmin, verifyCsrf, router((r) => {
+      adminRoutes(r);
+      adminArticleRoutes(r);
+    }));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

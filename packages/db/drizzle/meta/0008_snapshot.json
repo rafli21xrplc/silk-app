@@ -1,5 +1,5 @@
 {
-  "id": "0f1f40cd-8995-4cb7-8125-e642acb082a8",
+  "id": "f56fef10-6136-4187-8c44-3b1a9a4c9cee",
   "prevId": "81a3fbbb-ee7e-43f9-bf29-c08a2eb178a8",
   "version": "7",
   "dialect": "postgresql",
@@ -2498,6 +2498,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "withdrawn_at": {
+          "name": "withdrawn_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "declaration_at": {
           "name": "declaration_at",
           "type": "timestamp with time zone",
@@ -2638,7 +2644,11 @@
         },
         "partner_articles_published_status": {
           "name": "partner_articles_published_status",
-          "value": "\"partner_articles\".\"status\" <> 'published' OR \"partner_articles\".\"published_body\" IS NOT NULL"
+          "value": "\"partner_articles\".\"status\" <> 'published' OR (\"partner_articles\".\"published_body\" IS NOT NULL AND \"partner_articles\".\"withdrawn_at\" IS NULL)"
+        },
+        "partner_articles_withdrawn_at": {
+          "name": "partner_articles_withdrawn_at",
+          "value": "\"partner_articles\".\"status\" <> 'withdrawn' OR \"partner_articles\".\"withdrawn_at\" IS NOT NULL"
         },
         "partner_articles_rejection_reason": {
           "name": "partner_articles_rejection_reason",

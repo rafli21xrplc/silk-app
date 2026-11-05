@@ -91,6 +91,7 @@ export async function queueCounts(db: DbOrTx) {
     revisions: number;
     media: number;
     tariffRequests: number;
+    articles: number;
   };
   // Batch portal yang tervalidasi menunggu lewat permintaan harga, bukan antrean impor admin.
   const result = await db.execute<Counts>(sql`
@@ -102,7 +103,8 @@ export async function queueCounts(db: DbOrTx) {
       (SELECT count(*)::int FROM facilities WHERE status = 'menunggu_tinjauan') AS profiles,
       (SELECT count(*)::int FROM profile_revisions WHERE status = 'pending') AS revisions,
       (SELECT count(*)::int FROM profile_media WHERE status = 'pending' AND confirmed_at IS NOT NULL) AS media,
-      (SELECT count(*)::int FROM tariff_change_requests WHERE status = 'pending') AS "tariffRequests"
+      (SELECT count(*)::int FROM tariff_change_requests WHERE status = 'pending') AS "tariffRequests",
+      (SELECT count(*)::int FROM partner_articles WHERE status = 'pending') AS articles
   `);
-  return result.rows[0] ?? { claims: 0, tariffs: 0, reports: 0, imports: 0, profiles: 0, revisions: 0, media: 0, tariffRequests: 0 };
+  return result.rows[0] ?? { claims: 0, tariffs: 0, reports: 0, imports: 0, profiles: 0, revisions: 0, media: 0, tariffRequests: 0, articles: 0 };
 }

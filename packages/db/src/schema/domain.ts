@@ -763,6 +763,8 @@ export const partnerArticles = pgTable(
     /** Cocok dengan aturan M17 `tinjau` saat diajukan. */
     needsReview: boolean('needs_review').notNull().default(false),
     withdrawnReason: text('withdrawn_reason'),
+    /** Diisi saat ditarik, dikosongkan hanya saat moderator menyetujui lagi: artikel tarikan tidak muncul kembali sebelum ditinjau. */
+    withdrawnAt: timestamp('withdrawn_at', { withTimezone: true }),
     /** Waktu mitra mencentang pernyataan bebas promosi saat terakhir mengajukan. */
     declarationAt: timestamp('declaration_at', { withTimezone: true }),
     createdAt: createdAt(),
@@ -777,7 +779,8 @@ export const partnerArticles = pgTable(
       sql`(${t.publishedTitle} IS NULL) = (${t.publishedBody} IS NULL) AND (${t.publishedSummary} IS NULL) = (${t.publishedBody} IS NULL)
         AND (${t.publishedBody} IS NULL) = (${t.firstPublishedAt} IS NULL)`,
     ),
-    check('partner_articles_published_status', sql`${t.status} <> 'published' OR ${t.publishedBody} IS NOT NULL`),
+    check('partner_articles_published_status', sql`${t.status} <> 'published' OR (${t.publishedBody} IS NOT NULL AND ${t.withdrawnAt} IS NULL)`),
+    check('partner_articles_withdrawn_at', sql`${t.status} <> 'withdrawn' OR ${t.withdrawnAt} IS NOT NULL`),
     check('partner_articles_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
   ],
 );

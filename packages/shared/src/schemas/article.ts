@@ -20,6 +20,8 @@ export const articleDraftInputSchema = z.object({
   title: z.string().trim().min(1).max(ARTICLE_TITLE_MAX),
   summary: z.string().trim().max(ARTICLE_SUMMARY_MAX).default(''),
   body: z.string().max(ARTICLE_BODY_MAX).default(''),
+  /** Wajib `true` saat mengubah artikel terbit (perubahan langsung diajukan ulang). */
+  declaration: z.boolean().optional(),
 });
 export type ArticleDraftInput = z.infer<typeof articleDraftInputSchema>;
 

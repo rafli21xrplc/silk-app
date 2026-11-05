@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PHOTO_MAX_BYTES, VIDEO_MAX_SECONDS } from '@silk/shared';
-import { canCreateProfile, describeProfileField, formatTimeRange, groupByWeekday, mediaFileProblem, parseCoord, tzShort, weekdayName } from './profile';
+import { canCreateProfile, describeProfileField, formatTimeRange, groupByWeekday, mediaFileProblem, parseCoord, tzShort, weekdayName, withProfileDefaults } from './profile';
 
 describe('jadwal', () => {
   it('urutan hari ISO: Senin = 1, Minggu = 7', () => {
@@ -95,5 +95,17 @@ describe('describeProfileField', () => {
     expect(describeProfileField('description', null)).toEqual([]);
     expect(describeProfileField('description', '')).toEqual([]);
     expect(describeProfileField('name', 'Klinik Sehat')).toEqual(['Klinik Sehat']);
+  });
+});
+
+describe('withProfileDefaults', () => {
+  it('mengisi field Fase 2 yang tidak ada di respons cache lama', () => {
+    const old: { slug: string; name: string; locations?: unknown[] } = { slug: 'klinik-lama', name: 'Klinik Lama' };
+    expect(withProfileDefaults(old)).toEqual({ ...old, locations: [], schedules: [], media: [] });
+  });
+
+  it('tidak mengubah data yang sudah lengkap', () => {
+    const f = { slug: 'k', locations: [{ isPrimary: true }], schedules: [{ kind: 'praktik' }], media: [{ id: 'm' }] };
+    expect(withProfileDefaults(f)).toEqual(f);
   });
 });

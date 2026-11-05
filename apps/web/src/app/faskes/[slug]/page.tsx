@@ -17,7 +17,7 @@ import { TrustBadge } from '@/components/trust-badge';
 import { apiGetOrNull } from '@/lib/api';
 import { MAP_STYLE_URL } from '@/lib/config';
 import { formatDate } from '@/lib/format';
-import { formatTimeRange, groupByWeekday, tzShort, weekdayName } from '@/lib/profile';
+import { formatTimeRange, groupByWeekday, tzShort, weekdayName, withProfileDefaults } from '@/lib/profile';
 import { medicalOrganizationLd } from '@/lib/seo';
 import type { FacilityDetail } from '@/lib/types';
 import { t } from '@/messages/id';
@@ -32,7 +32,16 @@ export function generateStaticParams() {
   return [];
 }
 
-const load = (slug: string) => apiGetOrNull<FacilityDetail>(`/facilities/${encodeURIComponent(slug)}`, { tags: [`facility:${slug}`, 'facilities'] });
+/**
+ * Data cache Next (dan Vercel) bertahan antar-deploy, jadi respons lama tanpa field Fase 2
+ * (`locations`, `schedules`, `media`) bisa terbaca sampai di-revalidate. Isi default agar halaman tidak error.
+ */
+async function load(slug: string): Promise<FacilityDetail | null> {
+  const f = await apiGetOrNull<FacilityDetail>(`/facilities/${encodeURIComponent(slug)}`, {
+    tags: [`facility:${slug}`, 'facilities'],
+  });
+  return f ? withProfileDefaults(f) : null;
+}
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;

@@ -92,3 +92,13 @@ export function describeProfileField(key: string, value: unknown, practitionerNa
   }
   return [String(value)];
 }
+
+/**
+ * Respons detail faskes dari data cache lama (sebelum Fase 2) tidak punya `locations`, `schedules`,
+ * dan `media`. Isi dengan daftar kosong agar halaman publik tetap tampil.
+ */
+export function withProfileDefaults<T extends { locations?: unknown[]; schedules?: unknown[]; media?: unknown[] }>(
+  f: T,
+): T & { locations: NonNullable<T['locations']>; schedules: NonNullable<T['schedules']>; media: NonNullable<T['media']> } {
+  return { ...f, locations: f.locations ?? [], schedules: f.schedules ?? [], media: f.media ?? [] };
+}

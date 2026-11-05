@@ -48,11 +48,14 @@ export async function api<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   return { data: json.data ?? (json as T), meta: json.meta };
 }
 
-/** Panggil endpoint Better Auth (/v1/auth/*). Respons Better Auth tidak dibungkus `data`. */
-export async function authApi<T>(path: string, body?: unknown): Promise<T> {
+/**
+ * Panggil endpoint Better Auth (/v1/auth/*). Respons Better Auth tidak dibungkus `data`.
+ * `headers` dipakai untuk token Turnstile (`x-captcha-response`).
+ */
+export async function authApi<T>(path: string, body?: unknown, opts: { headers?: Record<string, string> } = {}): Promise<T> {
   const res = await fetch(`${API_ORIGIN}/v1/auth${path}`, {
     method: body === undefined ? 'GET' : 'POST',
-    headers: body === undefined ? {} : { 'content-type': 'application/json' },
+    headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...opts.headers },
     credentials: 'include',
     body: body === undefined ? undefined : JSON.stringify(body),
   });

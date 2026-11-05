@@ -15,6 +15,7 @@ import { t } from '@/messages/id';
 const NAV = [
   { href: '/admin', label: t.admin.overview },
   { href: '/admin/klaim', label: t.admin.claims },
+  { href: '/admin/mitra', label: t.admin.partners },
   { href: '/admin/tarif', label: t.admin.tariffs },
   { href: '/admin/laporan', label: t.admin.reports },
   { href: '/admin/impor', label: t.admin.imports },
@@ -22,6 +23,7 @@ const NAV = [
   { href: '/admin/aturan-konten', label: t.admin.rules },
   { href: '/admin/audit', label: t.admin.audit },
   { href: '/admin/jobs', label: t.admin.jobs },
+  { href: '/akun', label: t.account.title },
 ];
 
 /** Panel admin: wajib staf (admin/moderator) dengan MFA aktif; tanpa MFA diarahkan ke /admin/mfa. */

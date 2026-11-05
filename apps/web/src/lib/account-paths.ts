@@ -1,5 +1,5 @@
 /** Halaman akun tampil polos tanpa navbar dan footer situs. */
-export const ACCOUNT_PATHS = ['/masuk', '/daftar', '/lupa-sandi', '/atur-ulang-sandi'] as const;
+export const ACCOUNT_PATHS = ['/masuk', '/daftar', '/verifikasi-email', '/lupa-sandi', '/atur-ulang-sandi'] as const;
 
 export function isAccountPath(pathname: string | null): boolean {
   if (!pathname) return false;

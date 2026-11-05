@@ -5,8 +5,10 @@ import { KeyRound, Mail } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { AuthAlert, AuthFooter, AuthHeading, AuthInput, PasswordInput, SubmitButton } from '@/components/auth/auth-ui';
-import { authApi, errorMessage } from '@/lib/client-api';
+import { useCaptcha } from '@/components/turnstile';
+import { authApi, ClientApiError, errorMessage } from '@/lib/client-api';
 import { clearQueryCache, queryCache } from '@/lib/query-cache';
+import { homePathFor } from '@/lib/role-home';
 import type { Me } from '@/lib/types';
 import { safeReturnPath } from '@/lib/use-me';
 import { t } from '@/messages/id';
@@ -17,31 +19,43 @@ export function LoginForm() {
   const [step, setStep] = useState<'password' | 'totp'>('password');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const captcha = useCaptcha();
 
   async function afterLogin() {
     // Sesi baru: buang cache akun sebelumnya, lalu isi /me agar halaman tujuan langsung tampil.
     clearQueryCache();
     const { data } = await queryCache.fetchQuery<Me>('/me');
-    const fallback = data.user.role === 'faskes' ? '/portal' : data.user.twoFactorEnabled ? '/admin' : '/admin/mfa';
-    router.replace(safeReturnPath(params.get('kembali'), fallback));
+    router.replace(safeReturnPath(params.get('kembali'), homePathFor(data.user)));
   }
 
   async function onPassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    if (!captcha.ready) {
+      setError(t.auth.captchaRequired);
+      return;
+    }
+    const email = String(form.get('email'));
     setBusy(true);
     setError(null);
     try {
-      const res = await authApi<{ twoFactorRedirect?: boolean }>('/sign-in/email', {
-        email: String(form.get('email')),
-        password: String(form.get('password')),
-      });
+      const res = await authApi<{ twoFactorRedirect?: boolean }>(
+        '/sign-in/email',
+        { email, password: String(form.get('password')) },
+        { headers: captcha.headers },
+      );
       if (res.twoFactorRedirect) setStep('totp');
       else await afterLogin();
     } catch (err) {
+      // Email belum diverifikasi: API sudah mengirim OTP baru, lanjutkan ke halaman verifikasi.
+      if (err instanceof ClientApiError && err.body.code === 'EMAIL_NOT_VERIFIED') {
+        router.push(`/verifikasi-email?email=${encodeURIComponent(email)}&dikirim=1`);
+        return;
+      }
       setError(errorMessage(err));
     } finally {
       setBusy(false);
+      captcha.reset();
     }
   }
 
@@ -114,6 +128,7 @@ export function LoginForm() {
             </Link>
           }
         />
+        {captcha.widget}
         <SubmitButton busy={busy}>{t.auth.login}</SubmitButton>
       </form>
       <AuthFooter>

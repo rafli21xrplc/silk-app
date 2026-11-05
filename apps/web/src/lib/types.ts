@@ -1,3 +1,4 @@
+import type { Partner, UserRole } from '@silk/shared';
 export type {
   CompareResponse,
   FacilityDetail,
@@ -19,6 +20,7 @@ export interface SitemapData {
 }
 
 export interface Me {
-  user: { id: string; email: string; name: string; role: 'faskes' | 'moderator' | 'admin'; emailVerified: boolean; twoFactorEnabled: boolean };
+  user: { id: string; email: string; name: string; phone: string | null; role: UserRole; emailVerified: boolean; twoFactorEnabled: boolean };
   memberships: { id: string; slug: string; name: string; city: string; status: string; verification: string; role: string }[];
+  partner: Partner | null;
 }

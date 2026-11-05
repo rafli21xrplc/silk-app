@@ -16,6 +16,7 @@ import {
 import { defineRoute } from '../../lib/route';
 import { contentRulesRoutes } from '../m17-content-rules/content-rules.routes';
 import * as claims from '../m7-claims/claims.controller';
+import { adminPartnerRoutes } from '../partners/partners.routes';
 import * as c from './admin.controller';
 
 const idParams = z.object({ id: uuidSchema });
@@ -50,6 +51,9 @@ export function adminRoutes(router: Router): void {
     successStatus: 200,
     handler: claims.reject,
   });
+
+  // Fase 1: verifikasi mitra
+  adminPartnerRoutes(router, base);
 
   // M14: laporan data
   defineRoute(router, base, { method: 'get', path: '/reports', summary: 'Antrean laporan data (M14)', tags, security, query: queueQuerySchema, handler: c.reportQueue });

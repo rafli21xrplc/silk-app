@@ -21,9 +21,11 @@ export const issueCsrf: RequestHandler = (req, res) => {
   res.json({ data: { token } });
 };
 
-/** Untuk metode selain GET/HEAD/OPTIONS: header harus sama dengan cookie, dan Origin (bila ada) tepercaya. */
+/** Untuk metode selain GET/HEAD/OPTIONS (sesi cookie). Pasang setelah `loadSession`: header harus sama dengan cookie, dan Origin (bila ada) tepercaya. */
 export const verifyCsrf: RequestHandler = (req, _res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  // Bearer JWT tidak dikirim otomatis oleh browser, jadi tidak rentan CSRF.
+  if (req.auth?.session.via === 'jwt') return next();
   const origin = req.get('origin');
   if (origin && origin !== env().WEB_ORIGIN && origin !== env().API_ORIGIN) {
     throw new AppError('CSRF_INVALID', 'Origin tidak diizinkan');

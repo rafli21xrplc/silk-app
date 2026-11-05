@@ -12,7 +12,7 @@ import { devStorageRouter } from './lib/dev-storage.routes';
 import { env } from './lib/env';
 import { logger } from './lib/logger';
 import { generateOpenApiDocument } from './lib/openapi';
-import { loadSession, requireAdmin, requireAuth, requireRole } from './middleware/auth';
+import { loadSession, requireAdmin, requireAuth, requirePermission } from './middleware/auth';
 import { issueCsrf, verifyCsrf } from './middleware/csrf';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { requestId } from './middleware/request-id';
@@ -24,8 +24,9 @@ import { adminRoutes } from './modules/m15-admin/admin.routes';
 import { tariffsRoutes } from './modules/m2-tariffs/tariffs.routes';
 import { compareRoutes } from './modules/m3-compare/compare.routes';
 import { trustRoutes } from './modules/m4-trust/trust.routes';
-import { meRoutes } from './modules/m6-portal/me.routes';
 import { portalRoutes } from './modules/m6-portal/portal.routes';
+import { accountRoutes } from './modules/account/account.routes';
+import { partnerRoutes } from './modules/partners/partners.routes';
 
 const VERSION = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? process.env.npm_package_version ?? 'dev';
 
@@ -58,13 +59,16 @@ export function createApp(): Express {
     cors({
       origin: [e.WEB_ORIGIN],
       credentials: true,
-      allowedHeaders: ['content-type', 'x-csrf-token', 'x-request-id'],
+      // x-captcha-response: token Turnstile untuk daftar/masuk Better Auth.
+      allowedHeaders: ['content-type', 'x-csrf-token', 'x-request-id', 'x-captcha-response'],
       exposedHeaders: ['x-request-id'],
     }),
   );
 
   // Better Auth: endpoint admin-nya juga wajib MFA (M15). Dipasang sebelum express.json.
   app.use('/v1/auth/admin', loadSession, requireAdmin);
+  // JWT hanya untuk pasien dan mitra; staf memakai sesi cookie + TOTP (matriks auth.token).
+  app.get('/v1/auth/token', loadSession, requireAuth, requirePermission('auth.token'), (_req, _res, next) => next());
   app.all('/v1/auth/*splat', toNodeHandler(getAuth()));
 
   // Rute yang membutuhkan body mentah dipasang sebelum parser JSON.
@@ -102,8 +106,9 @@ export function createApp(): Express {
     }),
   );
   app.use('/v1/internal', router(jobsRoutes));
-  app.use('/v1/me', loadSession, router(meRoutes));
-  app.use('/v1/portal', loadSession, requireAuth, requireRole('faskes'), verifyCsrf, router(portalRoutes));
+  app.use('/v1/me', loadSession, router(accountRoutes));
+  app.use('/v1/partners', loadSession, requirePermission('partner.self'), verifyCsrf, router(partnerRoutes));
+  app.use('/v1/portal', loadSession, requirePermission('portal.facility'), verifyCsrf, router(portalRoutes));
   app.use('/v1/admin', loadSession, requireAdmin, verifyCsrf, router(adminRoutes));
 
   app.use(notFoundHandler);

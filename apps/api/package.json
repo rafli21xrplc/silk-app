@@ -27,11 +27,12 @@
     "drizzle-orm": "0.45.4",
     "express": "5.3.0",
     "helmet": "8.3.0",
+    "jose": "6.2.15",
+    "pg": "8.23.1",
     "pino": "10.4.0",
     "pino-http": "11.0.0",
     "resend": "6.37.0",
-    "zod": "4.6.7",
-    "pg": "8.23.1"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@silk/config": "workspace:*",

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DEFAULT_STALE_AFTER_DAYS } from '@silk/shared';
+import { DEFAULT_STALE_AFTER_DAYS, parseFeatureFlags, type FeatureFlag } from '@silk/shared';
 
 const optional = z
   .string()
@@ -26,10 +26,12 @@ const schema = z.object({
   SENTRY_DSN: optional,
   POSTHOG_KEY: optional,
   STALE_AFTER_DAYS: z.coerce.number().int().min(1).max(3650).default(DEFAULT_STALE_AFTER_DAYS),
+  /** Feature flag (dipisah koma), default semua OFF. Lihat packages/shared/src/flags.ts. */
+  FEATURE_FLAGS: optional,
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
 });
 
-export type Env = z.infer<typeof schema> & { BETTER_AUTH_SECRET: string };
+export type Env = z.infer<typeof schema> & { BETTER_AUTH_SECRET: string; flags: ReadonlySet<FeatureFlag> };
 
 function load(): Env {
   const parsed = schema.safeParse(process.env);
@@ -45,8 +47,11 @@ function load(): Env {
     );
     if (missing.length) throw new Error(`Variabel wajib di produksi belum diisi: ${missing.join(', ')}`);
   }
+  const flags = parseFeatureFlags(env.FEATURE_FLAGS);
+  if (flags.unknown.length) throw new Error(`FEATURE_FLAGS berisi nama tidak dikenal: ${flags.unknown.join(', ')}`);
   return {
     ...env,
+    flags: flags.enabled,
     // Nilai bawaan hanya untuk dev/test; produksi sudah dicek di atas.
     BETTER_AUTH_SECRET: env.BETTER_AUTH_SECRET ?? 'dev-only-secret-ganti-di-produksi-0123456789abcdef',
   };
@@ -58,5 +63,14 @@ export function env(): Env {
   return cached;
 }
 
+/** Hanya untuk uji: baca ulang env (mis. setelah mengubah FEATURE_FLAGS). */
+export function resetEnvCacheForTests(): void {
+  if (env().NODE_ENV !== 'test') throw new Error('resetEnvCacheForTests hanya untuk NODE_ENV=test');
+  cached = undefined;
+}
+
 export const isProduction = () => env().NODE_ENV === 'production';
 export const isTest = () => env().NODE_ENV === 'test';
+
+/** Flag fitur aktif? Dibaca dari env di server; tanpa state di memori selain cache env. */
+export const featureEnabled = (flag: FeatureFlag): boolean => env().flags.has(flag);

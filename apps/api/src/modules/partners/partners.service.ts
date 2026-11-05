@@ -7,6 +7,7 @@ import { logger } from '../../lib/logger';
 import { decodeOffsetCursor, pageOf } from '../../lib/pagination';
 import { recordAudit } from '../m15-admin/audit.repo';
 import * as repo from './partners.repo';
+import { revalidatePartnerArticles } from '../articles/articles.service';
 
 const PARTNER_LABEL: Record<PartnerType, string> = {
   fasilitas: 'fasilitas kesehatan',
@@ -28,7 +29,7 @@ export async function upsertMyPartner(ctx: ActorContext, input: PartnerUpsertInp
   if (!ctx.role || !isPartnerRole(ctx.role) || partnerTypeForRole(ctx.role) !== input.partnerType) {
     throw new AppError('FORBIDDEN', 'Jenis mitra tidak sesuai dengan jenis akun Anda');
   }
-  return db().transaction(async (tx) => {
+  const saved = await db().transaction(async (tx) => {
     const locked = await repo.lockByUser(tx, userId);
     const before = locked ? await repo.findByUser(tx, userId) : null;
     const after = before ? await repo.resubmitPartner(tx, before.id, input) : await repo.insertPartner(tx, userId, input);
@@ -42,8 +43,11 @@ export async function upsertMyPartner(ctx: ActorContext, input: PartnerUpsertInp
       ip: ctx.ip,
       requestId: ctx.requestId,
     });
-    return after;
+    return { after, wasVerified: before?.status === 'verified' };
   });
+  // Mitra terverifikasi yang mengubah data kembali menunggu: artikelnya ikut tersembunyi (Fase 4).
+  if (saved.wasVerified) await revalidatePartnerArticles(saved.after.id);
+  return saved.after;
 }
 
 /* ---------- Admin ---------- */
@@ -81,6 +85,7 @@ async function decide(
     return after;
   });
   await notifyPartner(result.userId, result.partnerType, decision);
+  if (decision.status === 'verified') await revalidatePartnerArticles(id);
   return result;
 }
 

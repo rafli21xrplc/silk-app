@@ -281,6 +281,27 @@ describe('Fase 4: artikel oleh mitra (F-05)', () => {
     expect(await publicSlugs()).not.toContain(a.slug);
   });
 
+  it('mitra yang mengubah data kembali menunggu: artikel tersembunyi, tampil lagi setelah diverifikasi ulang', async () => {
+    const owner = await createUser({ partner: { type: 'gaya_hidup' } });
+    const a = await publish(owner, 'Artikel mitra yang mengubah data');
+    revalidateCalls.length = 0;
+    const upd = await send(owner, 'put', '/v1/partners/me').send({
+      partnerType: 'gaya_hidup',
+      businessName: 'Studio Uji Ganti Nama',
+      licenseNo: 'IZIN-UJI-123',
+      field: 'Kebugaran',
+    });
+    expect(upd.status, JSON.stringify(upd.body)).toBe(200);
+    expect(upd.body.data.status).toBe('pending');
+    expect((await pub(a.slug)).status).toBe(404);
+    expect(revalidateCalls).toContainEqual(['articles', 'sitemap', `article:${a.slug}`]);
+
+    revalidateCalls.length = 0;
+    expect((await send(moderator, 'post', `/v1/admin/partners/${upd.body.data.id}/approve`)).status).toBe(200);
+    expect((await pub(a.slug)).body.data.author.name).toBe('Studio Uji Ganti Nama');
+    expect(revalidateCalls).toContainEqual(['articles', 'sitemap', `article:${a.slug}`]);
+  });
+
   it(`maksimal ${ARTICLE_MAX_PENDING} artikel menunggu per mitra`, async () => {
     const owner = await createUser({ partner: { type: 'tenaga_medis' } });
     for (let i = 0; i < ARTICLE_MAX_PENDING; i++) {

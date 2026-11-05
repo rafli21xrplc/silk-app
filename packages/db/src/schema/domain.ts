@@ -10,6 +10,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   pgView,
   primaryKey,
@@ -705,5 +706,26 @@ export const tariffChangeRequests = pgTable(
     ),
     check('tariff_change_requests_price_order', sql`${t.priceMax} IS NULL OR ${t.priceMax} >= ${t.priceMin}`),
     check('tariff_change_requests_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
+  ],
+);
+
+/**
+ * Ringkasan rating per profil (Fase 3, P5). Dibuat kosong di Fase 3; Fase 6 mengisinya dari ulasan
+ * yang disetujui. Dibaca pencarian hanya bila flag `reviews_enabled` menyala, dan tidak pernah
+ * dipakai urutan bawaan.
+ */
+export const facilityRatings = pgTable(
+  'facility_ratings',
+  {
+    facilityId: uuid('facility_id')
+      .primaryKey()
+      .references(() => facilities.id, { onDelete: 'cascade' }),
+    ratingAvg: numeric('rating_avg', { precision: 2, scale: 1, mode: 'number' }).notNull(),
+    ratingCount: integer('rating_count').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('facility_ratings_avg_range', sql`${t.ratingAvg} BETWEEN 1 AND 5`),
+    check('facility_ratings_count', sql`${t.ratingCount} >= 0`),
   ],
 );

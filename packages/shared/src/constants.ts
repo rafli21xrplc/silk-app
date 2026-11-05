@@ -125,6 +125,12 @@ export type SortOption = (typeof SORT_OPTIONS)[number];
 export const FACILITY_SORT_OPTIONS = [...SORT_OPTIONS, 'rating'] as const;
 export type FacilitySortOption = (typeof FACILITY_SORT_OPTIONS)[number];
 
+/** Fase 4b: urutan daftar dokter. Netral: relevansi, nama, jarak. Tidak pernah pembayaran atau langganan. */
+export const PRACTITIONER_SORT_OPTIONS = ['relevance', 'name', 'distance'] as const;
+export type PractitionerSortOption = (typeof PRACTITIONER_SORT_OPTIONS)[number];
+/** Jumlah artikel dokter yang ditampilkan di halaman profilnya. */
+export const PRACTITIONER_ARTICLE_LIMIT = 6;
+
 /** Rating dianggap ada setelah sekian ulasan disetujui (filter dan urut rating, Fase 3/6). */
 export const RATING_MIN_COUNT = 3;
 

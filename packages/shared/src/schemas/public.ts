@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { FACILITY_SORT_OPTIONS, FACILITY_TYPES, MEDIA_KINDS, SCHEDULE_KINDS } from '../constants';
+import { FACILITY_SORT_OPTIONS, FACILITY_TYPES, MEDIA_KINDS, PRACTITIONER_SORT_OPTIONS, SCHEDULE_KINDS } from '../constants';
+import { publicArticleSummarySchema } from './article';
 import {
   booleanQuerySchema,
   cursorSchema,
@@ -189,6 +190,18 @@ export const facilityDetailSchema = z.object({
 });
 export type FacilityDetail = z.infer<typeof facilityDetailSchema>;
 
+/** Fase 4b: lencana verifikasi dokter. `partner` = akun mitra tenaga medis berstatus `verified`. */
+export const practitionerVerificationSchema = z.object({ str: z.boolean(), partner: z.boolean() });
+
+const practiceScheduleSchema = z.object({
+  kind: z.enum(SCHEDULE_KINDS),
+  weekday: z.number().int().min(1).max(7),
+  start: z.string(),
+  end: z.string(),
+  timezone: z.string(),
+  note: z.string().nullable(),
+});
+
 export const practitionerDetailSchema = z.object({
   slug: z.string(),
   name: z.string(),
@@ -197,8 +210,85 @@ export const practitionerDetailSchema = z.object({
   strNo: z.string().nullable(),
   strVerifiedAt: z.string().nullable(),
   facilities: z.array(z.object({ slug: z.string(), name: z.string(), city: z.string() })),
+  /* Fase 4b (aditif). Foto, tentang, kontak, video, dan tarif berasal dari profil praktik utama. */
+  verification: practitionerVerificationSchema,
+  /** Foto pertama galeri profil praktik utama yang sudah disetujui. */
+  photo: z.object({ url: z.string(), caption: z.string().nullable() }).nullable(),
+  about: z.string().nullable(),
+  contact: z.object({ phone: z.string().nullable(), website: z.string().nullable() }).nullable(),
+  video: z.object({ url: z.string(), mime: z.string(), durationSec: z.number().nullable(), caption: z.string().nullable() }).nullable(),
+  /** Tempat praktik; profil utama lebih dulu. Jadwal faskes lain hanya yang memuat dokter ini. */
+  practices: z.array(
+    z.object({
+      facility: z.object({ slug: z.string(), name: z.string(), type: z.enum(FACILITY_TYPES), city: z.string() }),
+      isPrimary: z.boolean(),
+      locations: z.array(
+        z.object({
+          label: z.string().nullable(),
+          address: z.string(),
+          city: z.string(),
+          lat: z.number(),
+          lng: z.number(),
+          isPrimary: z.boolean(),
+        }),
+      ),
+      schedules: z.array(practiceScheduleSchema),
+    }),
+  ),
+  /** Tarif terbit profil praktik utama (VIEW published_tariffs). */
+  tariffs: z.array(publicTariffSchema),
+  articles: z.array(publicArticleSummarySchema),
+  /** Fase 6: rating dokter; `null` selama flag reviews_enabled mati. */
+  rating: z.object({ avg: z.number(), count: z.number().int() }).nullable(),
 });
 export type PractitionerDetail = z.infer<typeof practitionerDetailSchema>;
+
+/** Fase 4b: daftar dan pencarian dokter (`GET /v1/practitioners`). */
+export const practitionerSearchQuerySchema = z
+  .object({
+    q: z.string().trim().min(1).max(100).optional(),
+    specialty: z.string().trim().min(1).max(100).optional(),
+    city: z.string().trim().min(1).max(100).optional(),
+    lat: latSchema.optional(),
+    lng: lngSchema.optional(),
+    radius: z.coerce.number().int().min(100).max(50_000).optional(),
+    sort: z.enum(PRACTITIONER_SORT_OPTIONS).optional(),
+    limit: limitSchema,
+    cursor: cursorSchema,
+  })
+  .superRefine((v, ctx) => {
+    if ((v.lat === undefined) !== (v.lng === undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['lat'], message: 'lat dan lng harus diisi bersama' });
+    }
+    if ((v.sort === 'distance' || v.radius !== undefined) && v.lat === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['lat'], message: 'Pengurutan jarak dan radius memerlukan lat/lng' });
+    }
+    if (v.sort === 'relevance' && !v.q) {
+      ctx.addIssue({ code: 'custom', path: ['sort'], message: 'Pengurutan relevansi memerlukan kata kunci' });
+    }
+  });
+export type PractitionerSearchQuery = z.infer<typeof practitionerSearchQuerySchema>;
+
+export const practitionerListItemSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  specialty: z.string().nullable(),
+  verification: practitionerVerificationSchema,
+  photoUrl: z.string().nullable(),
+  /** Kota tempat praktik (unik, maks. 3). */
+  cities: z.array(z.string()),
+  /** Maks. 2 tempat praktik; profil utama lebih dulu. */
+  practices: z.array(z.object({ slug: z.string(), name: z.string() })),
+  practiceCount: z.number().int(),
+  /** Jarak ke tempat praktik terdekat, hanya bila ada titik pencarian. */
+  distanceM: z.number().nullable(),
+  hasVideo: z.boolean(),
+  hasSchedule: z.boolean(),
+});
+export type PractitionerListItem = z.infer<typeof practitionerListItemSchema>;
+
+export const practitionerSpecialtySchema = z.object({ name: z.string(), count: z.number().int() });
+export type PractitionerSpecialty = z.infer<typeof practitionerSpecialtySchema>;
 
 export const serviceListItemSchema = z.object({
   id: uuidSchema,

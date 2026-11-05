@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { priceBounds, priceMatchesRange } from './price';
-import { facilitySearchQuerySchema } from './schemas/public';
+import { facilitySearchQuerySchema, practitionerSearchQuerySchema } from './schemas/public';
 
 describe('rentang harga untuk filter biaya (F-03)', () => {
   it('batas per jenis harga', () => {
@@ -46,5 +46,31 @@ describe('facilitySearchQuerySchema (Fase 3)', () => {
 
   it('urut harga tetap memerlukan layanan', () => {
     expect(ok({ category: 'laboratorium', sort: 'price_asc' })).toBe(false);
+  });
+});
+
+describe('practitionerSearchQuerySchema (Fase 4b)', () => {
+  const parse = (q: Record<string, string>) => practitionerSearchQuerySchema.safeParse(q);
+
+  it('menerima filter dasar dan mengisi limit bawaan', () => {
+    const r = parse({ q: 'anak', specialty: 'Anak', city: 'Malang' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.limit).toBeGreaterThan(0);
+  });
+
+  it('radius dan urut jarak memerlukan lat/lng', () => {
+    expect(parse({ radius: '5000' }).success).toBe(false);
+    expect(parse({ sort: 'distance' }).success).toBe(false);
+    expect(parse({ lat: '-7.98' }).success).toBe(false);
+    expect(parse({ lat: '-7.98', lng: '112.63', radius: '5000', sort: 'distance' }).success).toBe(true);
+  });
+
+  it('urut relevansi memerlukan kata kunci', () => {
+    expect(parse({ sort: 'relevance' }).success).toBe(false);
+    expect(parse({ sort: 'relevance', q: 'jantung' }).success).toBe(true);
+  });
+
+  it('menolak urutan yang tidak dikenal, termasuk harga dan rating', () => {
+    for (const sort of ['price_asc', 'rating', 'promoted', 'subscription']) expect(parse({ sort }).success).toBe(false);
   });
 });

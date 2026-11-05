@@ -12,6 +12,12 @@ export class ApiError extends Error {
   }
 }
 
+export interface ApiMeta {
+  nextCursor?: string | null;
+  /** Fase 3: faskes tanpa angka harga yang tersaring oleh filter biaya. */
+  unpricedCount?: number;
+}
+
 interface FetchOpts {
   /** Tag ISR untuk revalidasi per entitas (bagian 2, alur 1). */
   tags?: string[];
@@ -20,7 +26,7 @@ interface FetchOpts {
 }
 
 /** Pemanggil API di server (Server Component). */
-export async function apiGet<T>(path: string, opts: FetchOpts = {}): Promise<{ data: T; meta?: { nextCursor?: string | null } }> {
+export async function apiGet<T>(path: string, opts: FetchOpts = {}): Promise<{ data: T; meta?: ApiMeta }> {
   let res: Response;
   try {
     res = await fetch(`${API_ORIGIN}/v1${path}`, {
@@ -47,7 +53,7 @@ export async function apiGet<T>(path: string, opts: FetchOpts = {}): Promise<{ d
     }
     throw new ApiError(res.status, code, message);
   }
-  return res.json() as Promise<{ data: T; meta?: { nextCursor?: string | null } }>;
+  return res.json() as Promise<{ data: T; meta?: ApiMeta }>;
 }
 
 /** Sama seperti apiGet tetapi 404 menjadi null (untuk notFound()). */

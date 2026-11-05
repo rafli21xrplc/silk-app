@@ -6,6 +6,7 @@ export type {
   PractitionerDetail,
   PublicTariff,
   ServiceDetail,
+  ServiceCategory,
   ServiceListItem,
   TariffHistoryItem,
   Trust,

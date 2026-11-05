@@ -1,0 +1,46 @@
+{
+  "name": "@silk/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "1.3.1",
+    "@radix-ui/react-popover": "1.3.1",
+    "@silk/shared": "workspace:*",
+    "@tailwindcss/postcss": "4.3.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
+    "date-fns": "4.4.0",
+    "gsap": "3.15.0",
+    "lucide-react": "1.66.0",
+    "maplibre-gl": "5.24.0",
+    "next": "15.5.28",
+    "postcss": "8.5.32",
+    "posthog-js": "1.438.10",
+    "qrcode": "1.5.4",
+    "react": "19.2.9",
+    "react-day-picker": "10.0.2",
+    "react-dom": "19.2.9",
+    "server-only": "0.0.1",
+    "tailwind-merge": "3.7.0",
+    "tailwindcss": "4.3.3"
+  },
+  "devDependencies": {
+    "@silk/config": "workspace:*",
+    "@tailwindcss/typography": "0.5.20",
+    "@types/node": "20.19.43",
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "vitest": "3.2.7"
+  }
+}

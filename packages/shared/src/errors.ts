@@ -1,0 +1,41 @@
+/** Kode error stabil. Klien boleh bergantung pada nilai ini; jangan ganti nama. */
+export const ERROR_CODES = {
+  VALIDATION_FAILED: 400,
+  UNAUTHENTICATED: 401,
+  SESSION_EXPIRED: 401,
+  FORBIDDEN: 403,
+  MFA_REQUIRED: 403,
+  CSRF_INVALID: 403,
+  NOT_FOUND: 404,
+  FACILITY_NOT_FOUND: 404,
+  PRACTITIONER_NOT_FOUND: 404,
+  SERVICE_NOT_FOUND: 404,
+  TARIFF_NOT_FOUND: 404,
+  CLAIM_NOT_FOUND: 404,
+  IMPORT_NOT_FOUND: 404,
+  REPORT_NOT_FOUND: 404,
+  TARIFF_VERSION_CONFLICT: 409,
+  CONFLICT: 409,
+  CLAIM_ALREADY_EXISTS: 409,
+  IMPORT_ROW_INVALID: 422,
+  IMPORT_NOT_READY: 422,
+  CONTENT_RULE_VIOLATION: 422,
+  DOCUMENT_INVALID: 422,
+  CLAIM_DOCUMENT_REQUIRED: 422,
+  TURNSTILE_FAILED: 422,
+  RATE_LIMITED: 429,
+  INTERNAL: 500,
+} as const;
+
+export type ErrorCode = keyof typeof ERROR_CODES;
+
+export interface ErrorDetail {
+  path?: string;
+  message: string;
+  [key: string]: unknown;
+}
+
+export interface ErrorBody {
+  error: { code: ErrorCode; message: string; details?: ErrorDetail[] };
+  requestId?: string;
+}

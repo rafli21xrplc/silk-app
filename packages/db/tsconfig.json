@@ -1,0 +1,4 @@
+{
+  "extends": "@silk/config/tsconfig.node.json",
+  "include": ["src", "seed", "drizzle.config.ts"]
+}

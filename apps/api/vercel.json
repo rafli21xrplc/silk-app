@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["sin1"],
+  "functions": {
+    "api/index.ts": { "maxDuration": 300 }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "crons": [
+    { "path": "/v1/internal/jobs/process-queue", "schedule": "*/10 * * * *" },
+    { "path": "/v1/internal/jobs/stale-reminders", "schedule": "0 1 * * *" },
+    { "path": "/v1/internal/jobs/retention", "schedule": "30 1 * * *" }
+  ]
+}

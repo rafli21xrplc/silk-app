@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      # Uji integrasi butuh Postgres + PostGIS. Isi secret TEST_DATABASE_URL dengan branch Neon
+      # khusus CI (database ini dikosongkan setiap kali uji berjalan).
+      - name: Migrasi database uji
+        if: ${{ env.TEST_DATABASE_URL != '' }}
+        run: pnpm --filter @silk/db db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.TEST_DATABASE_URL }}
+      - name: Uji (unit + integrasi)
+        if: ${{ env.TEST_DATABASE_URL != '' }}
+        run: pnpm test
+      - name: Uji unit saja (secret TEST_DATABASE_URL belum diisi)
+        if: ${{ env.TEST_DATABASE_URL == '' }}
+        run: pnpm --filter @silk/shared test
+      - name: Build web
+        run: pnpm --filter @silk/web build

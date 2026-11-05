@@ -1,0 +1,1 @@
+ALTER TABLE "tariff_versions" ADD CONSTRAINT "tariff_versions_ask_no_price" CHECK ("tariff_versions"."price_type" <> 'tanya' OR ("tariff_versions"."price_min" IS NULL AND "tariff_versions"."price_max" IS NULL));

@@ -1,0 +1,49 @@
+{
+  "name": "@silk/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src api test scripts",
+    "test": "vitest run",
+    "openapi": "tsx scripts/openapi.ts",
+    "create-admin": "tsx --env-file-if-exists=../../.env scripts/create-admin.ts",
+    "auth:generate": "npx @better-auth/cli@1.4.21 generate --config src/auth/auth.ts --output ../../packages/db/src/schema/auth.generated.ts"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "8.5.0",
+    "@aws-sdk/client-s3": "3.1161.0",
+    "@aws-sdk/s3-request-presigner": "3.1161.0",
+    "@node-rs/argon2": "2.2.2",
+    "@silk/db": "workspace:*",
+    "@silk/shared": "workspace:*",
+    "better-auth": "1.7.15",
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.6",
+    "csv-parse": "7.0.3",
+    "drizzle-orm": "0.45.4",
+    "express": "5.3.0",
+    "helmet": "8.3.0",
+    "pino": "10.4.0",
+    "pino-http": "11.0.0",
+    "resend": "6.37.0",
+    "zod": "4.6.7",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@silk/config": "workspace:*",
+    "@types/cookie-parser": "1.4.10",
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/node": "20.19.43",
+    "@types/supertest": "7.2.1",
+    "supertest": "7.3.1",
+    "tsx": "4.23.15",
+    "vitest": "3.2.7",
+    "dotenv": "17.4.2",
+    "@types/pg": "8.23.1"
+  }
+}

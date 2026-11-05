@@ -1,0 +1,37 @@
+{
+  "name": "silk",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test --concurrency=1",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @silk/db db:generate",
+    "db:migrate": "pnpm --filter @silk/db db:migrate",
+    "db:seed": "pnpm --filter @silk/db db:seed",
+    "db:seed:demo": "pnpm --filter @silk/db db:seed:demo"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "@node-rs/argon2",
+      "unrs-resolver"
+    ]
+  }
+}

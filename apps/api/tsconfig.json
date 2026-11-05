@@ -1,0 +1,4 @@
+{
+  "extends": "@silk/config/tsconfig.node.json",
+  "include": ["src", "api", "test", "scripts", "vitest.config.ts"]
+}

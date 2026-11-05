@@ -1,0 +1,673 @@
+/*
+ * Sistem desain SILK: tenang, lega, dapat dipercaya. Mobile-first, kontras WCAG AA.
+ * Token di @theme menjadi utility Tailwind (bg-canvas, text-ink, text-primary-700, shadow-soft, ...).
+ * Kelas komponen di bawah dipakai halaman yang belum memakai utility langsung (portal, admin, formulir).
+ */
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Netral segar (putih kehijauan). Kontras: ink 14:1, muted 5.2:1 di atas canvas. */
+  --color-canvas: #f6faf9;
+  --color-surface: #eef5f3;
+  --color-surface-2: #e8f0ee;
+  --color-ink: #1a2b2a;
+  --color-ink-soft: #364a48;
+  --color-muted: #5a6e6b;
+  --color-line: #dfe9e6;
+  --color-line-strong: #c5d4d0;
+  --color-field: #869a96; /* border input: >= 3:1 terhadap putih (WCAG 1.4.11) */
+
+  /* Utama: teal segar. Tombol = 600 (teks putih 5.1:1); teks/tautan = 700 (6:1 di atas canvas). */
+  --color-primary-50: #eef8f6;
+  --color-primary-100: #e3f5ef;
+  --color-primary-200: #c4e9df;
+  --color-primary-300: #97d6c6;
+  --color-primary-400: #5fbda8;
+  --color-primary-500: #2e9e8c;
+  --color-primary-600: #0e7c74;
+  --color-primary-700: #0b6b64;
+  --color-primary-800: #0a5650;
+  --color-primary-900: #08433f;
+
+  /* Pastel untuk ubin kategori; pasangan teksnya lolos AA (5.5–6.7:1). */
+  --color-mint: #e3f5ef;
+  --color-mint-ink: #0b6b64;
+  --color-sky: #e5f1fb;
+  --color-sky-ink: #1e5f8c;
+  --color-peach: #fdede4;
+  --color-peach-ink: #9a4a1f;
+  --color-lilac: #efeafb;
+  --color-lilac-ink: #5b3fa0;
+  --color-lemon: #fbf5dc;
+  --color-lemon-ink: #7a5b00;
+
+  /* Aksen hangat untuk latar dekoratif. */
+  --color-sand-50: #fdf8f2;
+  --color-sand-100: #f8eee0;
+  --color-sand-200: #f0e0c8;
+
+  /* Status (teks di atas latar lembutnya, semua >= 5.6:1). */
+  --color-ok: #1f6b45;
+  --color-ok-soft: #e6f3ec;
+  --color-warn: #8a4b00;
+  --color-warn-soft: #fbf1e1;
+  --color-warn-line: #ecc98f;
+  --color-danger: #a1262d;
+  --color-danger-soft: #fbebec;
+  --color-violet: #5b3fa0;
+  --color-violet-soft: #f0ecfa;
+
+  --radius-card: 1.5rem;
+  --radius-field: 0.875rem;
+
+  /* Bayangan lebar dan bernuansa teal: lembut, tidak "kotor". */
+  --shadow-soft: 0 1px 2px rgb(14 124 116 / 0.04), 0 6px 20px -6px rgb(14 60 56 / 0.08);
+  --shadow-lift: 0 2px 6px rgb(14 124 116 / 0.05), 0 22px 48px -16px rgb(14 60 56 / 0.18);
+  --shadow-focus: 0 0 0 4px rgb(46 158 140 / 0.2);
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-rise: rise 0.7s var(--ease-soft) both;
+  --animate-float: float 7s ease-in-out infinite alternate;
+  @keyframes float {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+}
+
+@keyframes skeleton-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* ---------- Dasar ---------- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 88px;
+  }
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+    font-size: 16px;
+    line-height: 1.6;
+    color-scheme: light;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-bold tracking-tight text-ink;
+    line-height: 1.2;
+    margin: 0 0 0.5em;
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.6rem);
+    letter-spacing: -0.025em;
+  }
+  h2 {
+    font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+    margin-top: 2em;
+  }
+  h3 {
+    font-size: 1.075rem;
+  }
+  p {
+    margin: 0 0 1em;
+    text-wrap: pretty;
+  }
+  a {
+    @apply text-primary-700 underline-offset-[3px] transition-colors duration-200;
+  }
+  a:hover {
+    @apply text-primary-800;
+    text-decoration-thickness: 2px;
+  }
+  :focus-visible {
+    outline: 3px solid #e3a008;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  /* Preflight menghapus penanda daftar; daftar teks tanpa kelas tetap berpenanda. */
+  main :where(ul:not([class]), ol:not([class])) {
+    list-style: revert;
+    padding-left: 1.4rem;
+    margin: 0 0 1em;
+  }
+  main :where(ul:not([class]), ol:not([class])) > li + li {
+    margin-top: 0.35em;
+  }
+  ::selection {
+    @apply bg-primary-200 text-ink;
+  }
+  input:not([type='checkbox'], [type='radio'], [type='hidden'], [type='file']),
+  select,
+  textarea {
+    @apply w-full rounded-field border border-field bg-white px-3.5 text-ink transition-[border-color,box-shadow] duration-200;
+    min-height: 46px;
+    padding-block: 10px;
+    font: inherit;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-muted;
+  }
+  input:hover:not(:disabled),
+  select:hover:not(:disabled),
+  textarea:hover:not(:disabled) {
+    @apply border-ink-soft;
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply border-primary-600;
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+  select {
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235b6b68' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+  }
+  textarea {
+    min-height: 104px;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply size-[18px] shrink-0 accent-primary-700;
+    margin-top: 3px;
+  }
+  input[type='file'] {
+    @apply text-sm file:mr-3 file:rounded-full file:border-0 file:bg-primary-100 file:px-4 file:py-2 file:font-semibold file:text-primary-800;
+  }
+  /* Tombol polos di portal/admin: tampil sebagai tombol sekunder lembut. */
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ---------- Komponen ---------- */
+@layer components {
+  .container {
+    @apply mx-auto w-full max-w-[1160px] px-4 sm:px-6;
+  }
+  main {
+    @apply min-h-[60vh] pt-6 pb-16 sm:pt-10;
+  }
+  .skip-link {
+    @apply fixed top-3 -left-[9999px] z-[100] rounded-full bg-primary-700 px-4 py-2 font-semibold text-white no-underline;
+  }
+  .skip-link:focus {
+    @apply left-3 text-white;
+  }
+  .muted {
+    @apply text-muted;
+  }
+  .small {
+    @apply text-sm;
+  }
+  .error {
+    @apply text-danger;
+  }
+  .success {
+    @apply text-ok;
+  }
+  .stack > * + * {
+    margin-top: 1rem;
+  }
+  .grid {
+    @apply grid gap-4;
+  }
+  .grid-2 {
+    @apply md:grid-cols-2;
+  }
+  .grid-3 {
+    @apply md:grid-cols-3;
+  }
+  .narrow {
+    @apply max-w-[720px];
+  }
+  .plain {
+    @apply m-0 list-none p-0;
+  }
+  .plain.stack > li + li {
+    margin-top: 0.75rem;
+  }
+  .row {
+    @apply flex flex-wrap items-end gap-3;
+  }
+  .row > label {
+    flex: 1 1 180px;
+  }
+  .grow {
+    flex: 1 1 240px;
+  }
+  .actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  /* Tombol. Varian JSX baru memakai buttonVariants (src/components/ui/button.ts). */
+  .btn,
+  button:not([class]),
+  button.secondary,
+  .secondary,
+  .btn-primary,
+  .btn-danger {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-line-strong bg-white px-5 text-[0.95rem] font-semibold text-ink no-underline shadow-[0_1px_1px_rgb(28_40_38/0.04)] transition-[background-color,border-color,box-shadow,transform] duration-200 ease-soft select-none;
+  }
+  .btn:hover,
+  button:not([class]):hover,
+  .secondary:hover {
+    @apply border-primary-300 bg-primary-50 text-ink no-underline;
+  }
+  .btn:active,
+  button:not([class]):active,
+  .btn-primary:active {
+    transform: translateY(1px);
+  }
+  .btn-primary {
+    @apply border-primary-600 bg-primary-600 text-white shadow-[0_8px_20px_-8px_rgb(14_124_116/0.6)];
+  }
+  .btn-primary:hover {
+    @apply border-primary-700 bg-primary-700 text-white;
+  }
+  .btn-danger {
+    @apply border-danger bg-danger text-white;
+  }
+  .btn-danger:hover {
+    @apply bg-[#8a1f25] text-white;
+  }
+  .btn-link,
+  button.btn-link {
+    @apply inline min-h-0 rounded-none border-0 bg-transparent p-0 font-medium text-primary-700 underline underline-offset-[3px] shadow-none;
+  }
+  .btn-link:hover {
+    @apply bg-transparent text-primary-800;
+  }
+  .btn[disabled],
+  button[disabled] {
+    @apply opacity-55;
+  }
+
+  /* Formulir */
+  .form {
+    @apply grid max-w-[560px] gap-4;
+  }
+  .form label,
+  .stack label,
+  .row label,
+  .filters label {
+    @apply grid gap-1.5 text-[0.925rem] font-semibold text-ink-soft;
+  }
+  .form .help {
+    @apply text-[0.85rem] font-normal text-muted;
+  }
+  .form .check,
+  label.checkbox,
+  .stack label.checkbox,
+  .filters label.checkbox {
+    @apply flex items-start gap-2.5 font-normal text-ink;
+  }
+  fieldset {
+    @apply m-0 rounded-card border border-line bg-white p-4;
+  }
+  legend {
+    @apply px-1 font-semibold;
+  }
+  .filters {
+    @apply mb-5 grid items-end gap-3 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))];
+  }
+
+  /* Kartu & permukaan */
+  .card {
+    @apply rounded-card border border-line bg-white p-5 shadow-soft;
+  }
+  .card h3 {
+    @apply mb-1;
+  }
+  .card h3 a {
+    @apply no-underline;
+  }
+  .notice {
+    @apply rounded-card border border-primary-100 bg-primary-50 px-4 py-3 text-ink-soft;
+  }
+  .chips {
+    @apply m-0 flex list-none flex-wrap gap-2 p-0;
+  }
+  .chips a {
+    @apply inline-block rounded-full border border-line bg-white px-4 py-2 text-ink no-underline shadow-soft transition-colors hover:border-primary-300 hover:bg-primary-50;
+  }
+  .list {
+    @apply m-0 grid list-none gap-3 p-0;
+  }
+
+  /* Harga & kepercayaan */
+  .price {
+    @apply font-bold tracking-tight text-ink tabular-nums;
+  }
+  .price-lg {
+    @apply text-[1.4rem];
+  }
+  .price-ask {
+    @apply font-semibold text-muted;
+  }
+  .badge {
+    @apply inline-flex w-fit items-center gap-1 rounded-full border border-transparent px-2.5 py-0.5 text-[0.75rem] leading-5 font-semibold whitespace-nowrap;
+  }
+  .badge-publik_belum_diverifikasi,
+  .badge-status {
+    @apply bg-surface-2 text-ink-soft;
+  }
+  .badge-dari_dokumen_publik {
+    @apply bg-primary-100 text-primary-800;
+  }
+  .badge-diisi_faskes {
+    @apply bg-violet-soft text-violet;
+  }
+  .badge-diverifikasi_admin {
+    @apply bg-ok-soft text-ok;
+  }
+  .badge-stale {
+    @apply border-warn-line bg-warn-soft text-warn;
+  }
+  .kv {
+    @apply m-0 grid grid-cols-[max-content_1fr] gap-x-5 gap-y-2;
+  }
+  .kv dt {
+    @apply text-muted;
+  }
+  .kv dd {
+    @apply m-0;
+  }
+
+  /* Tabel */
+  .table-scroll {
+    @apply overflow-x-auto rounded-card border border-line bg-white shadow-soft;
+  }
+  .table-scroll table,
+  main table {
+    @apply w-full border-collapse text-[0.92rem];
+  }
+  main th,
+  main td {
+    @apply border-b border-line px-4 py-3 text-left align-top;
+  }
+  main tbody tr:last-child > * {
+    @apply border-b-0;
+  }
+  main thead th {
+    @apply sticky top-0 bg-surface text-[0.8rem] font-semibold tracking-wide whitespace-nowrap text-muted uppercase;
+  }
+  main tbody th {
+    @apply min-w-[180px] font-semibold;
+  }
+  main tbody tr {
+    @apply transition-colors duration-150 hover:bg-primary-50/60;
+  }
+  .row-stale {
+    @apply bg-warn-soft/50;
+  }
+
+  /* Navigasi aplikasi (portal/admin) */
+  .tabs {
+    @apply mb-6 flex gap-1 overflow-x-auto border-b border-line pb-px [scrollbar-width:none];
+  }
+  .tabs a {
+    @apply relative shrink-0 rounded-t-lg px-3 py-2.5 text-[0.925rem] font-semibold whitespace-nowrap text-muted no-underline hover:text-ink;
+  }
+  .tabs a[aria-current='page'] {
+    @apply text-primary-800 after:absolute after:inset-x-2 after:-bottom-px after:h-[3px] after:rounded-full after:bg-primary-700 after:content-[''];
+  }
+  .app-head {
+    @apply mb-4 flex flex-wrap items-baseline justify-between gap-2;
+  }
+
+  /* Dialog bawaan dengan transisi lembut (@starting-style; tanpa JS). */
+  .dialog {
+    @apply m-auto w-[min(540px,calc(100vw-32px))] rounded-[1.5rem] border border-line bg-white p-6 text-ink shadow-lift;
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+    transition:
+      opacity 0.3s var(--ease-soft),
+      transform 0.3s var(--ease-soft),
+      overlay 0.3s allow-discrete,
+      display 0.3s allow-discrete;
+  }
+  .dialog[open] {
+    opacity: 1;
+    transform: none;
+  }
+  @starting-style {
+    .dialog[open] {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+  }
+  .dialog::backdrop {
+    background: rgb(28 40 38 / 0);
+    backdrop-filter: blur(0);
+    transition:
+      background 0.3s,
+      backdrop-filter 0.3s,
+      overlay 0.3s allow-discrete,
+      display 0.3s allow-discrete;
+  }
+  .dialog[open]::backdrop {
+    background: rgb(28 40 38 / 0.38);
+    backdrop-filter: blur(3px);
+  }
+  @starting-style {
+    .dialog[open]::backdrop {
+      background: rgb(28 40 38 / 0);
+      backdrop-filter: blur(0);
+    }
+  }
+  .dialog h2 {
+    @apply mt-0;
+  }
+
+  main :not(pre) > code {
+    @apply rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[0.85em] [overflow-wrap:anywhere];
+  }
+  main pre,
+  pre.code {
+    @apply max-h-[360px] overflow-x-auto rounded-xl border border-line bg-surface p-3 font-mono text-[0.85rem];
+  }
+  /* Skeleton: muncul lembut setelah 120 ms (tidak berkedip bila data cepat), lalu shimmer pelan. */
+  .skeleton {
+    background: linear-gradient(90deg, var(--color-surface-2) 30%, var(--color-surface) 50%, var(--color-surface-2) 70%);
+    background-size: 300% 100%;
+    animation:
+      skeleton-in 0.35s var(--ease-soft) 0.12s both,
+      skeleton-shimmer 1.6s ease-in-out infinite;
+  }
+  .map {
+    @apply h-[280px] w-full overflow-hidden rounded-card border border-line shadow-soft md:h-full md:min-h-[320px];
+  }
+}
+
+/* Hero dekoratif: cahaya lembut, tidak terbaca pembaca layar. */
+@utility bg-aurora {
+  background:
+    radial-gradient(60% 70% at 12% 10%, rgb(196 233 223 / 0.6), transparent 70%),
+    radial-gradient(50% 60% at 92% 0%, rgb(236 220 194 / 0.55), transparent 70%),
+    radial-gradient(40% 50% at 70% 100%, rgb(224 239 235 / 0.7), transparent 70%),
+    var(--color-canvas);
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+/* Warna plugin typography (.prose) mengikuti token SILK. Tanpa layer agar menimpa nilai bawaan plugin. */
+.prose {
+  --tw-prose-body: var(--color-ink-soft);
+  --tw-prose-headings: var(--color-ink);
+  --tw-prose-lead: var(--color-muted);
+  --tw-prose-links: var(--color-primary-700);
+  --tw-prose-bold: var(--color-ink);
+  --tw-prose-counters: var(--color-primary-600);
+  --tw-prose-bullets: var(--color-primary-300);
+  --tw-prose-hr: var(--color-line);
+  --tw-prose-quotes: var(--color-ink);
+  --tw-prose-quote-borders: var(--color-primary-200);
+  --tw-prose-captions: var(--color-muted);
+  --tw-prose-code: var(--color-ink);
+  --tw-prose-th-borders: var(--color-line-strong);
+  --tw-prose-td-borders: var(--color-line);
+  max-width: 70ch;
+}
+.prose :where(a):not(:where([class~='not-prose'] *)) {
+  text-underline-offset: 3px;
+}
+
+/* ---------- Popover, bottom sheet, kalender ---------- */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+.pop {
+  transform-origin: var(--radix-popover-content-transform-origin);
+}
+.pop[data-state='open'] {
+  animation: pop-in 0.18s var(--ease-soft);
+}
+.pop[data-state='closed'] {
+  animation: pop-out 0.12s ease-in;
+}
+.sheet[data-state='open'] {
+  animation: sheet-in 0.32s var(--ease-soft);
+}
+.sheet[data-state='closed'] {
+  animation: sheet-out 0.2s ease-in;
+}
+.sheet-overlay[data-state='open'] {
+  animation: fade-in 0.25s ease-out;
+}
+.sheet-overlay[data-state='closed'] {
+  animation: fade-out 0.2s ease-in;
+}
+/* cmdk: hapus gaya bawaan input dasar untuk kolom cari di panel. */
+[cmdk-input] {
+  min-height: 44px;
+}
+
+.silk-calendar .rdp-root {
+  --rdp-accent-color: var(--color-primary-600);
+  --rdp-accent-background-color: var(--color-primary-50);
+  --rdp-today-color: var(--color-primary-700);
+  --rdp-day-height: 42px;
+  --rdp-day-width: 42px;
+  --rdp-day_button-height: 40px;
+  --rdp-day_button-width: 40px;
+  --rdp-day_button-border-radius: 999px;
+  --rdp-selected-border: 0;
+  --rdp-nav-height: 2.5rem;
+  font-size: 0.925rem;
+  margin: 0 auto;
+}
+.silk-calendar .rdp-caption_label {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.silk-calendar .rdp-weekday {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  opacity: 1;
+}
+.silk-calendar .rdp-day_button {
+  transition: background-color 0.15s;
+}
+.silk-calendar .rdp-day_button:hover {
+  background: var(--color-primary-50);
+}
+.silk-calendar .rdp-selected .rdp-day_button {
+  background: var(--color-primary-600);
+  color: #fff;
+  font-weight: 700;
+}
+.silk-calendar .rdp-today:not(.rdp-selected) .rdp-day_button {
+  box-shadow: inset 0 0 0 1.5px var(--color-primary-300);
+  font-weight: 700;
+}
+.silk-calendar .rdp-button_previous,
+.silk-calendar .rdp-button_next {
+  border-radius: 999px;
+}
+.silk-calendar .rdp-button_previous:hover,
+.silk-calendar .rdp-button_next:hover {
+  background: var(--color-surface-2);
+}
+.silk-calendar .rdp-chevron {
+  fill: var(--color-primary-700);
+}
+.silk-calendar .rdp-outside {
+  opacity: 0.45;
+}

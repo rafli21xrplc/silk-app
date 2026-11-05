@@ -82,12 +82,27 @@ export function tariffQueue(db: DbOrTx, f: { status: EntityStatus; limit: number
 
 /** Jumlah item yang menunggu tindakan di tiap antrean (ringkasan panel admin). */
 export async function queueCounts(db: DbOrTx) {
-  const result = await db.execute<{ claims: number; tariffs: number; reports: number; imports: number }>(sql`
+  type Counts = {
+    claims: number;
+    tariffs: number;
+    reports: number;
+    imports: number;
+    profiles: number;
+    revisions: number;
+    media: number;
+    tariffRequests: number;
+  };
+  // Batch portal yang tervalidasi menunggu lewat permintaan harga, bukan antrean impor admin.
+  const result = await db.execute<Counts>(sql`
     SELECT
       (SELECT count(*)::int FROM facility_claims WHERE status = 'menunggu') AS claims,
       (SELECT count(*)::int FROM tariffs WHERE status = 'menunggu_tinjauan') AS tariffs,
       (SELECT count(*)::int FROM data_reports WHERE status = 'baru') AS reports,
-      (SELECT count(*)::int FROM import_batches WHERE status IN ('divalidasi', 'ditinjau')) AS imports
+      (SELECT count(*)::int FROM import_batches WHERE status IN ('divalidasi', 'ditinjau') AND facility_id IS NULL) AS imports,
+      (SELECT count(*)::int FROM facilities WHERE status = 'menunggu_tinjauan') AS profiles,
+      (SELECT count(*)::int FROM profile_revisions WHERE status = 'pending') AS revisions,
+      (SELECT count(*)::int FROM profile_media WHERE status = 'pending' AND confirmed_at IS NOT NULL) AS media,
+      (SELECT count(*)::int FROM tariff_change_requests WHERE status = 'pending') AS "tariffRequests"
   `);
-  return result.rows[0] ?? { claims: 0, tariffs: 0, reports: 0, imports: 0 };
+  return result.rows[0] ?? { claims: 0, tariffs: 0, reports: 0, imports: 0, profiles: 0, revisions: 0, media: 0, tariffRequests: 0 };
 }

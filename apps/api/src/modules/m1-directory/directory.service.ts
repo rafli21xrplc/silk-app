@@ -10,6 +10,8 @@ import { decodeOffsetCursor, pageOf } from '../../lib/pagination';
 import { publicTariffsForFacility } from '../m2-tariffs/tariffs.service';
 import { findServiceBySlug } from '../m2-tariffs/tariffs.repo';
 import { toPrice, toTrust } from '../m4-trust/trust.mapper';
+import { publicMedia } from '../profiles/media.service';
+import { publicProfileExtras } from '../profiles/profiles.service';
 import * as repo from './directory.repo';
 
 export async function searchFacilities(q: FacilitySearchQuery, now = new Date()) {
@@ -70,9 +72,11 @@ export async function searchFacilities(q: FacilitySearchQuery, now = new Date())
 export async function getFacility(slug: string, now = new Date()): Promise<FacilityDetail> {
   const f = await repo.findPublishedFacilityBySlug(db(), slug);
   if (!f) throw notFound('FACILITY_NOT_FOUND', 'Faskes');
-  const [practitionerRows, tariffs] = await Promise.all([
+  const [practitionerRows, tariffs, extras, media] = await Promise.all([
     repo.practitionersForFacility(db(), f.id),
     publicTariffsForFacility(f.id, now),
+    publicProfileExtras(f.id),
+    publicMedia(f.id),
   ]);
   return {
     id: f.id,
@@ -92,6 +96,9 @@ export async function getFacility(slug: string, now = new Date()): Promise<Facil
     updatedAt: f.updatedAt.toISOString(),
     practitioners: practitionerRows,
     tariffs,
+    locations: extras.locations,
+    schedules: extras.schedules,
+    media,
   };
 }
 

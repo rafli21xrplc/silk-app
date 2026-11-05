@@ -1,8 +1,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -36,10 +37,28 @@ export interface Storage {
   /** Byte awal objek (untuk cek magic bytes). */
   readStart(key: string, bytes: number): Promise<Buffer>;
   readAll(key: string): Promise<Buffer>;
+  /** Potongan objek `[start, start + length)`; lebih pendek bila objek berakhir lebih dulu. */
+  readRange(key: string, start: number, length: number): Promise<Buffer>;
   delete(key: string): Promise<void>;
+  /**
+   * Salin objek ke penyimpanan media publik (hanya media yang sudah disetujui moderator) dan
+   * kembalikan URL publiknya. Objek privat tidak berubah.
+   */
+  publish(key: string): Promise<string>;
+  /** Hapus salinan publik (media dihapus atau ditarik). Aman bila tidak ada. */
+  unpublish(key: string): Promise<void>;
+}
+
+/** Konfigurasi media publik R2: bucket terpisah yang dilayani lewat domain publik. */
+export interface PublicMediaConfig {
+  bucket: string;
+  baseUrl: string;
 }
 
 const UPLOAD_TTL_SEC = 600;
+
+/** URL media publik di dev/test, dilayani rute /v1/dev/storage/public (tidak ada di produksi). */
+export const devPublicUrl = (key: string) => `${env().API_ORIGIN}/v1/dev/storage/public/${key}`;
 
 class R2Storage implements Storage {
   private client: S3Client;
@@ -48,6 +67,7 @@ class R2Storage implements Storage {
     accessKeyId: string,
     secretAccessKey: string,
     private bucket: string,
+    private media: PublicMediaConfig | null,
   ) {
     this.client = new S3Client({
       region: 'auto',
@@ -97,8 +117,39 @@ class R2Storage implements Storage {
     return Buffer.from(await r.Body!.transformToByteArray());
   }
 
+  async readRange(key: string, start: number, length: number): Promise<Buffer> {
+    if (length <= 0) return Buffer.alloc(0);
+    const r = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: `bytes=${start}-${start + length - 1}` }),
+    );
+    return Buffer.from(await r.Body!.transformToByteArray());
+  }
+
   async delete(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
+
+  async publish(key: string): Promise<string> {
+    const media = this.media;
+    if (!media) {
+      if (isProduction()) throw new Error('R2_MEDIA_BUCKET dan MEDIA_PUBLIC_BASE_URL belum diisi');
+      // Dev tanpa bucket media: rute dev mengalihkan ke signed URL untuk media yang sudah disetujui.
+      return devPublicUrl(key);
+    }
+    await this.client.send(
+      new CopyObjectCommand({
+        Bucket: media.bucket,
+        Key: key,
+        CopySource: `${this.bucket}/${encodeURIComponent(key).replace(/%2F/g, '/')}`,
+        CacheControl: 'public, max-age=31536000, immutable',
+      }),
+    );
+    return `${media.baseUrl.replace(/\/$/, '')}/${key}`;
+  }
+
+  async unpublish(key: string): Promise<void> {
+    if (!this.media) return;
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.media.bucket, Key: key }));
   }
 }
 
@@ -108,15 +159,26 @@ class R2Storage implements Storage {
  */
 export class LocalStorage implements Storage {
   readonly root = path.join(os.tmpdir(), 'silk-uploads');
+  /** Salinan media yang sudah disetujui; dilayani tanpa tanda tangan seperti domain publik R2. */
+  readonly publicRoot = path.join(os.tmpdir(), 'silk-public');
 
   private sign(payload: string): string {
     return createHmac('sha256', env().BETTER_AUTH_SECRET).update(payload).digest('base64url');
   }
 
-  private filePath(key: string): string {
-    const resolved = path.resolve(this.root, key);
-    if (!resolved.startsWith(this.root + path.sep)) throw new Error('Kunci objek tidak valid');
+  private filePath(key: string, root = this.root): string {
+    const resolved = path.resolve(root, key);
+    if (!resolved.startsWith(root + path.sep)) throw new Error('Kunci objek tidak valid');
     return resolved;
+  }
+
+  /** Path berkas publik untuk rute dev; null bila kunci keluar dari direktori publik. */
+  publicFilePath(key: string): string | null {
+    try {
+      return this.filePath(key, this.publicRoot);
+    } catch {
+      return null;
+    }
   }
 
   async presignPut(key: string, contentType: string, sizeBytes: number): Promise<PresignedUpload> {
@@ -179,10 +241,33 @@ export class LocalStorage implements Storage {
     return readFile(this.filePath(key));
   }
 
+  async readRange(key: string, start: number, length: number): Promise<Buffer> {
+    if (length <= 0) return Buffer.alloc(0);
+    const fh = await open(this.filePath(key), 'r');
+    try {
+      const buf = Buffer.alloc(length);
+      const { bytesRead } = await fh.read(buf, 0, length, start);
+      return buf.subarray(0, bytesRead);
+    } finally {
+      await fh.close();
+    }
+  }
+
   async delete(key: string): Promise<void> {
     const file = this.filePath(key);
     await rm(file, { force: true });
     await rm(`${file}.meta`, { force: true });
+  }
+
+  async publish(key: string): Promise<string> {
+    const target = this.filePath(key, this.publicRoot);
+    await mkdir(path.dirname(target), { recursive: true });
+    await copyFile(this.filePath(key), target);
+    return devPublicUrl(key);
+  }
+
+  async unpublish(key: string): Promise<void> {
+    await rm(this.filePath(key, this.publicRoot), { force: true });
   }
 }
 
@@ -192,7 +277,8 @@ export function storage(): Storage {
   if (instance) return instance;
   const e = env();
   if (e.R2_ACCOUNT_ID && e.R2_ACCESS_KEY_ID && e.R2_SECRET_ACCESS_KEY && e.R2_BUCKET) {
-    instance = new R2Storage(e.R2_ACCOUNT_ID, e.R2_ACCESS_KEY_ID, e.R2_SECRET_ACCESS_KEY, e.R2_BUCKET);
+    const media = e.R2_MEDIA_BUCKET && e.MEDIA_PUBLIC_BASE_URL ? { bucket: e.R2_MEDIA_BUCKET, baseUrl: e.MEDIA_PUBLIC_BASE_URL } : null;
+    instance = new R2Storage(e.R2_ACCOUNT_ID, e.R2_ACCESS_KEY_ID, e.R2_SECRET_ACCESS_KEY, e.R2_BUCKET, media);
   } else if (isProduction()) {
     throw new Error('R2 belum dikonfigurasi; penyimpanan lokal tidak boleh dipakai di produksi');
   } else {

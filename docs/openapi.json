@@ -159,7 +159,9 @@
                 "puskesmas",
                 "laboratorium",
                 "praktik_dokter",
-                "apotek"
+                "apotek",
+                "gaya_hidup",
+                "rumah_duka"
               ]
             },
             "required": false,
@@ -279,7 +281,9 @@
                               "puskesmas",
                               "laboratorium",
                               "praktik_dokter",
-                              "apotek"
+                              "apotek",
+                              "gaya_hidup",
+                              "rumah_duka"
                             ]
                           },
                           "address": {
@@ -567,7 +571,9 @@
                             "puskesmas",
                             "laboratorium",
                             "praktik_dokter",
-                            "apotek"
+                            "apotek",
+                            "gaya_hidup",
+                            "rumah_duka"
                           ]
                         },
                         "description": {
@@ -889,6 +895,154 @@
                               "exclusions"
                             ]
                           }
+                        },
+                        "locations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "province": {
+                                "type": "string"
+                              },
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              },
+                              "isPrimary": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "label",
+                              "address",
+                              "city",
+                              "province",
+                              "lat",
+                              "lng",
+                              "isPrimary"
+                            ]
+                          }
+                        },
+                        "schedules": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "operasional",
+                                  "praktik"
+                                ]
+                              },
+                              "weekday": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 7
+                              },
+                              "start": {
+                                "type": "string"
+                              },
+                              "end": {
+                                "type": "string"
+                              },
+                              "timezone": {
+                                "type": "string"
+                              },
+                              "note": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "practitioner": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "slug",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "weekday",
+                              "start",
+                              "end",
+                              "timezone",
+                              "note",
+                              "practitioner"
+                            ]
+                          }
+                        },
+                        "media": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "foto",
+                                  "video"
+                                ]
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "mime": {
+                                "type": "string"
+                              },
+                              "caption": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "durationSec": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "kind",
+                              "url",
+                              "mime",
+                              "caption",
+                              "durationSec"
+                            ]
+                          }
                         }
                       },
                       "required": [
@@ -908,7 +1062,10 @@
                         "verification",
                         "updatedAt",
                         "practitioners",
-                        "tariffs"
+                        "tariffs",
+                        "locations",
+                        "schedules",
+                        "media"
                       ]
                     },
                     "meta": {
@@ -2507,6 +2664,8 @@
                                 "laboratorium",
                                 "praktik_dokter",
                                 "apotek",
+                                "gaya_hidup",
+                                "rumah_duka",
                                 null
                               ]
                             },
@@ -2840,6 +2999,8 @@
                             "laboratorium",
                             "praktik_dokter",
                             "apotek",
+                            "gaya_hidup",
+                            "rumah_duka",
                             null
                           ]
                         },
@@ -3027,7 +3188,9 @@
                           "puskesmas",
                           "laboratorium",
                           "praktik_dokter",
-                          "apotek"
+                          "apotek",
+                          "gaya_hidup",
+                          "rumah_duka"
                         ]
                       },
                       "roomCount": {
@@ -3196,6 +3359,8 @@
                             "laboratorium",
                             "praktik_dokter",
                             "apotek",
+                            "gaya_hidup",
+                            "rumah_duka",
                             null
                           ]
                         },
@@ -3310,9 +3475,9 @@
     },
     "/v1/portal/facilities": {
       "get": {
-        "summary": "Faskes yang saya kelola",
+        "summary": "Profil layanan yang saya kelola",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "responses": {
@@ -3372,11 +3537,228 @@
         }
       }
     },
+    "/v1/portal/profiles": {
+      "post": {
+        "summary": "Buat profil layanan draft; mitra terverifikasi, non-faskes maks. satu (F-02)",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000
+                  },
+                  "phone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 40
+                  },
+                  "website": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 300,
+                    "format": "uri"
+                  },
+                  "locations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 80
+                        },
+                        "address": {
+                          "type": "string",
+                          "minLength": 5,
+                          "maxLength": 500
+                        },
+                        "city": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        },
+                        "province": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        },
+                        "lat": {
+                          "type": "number",
+                          "minimum": -90,
+                          "maximum": 90
+                        },
+                        "lng": {
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "isPrimary": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "address",
+                        "city",
+                        "province",
+                        "lat",
+                        "lng",
+                        "isPrimary"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 10
+                  },
+                  "schedules": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "operasional",
+                            "praktik"
+                          ]
+                        },
+                        "weekday": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 7
+                        },
+                        "start": {
+                          "type": "string",
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                        },
+                        "end": {
+                          "type": "string",
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                        },
+                        "timezone": {
+                          "type": "string",
+                          "enum": [
+                            "Asia/Jakarta",
+                            "Asia/Makassar",
+                            "Asia/Jayapura"
+                          ],
+                          "default": "Asia/Jakarta"
+                        },
+                        "practitionerId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "note": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "weekday",
+                        "start",
+                        "end"
+                      ]
+                    },
+                    "maxItems": 70
+                  }
+                },
+                "required": [
+                  "name",
+                  "locations"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/portal/facilities/{id}": {
       "get": {
-        "summary": "Lihat profil faskes (M6)",
+        "summary": "Lihat profil lengkap: lokasi, jadwal, media, revisi menunggu (M6, F-02)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -3447,9 +3829,9 @@
         }
       },
       "put": {
-        "summary": "Ubah profil faskes (M6, filter konten M17)",
+        "summary": "Ubah profil: draft langsung, profil terbit menjadi revisi untuk moderator (F-02, M17)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -3546,6 +3928,117 @@
                     "type": "number",
                     "minimum": -180,
                     "maximum": 180
+                  },
+                  "locations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 80
+                        },
+                        "address": {
+                          "type": "string",
+                          "minLength": 5,
+                          "maxLength": 500
+                        },
+                        "city": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        },
+                        "province": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        },
+                        "lat": {
+                          "type": "number",
+                          "minimum": -90,
+                          "maximum": 90
+                        },
+                        "lng": {
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "isPrimary": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "address",
+                        "city",
+                        "province",
+                        "lat",
+                        "lng",
+                        "isPrimary"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 10
+                  },
+                  "schedules": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "operasional",
+                            "praktik"
+                          ]
+                        },
+                        "weekday": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 7
+                        },
+                        "start": {
+                          "type": "string",
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                        },
+                        "end": {
+                          "type": "string",
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                        },
+                        "timezone": {
+                          "type": "string",
+                          "enum": [
+                            "Asia/Jakarta",
+                            "Asia/Makassar",
+                            "Asia/Jayapura"
+                          ],
+                          "default": "Asia/Jakarta"
+                        },
+                        "practitionerId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "note": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "weekday",
+                        "start",
+                        "end"
+                      ]
+                    },
+                    "maxItems": 70
                   }
                 }
               }
@@ -3609,11 +4102,526 @@
         }
       }
     },
+    "/v1/portal/facilities/{id}/submit": {
+      "post": {
+        "summary": "Ajukan profil draft untuk diterbitkan moderator",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/portal/facilities/{id}/media/presign": {
+      "post": {
+        "summary": "Signed URL unggah foto (≤5 MB, maks. 10) atau video (≤100 MB, ≤120 detik, maks. 1)",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "foto"
+                        ]
+                      },
+                      "fileName": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "caption": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 200
+                      },
+                      "mime": {
+                        "type": "string",
+                        "enum": [
+                          "image/jpeg",
+                          "image/png",
+                          "image/webp"
+                        ]
+                      },
+                      "sizeBytes": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 5242880
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "fileName",
+                      "mime",
+                      "sizeBytes"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "video"
+                        ]
+                      },
+                      "fileName": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "caption": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 200
+                      },
+                      "mime": {
+                        "type": "string",
+                        "enum": [
+                          "video/mp4",
+                          "video/webm"
+                        ]
+                      },
+                      "sizeBytes": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 104857600
+                      },
+                      "durationSec": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 120
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "fileName",
+                      "mime",
+                      "sizeBytes",
+                      "durationSec"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/portal/facilities/{id}/media/{mediaId}/confirm": {
+      "post": {
+        "summary": "Konfirmasi unggahan media; API memeriksa ukuran, magic bytes, dan durasi MP4",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "mediaId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/portal/facilities/{id}/media/{mediaId}": {
+      "delete": {
+        "summary": "Hapus media",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "mediaId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/portal/facilities/{id}/media/order": {
+      "put": {
+        "summary": "Ubah urutan media",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/portal/facilities/{id}/tariffs": {
       "get": {
-        "summary": "Daftar tarif milik faskes (M6)",
+        "summary": "Daftar tarif milik profil (M6)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -3684,9 +4692,9 @@
         }
       },
       "post": {
-        "summary": "Tambah tarif (M6)",
+        "summary": "Ajukan harga layanan baru; terbit setelah disetujui moderator (K4)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -3803,12 +4811,26 @@
                       "null"
                     ],
                     "maxLength": 1000
+                  },
+                  "sourceTitle": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceUrl": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 500,
+                    "format": "uri"
                   }
                 },
                 "required": [
                   "serviceId",
                   "priceType",
-                  "effectiveFrom"
+                  "effectiveFrom",
+                  "sourceTitle"
                 ]
               }
             }
@@ -3873,9 +4895,9 @@
     },
     "/v1/portal/tariffs/{id}": {
       "put": {
-        "summary": "Buat versi baru tarif (M6, append-only)",
+        "summary": "Ajukan perubahan harga; harga lama tetap tampil sampai disetujui (K4)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -3946,6 +4968,19 @@
                     ],
                     "maxLength": 1000
                   },
+                  "sourceTitle": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceUrl": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 500,
+                    "format": "uri"
+                  },
                   "expectedVersionNo": {
                     "type": "integer",
                     "minimum": 1
@@ -3954,6 +4989,7 @@
                 "required": [
                   "priceType",
                   "effectiveFrom",
+                  "sourceTitle",
                   "expectedVersionNo"
                 ]
               }
@@ -4017,11 +5053,372 @@
         }
       }
     },
+    "/v1/portal/tariffs/{id}/active": {
+      "patch": {
+        "summary": "Aktifkan atau nonaktifkan layanan (K5)",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "active": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "active"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/portal/facilities/{id}/tariff-requests": {
+      "get": {
+        "summary": "Permintaan harga profil ini beserta statusnya",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/portal/tariff-requests/{id}/documents/presign": {
+      "post": {
+        "summary": "Signed URL unggah dokumen bukti harga (PDF/gambar, maks. 5 MB)",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "mime": {
+                    "type": "string",
+                    "enum": [
+                      "application/pdf",
+                      "image/jpeg",
+                      "image/png",
+                      "image/webp"
+                    ]
+                  },
+                  "sizeBytes": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 5242880
+                  }
+                },
+                "required": [
+                  "fileName",
+                  "mime",
+                  "sizeBytes"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/portal/tariff-requests/{id}/documents/{documentId}/confirm": {
+      "post": {
+        "summary": "Konfirmasi dokumen bukti; API memeriksa ukuran dan magic bytes",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/portal/facilities/{id}/tariffs/import/presign": {
       "post": {
         "summary": "Minta signed URL unggah CSV tarif (M6)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -4120,9 +5517,9 @@
     },
     "/v1/portal/facilities/{id}/tariffs/import": {
       "post": {
-        "summary": "Impor CSV tarif faskes sendiri; baris faskes lain = seluruh berkas ditolak (M6)",
+        "summary": "Impor CSV tarif sendiri menjadi satu permintaan harga; baris profil lain = seluruh berkas ditolak",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -4146,6 +5543,19 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 300
+                  },
+                  "sourceTitle": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceUrl": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 500,
+                    "format": "uri"
                   }
                 },
                 "required": [
@@ -4216,7 +5626,7 @@
       "get": {
         "summary": "Klaim saya (M7)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "responses": {
@@ -4278,7 +5688,7 @@
       "post": {
         "summary": "Ajukan klaim profil faskes (M7)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "requestBody": {
@@ -4367,7 +5777,7 @@
       "post": {
         "summary": "Minta signed URL unggah dokumen izin (PDF/gambar, maks. 5 MB) (M7)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -4477,7 +5887,7 @@
       "post": {
         "summary": "Konfirmasi unggahan; API memeriksa ukuran dan magic bytes (M7)",
         "tags": [
-          "Portal faskes"
+          "Portal mitra"
         ],
         "description": "Keamanan: session",
         "parameters": [
@@ -5124,6 +6534,8 @@
                             "laboratorium",
                             "praktik_dokter",
                             "apotek",
+                            "gaya_hidup",
+                            "rumah_duka",
                             null
                           ]
                         },
@@ -5354,6 +6766,8 @@
                             "laboratorium",
                             "praktik_dokter",
                             "apotek",
+                            "gaya_hidup",
+                            "rumah_duka",
                             null
                           ]
                         },
@@ -5412,6 +6826,966 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/profile-revisions": {
+      "get": {
+        "summary": "Antrean revisi profil terbit (F-02)",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "superseded"
+              ],
+              "default": "pending"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/profile-revisions/{id}": {
+      "get": {
+        "summary": "Data publik saat ini dan usulan revisi",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/profile-revisions/{id}/approve": {
+      "post": {
+        "summary": "Setujui revisi profil; diterapkan dan halaman publik diperbarui",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/profile-revisions/{id}/reject": {
+      "post": {
+        "summary": "Tolak revisi profil (alasan wajib)",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/media": {
+      "get": {
+        "summary": "Antrean foto dan video profil (pratinjau lewat signed URL singkat)",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "superseded"
+              ],
+              "default": "pending"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/media/{id}/approve": {
+      "post": {
+        "summary": "Setujui media; disalin ke penyimpanan media publik",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/media/{id}/reject": {
+      "post": {
+        "summary": "Tolak media (alasan wajib); berkas dihapus",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/tariff-requests": {
+      "get": {
+        "summary": "Antrean permintaan harga mitra (K4)",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "superseded"
+              ],
+              "default": "pending"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/tariff-requests/{id}": {
+      "get": {
+        "summary": "Harga lama vs usulan dan dokumen bukti (signed URL singkat)",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/tariff-requests/{id}/approve": {
+      "post": {
+        "summary": "Setujui permintaan harga: versi baru diverifikasi_admin, tarif terbit (dokumen bukti wajib)",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/tariff-requests/{id}/reject": {
+      "post": {
+        "summary": "Tolak permintaan harga (alasan wajib); tarif tidak berubah",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sukses"
           },
           "400": {
             "description": "Validasi gagal",

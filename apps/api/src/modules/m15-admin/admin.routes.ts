@@ -10,12 +10,16 @@ import {
   csvPresignSchema,
   cursorSchema,
   queueQuerySchema,
+  rejectReasonSchema,
   reportUpdateSchema,
+  reviewQueueQuerySchema,
   uuidSchema,
 } from '@silk/shared';
 import { defineRoute } from '../../lib/route';
 import { contentRulesRoutes } from '../m17-content-rules/content-rules.routes';
 import * as claims from '../m7-claims/claims.controller';
+import * as profiles from '../profiles/profiles.controller';
+import * as requests from '../tariff-requests/tariff-requests.controller';
 import { adminPartnerRoutes } from '../partners/partners.routes';
 import * as c from './admin.controller';
 
@@ -54,6 +58,58 @@ export function adminRoutes(router: Router): void {
 
   // Fase 1: verifikasi mitra
   adminPartnerRoutes(router, base);
+
+  // Fase 2: moderasi revisi profil, media, dan permintaan harga
+  defineRoute(router, base, { method: 'get', path: '/profile-revisions', summary: 'Antrean revisi profil terbit (F-02)', tags, security, query: reviewQueueQuerySchema, handler: profiles.revisionQueue });
+  defineRoute(router, base, { method: 'get', path: '/profile-revisions/:id', summary: 'Data publik saat ini dan usulan revisi', tags, security, params: idParams, handler: profiles.revisionDetail });
+  defineRoute(router, base, { method: 'post', path: '/profile-revisions/:id/approve', summary: 'Setujui revisi profil; diterapkan dan halaman publik diperbarui', tags, security, params: idParams, successStatus: 200, handler: profiles.approveRevision });
+  defineRoute(router, base, {
+    method: 'post',
+    path: '/profile-revisions/:id/reject',
+    summary: 'Tolak revisi profil (alasan wajib)',
+    tags,
+    security,
+    params: idParams,
+    body: rejectReasonSchema,
+    successStatus: 200,
+    handler: profiles.rejectRevision,
+  });
+  defineRoute(router, base, { method: 'get', path: '/media', summary: 'Antrean foto dan video profil (pratinjau lewat signed URL singkat)', tags, security, query: reviewQueueQuerySchema, handler: profiles.mediaQueue });
+  defineRoute(router, base, { method: 'post', path: '/media/:id/approve', summary: 'Setujui media; disalin ke penyimpanan media publik', tags, security, params: idParams, successStatus: 200, handler: profiles.approveMedia });
+  defineRoute(router, base, {
+    method: 'post',
+    path: '/media/:id/reject',
+    summary: 'Tolak media (alasan wajib); berkas dihapus',
+    tags,
+    security,
+    params: idParams,
+    body: rejectReasonSchema,
+    successStatus: 200,
+    handler: profiles.rejectMedia,
+  });
+  defineRoute(router, base, { method: 'get', path: '/tariff-requests', summary: 'Antrean permintaan harga mitra (K4)', tags, security, query: reviewQueueQuerySchema, handler: requests.queue });
+  defineRoute(router, base, { method: 'get', path: '/tariff-requests/:id', summary: 'Harga lama vs usulan dan dokumen bukti (signed URL singkat)', tags, security, params: idParams, handler: requests.detail });
+  defineRoute(router, base, {
+    method: 'post',
+    path: '/tariff-requests/:id/approve',
+    summary: 'Setujui permintaan harga: versi baru diverifikasi_admin, tarif terbit (dokumen bukti wajib)',
+    tags,
+    security,
+    params: idParams,
+    successStatus: 200,
+    handler: requests.approve,
+  });
+  defineRoute(router, base, {
+    method: 'post',
+    path: '/tariff-requests/:id/reject',
+    summary: 'Tolak permintaan harga (alasan wajib); tarif tidak berubah',
+    tags,
+    security,
+    params: idParams,
+    body: rejectReasonSchema,
+    successStatus: 200,
+    handler: requests.reject,
+  });
 
   // M14: laporan data
   defineRoute(router, base, { method: 'get', path: '/reports', summary: 'Antrean laporan data (M14)', tags, security, query: queueQuerySchema, handler: c.reportQueue });

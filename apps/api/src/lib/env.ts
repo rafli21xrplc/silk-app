@@ -19,6 +19,10 @@ const schema = z.object({
   R2_ACCESS_KEY_ID: optional,
   R2_SECRET_ACCESS_KEY: optional,
   R2_BUCKET: optional,
+  /** Bucket R2 publik khusus media yang sudah disetujui moderator (Fase 2, K8). */
+  R2_MEDIA_BUCKET: optional,
+  /** Domain publik bucket media, mis. https://media.silk.example (tanpa garis miring di akhir). */
+  MEDIA_PUBLIC_BASE_URL: optional.pipe(z.string().url().optional()),
   RESEND_API_KEY: optional,
   EMAIL_FROM: z.string().default('SILK <noreply@example.com>'),
   TURNSTILE_SECRET: optional,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FACILITY_TYPES } from '../constants';
+import { FACILITY_TYPES, MEDIA_KINDS, SCHEDULE_KINDS } from '../constants';
 import {
   booleanQuerySchema,
   cursorSchema,
@@ -126,6 +126,39 @@ export const facilityDetailSchema = z.object({
   updatedAt: z.string(),
   practitioners: z.array(z.object({ slug: z.string(), name: z.string(), specialty: z.string().nullable() })),
   tariffs: z.array(publicTariffSchema),
+  /** Fase 2: semua lokasi (utama lebih dulu), jadwal terstruktur, dan media yang sudah disetujui. */
+  locations: z.array(
+    z.object({
+      label: z.string().nullable(),
+      address: z.string(),
+      city: z.string(),
+      province: z.string(),
+      lat: z.number(),
+      lng: z.number(),
+      isPrimary: z.boolean(),
+    }),
+  ),
+  schedules: z.array(
+    z.object({
+      kind: z.enum(SCHEDULE_KINDS),
+      weekday: z.number().int().min(1).max(7),
+      start: z.string(),
+      end: z.string(),
+      timezone: z.string(),
+      note: z.string().nullable(),
+      practitioner: z.object({ slug: z.string(), name: z.string() }).nullable(),
+    }),
+  ),
+  media: z.array(
+    z.object({
+      id: uuidSchema,
+      kind: z.enum(MEDIA_KINDS),
+      url: z.string(),
+      mime: z.string(),
+      caption: z.string().nullable(),
+      durationSec: z.number().nullable(),
+    }),
+  ),
 });
 export type FacilityDetail = z.infer<typeof facilityDetailSchema>;
 

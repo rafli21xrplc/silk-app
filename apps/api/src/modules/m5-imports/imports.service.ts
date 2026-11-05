@@ -10,6 +10,7 @@ import {
   type DataSourceKind,
   type ImportRowError,
 } from '@silk/shared';
+import type { Tx } from '@silk/db';
 import { db } from '../../lib/db';
 import type { ActorContext } from '../../lib/context';
 import { AppError, notFound } from '../../lib/errors';
@@ -22,7 +23,7 @@ import { recordAudit, recordAudits } from '../m15-admin/audit.repo';
 import * as writeRepo from '../m2-tariffs/tariff-write.repo';
 import { listServiceIdsBySlug } from '../m2-tariffs/tariffs.repo';
 import { findFacility } from '../m6-portal/portal.repo';
-import { FASKES_SOURCE, isFacilityVerified } from '../m6-portal/portal.service';
+import { FASKES_SOURCE } from '../m6-portal/portal.service';
 import * as repo from './imports.repo';
 
 const MAX_ROWS = 20_000;
@@ -321,170 +322,147 @@ export async function resolveRow(ctx: ActorContext, batchId: string, rowId: numb
 /**
  * Terbitkan batch dalam SATU transaksi (M5): gagal sebagian = tidak ada yang terbit.
  * Idempoten: versi dengan (faskes, layanan, tanggal berlaku) yang sudah ada dilewati.
+ * Batch portal mitra hanya terbit lewat persetujuan permintaan harga (Fase 2, K4).
  */
 export async function publishBatch(ctx: ActorContext, batchId: string) {
-  const result = await db().transaction(async (tx) => {
-    const locked = await repo.lockBatch(tx, batchId);
-    if (!locked) throw notFound('IMPORT_NOT_FOUND', 'Batch impor');
-    if (locked.status !== 'divalidasi' && locked.status !== 'ditinjau') {
-      throw new AppError('IMPORT_NOT_READY', `Batch berstatus "${locked.status}" tidak dapat diterbitkan`);
-    }
-    const batch = (await repo.findBatch(tx, batchId))!;
-    const portalFacility = batch.facilityId ? await findFacility(tx, batch.facilityId) : null;
-    const rows = await repo.validRowsForPublish(tx, batchId);
-    type Parsed = {
-      priceType: 'tetap' | 'rentang' | 'mulai_dari' | 'paket' | 'tanya';
-      priceMin: number | null;
-      priceMax: number | null;
-      effectiveFrom: string;
-      sourceTitle: string;
-      sourceUrl: string | null;
-    };
-    const items = rows.map((row) => ({
-      rowNo: row.rowNo,
-      facilityId: row.matchedFacilityId!,
-      serviceId: row.matchedServiceId!,
-      p: row.parsed as Parsed,
-    }));
-    const sourceKind = portalFacility ? FASKES_SOURCE.kind : batch.sourceKind;
-    const newStatus = portalFacility ? (isFacilityVerified(portalFacility.verification) ? 'terbit' : 'menunggu_tinjauan') : 'terbit';
-    const pairKey = (f: string, s: string) => `${f}|${s}`;
-
-    // Semua langkah berbasis himpunan: jumlah query tetap, tidak bertambah per baris.
-    const sources = await writeRepo.upsertDataSources(
-      tx,
-      items.map((it) => ({ kind: sourceKind, title: it.p.sourceTitle, url: it.p.sourceUrl })),
-    );
-    const pairs = [...new Map(items.map((it) => [pairKey(it.facilityId, it.serviceId), { facilityId: it.facilityId, serviceId: it.serviceId }])).values()];
-    const tariffByPair = new Map((await writeRepo.lockTariffsByKeys(tx, pairs)).map((t) => [pairKey(t.facilityId, t.serviceId), t]));
-    const existingDates = await writeRepo.existingVersionDates(tx, [...tariffByPair.values()].map((t) => t.id));
-
-    // Lewati baris yang tanggal berlakunya sudah ada (unggah ulang berkas yang sama = idempoten).
-    const seenKeys = new Set<string>();
-    const todo = items.filter((it) => {
-      const t = tariffByPair.get(pairKey(it.facilityId, it.serviceId));
-      const key = `${pairKey(it.facilityId, it.serviceId)}|${it.p.effectiveFrom}`;
-      if ((t && existingDates.has(`${t.id}|${it.p.effectiveFrom}`)) || seenKeys.has(key)) return false;
-      seenKeys.add(key);
-      return true;
-    });
-    const skipped = items.length - todo.length;
-
-    const missing = [...new Map(todo.filter((it) => !tariffByPair.has(pairKey(it.facilityId, it.serviceId))).map((it) => [pairKey(it.facilityId, it.serviceId), it])).values()];
-    for (const t of await writeRepo.insertTariffs(
-      tx,
-      missing.map((it) => ({ facilityId: it.facilityId, serviceId: it.serviceId, packageId: null, status: 'draft' as const })),
-    )) {
-      tariffByPair.set(pairKey(t.facilityId, t.serviceId), t);
-    }
-
-    const latest = new Map((await writeRepo.latestVersions(tx, [...new Set(todo.map((it) => tariffByPair.get(pairKey(it.facilityId, it.serviceId))!.id))])).map((v) => [v.tariffId, v]));
-    const nextNo = new Map([...latest].map(([id, v]) => [id, v.versionNo]));
-    const verifiedAt = new Date();
-    const planned = todo.map((it) => {
-      const tariff = tariffByPair.get(pairKey(it.facilityId, it.serviceId))!;
-      const versionNo = (nextNo.get(tariff.id) ?? 0) + 1;
-      nextNo.set(tariff.id, versionNo);
-      const isAsk = it.p.priceType === 'tanya';
-      return {
-        it,
-        tariff,
-        version: {
-          tariffId: tariff.id,
-          versionNo,
-          priceType: it.p.priceType,
-          priceMin: isAsk ? null : it.p.priceMin,
-          priceMax: isAsk ? null : it.p.priceMax,
-          effectiveFrom: it.p.effectiveFrom,
-          effectiveTo: null,
-          verifiedAt,
-          verification: portalFacility ? ('diisi_faskes' as const) : ('dari_dokumen_publik' as const),
-          sourceId: sources.get(`${sourceKind}|${it.p.sourceTitle}|${it.p.sourceUrl ?? ''}`) ?? null,
-          inclusions: null,
-          exclusions: null,
-          createdBy: ctx.actorId,
-        },
-      };
-    });
-    const inserted = await writeRepo.insertVersions(tx, planned.map((x) => x.version));
-    const insertedByKey = new Map(inserted.map((v) => [`${v.tariffId}|${v.versionNo}`, v]));
-
-    // Versi terakhir yang disisipkan per tarif menjadi versi saat ini (sama seperti appendVersion berurutan).
-    const current = new Map<string, { tariffId: string; versionId: string; status: 'terbit' | 'menunggu_tinjauan' | 'ditarik' }>();
-    const audits: Parameters<typeof recordAudits>[1] = [];
-    const previousOf = new Map(latest);
-    for (const x of planned) {
-      const v = insertedByKey.get(`${x.tariff.id}|${x.version.versionNo}`)!;
-      current.set(x.tariff.id, { tariffId: x.tariff.id, versionId: v.id, status: x.tariff.status === 'ditarik' ? 'ditarik' : newStatus });
-      audits.push({
-        actorId: ctx.actorId,
-        action: 'tariff.version.import',
-        entity: 'tariff',
-        entityId: x.tariff.id,
-        before: previousOf.get(x.tariff.id) ?? null,
-        after: { ...v, importBatchId: batchId, rowNo: x.it.rowNo },
-        ip: ctx.ip,
-        requestId: ctx.requestId,
-      });
-      previousOf.set(x.tariff.id, v);
-    }
-    await writeRepo.setCurrentVersions(tx, [...current.values()]);
-    await recordAudits(tx, audits);
-    const created = planned.length;
-    const affected = new Set(planned.map((x) => x.it.facilityId));
-
-    await repo.updateBatch(tx, batchId, { status: 'diterbitkan', publishedAt: new Date(), publishedBy: ctx.actorId });
-    await recordAudit(tx, {
-      actorId: ctx.actorId,
-      action: 'import.publish',
-      entity: 'import_batch',
-      entityId: batchId,
-      before: { status: locked.status },
-      after: { status: 'diterbitkan', created, skipped },
-      ip: ctx.ip,
-      requestId: ctx.requestId,
-    });
-    return { created, skipped, affected: [...affected] };
-  });
-
-  const slugs = await repo.facilitySlugs(db(), result.affected);
-  await revalidate([...slugs.map(tags.facility), tags.facilities, tags.sitemap]);
+  const result = await db().transaction((tx) => publishBatchTx(tx, ctx, batchId));
+  await revalidateFacilities(result.affected);
   return { created: result.created, skipped: result.skipped };
 }
 
-/* ---------- Portal: impor CSV untuk faskes sendiri (M6) ---------- */
+export async function revalidateFacilities(facilityIds: string[]) {
+  const slugs = await repo.facilitySlugs(db(), facilityIds);
+  await revalidate([...slugs.map(tags.facility), tags.facilities, tags.sitemap]);
+}
 
-export async function importForFacility(ctx: ActorContext, facilityId: string, objectKey: string) {
-  if (!objectKey.startsWith(`imports/facility/${facilityId}/`)) {
-    // Kunci objek dari faskes lain tidak boleh dipakai.
-    throw new AppError('FORBIDDEN', 'Berkas bukan milik faskes ini');
+/**
+ * Inti penerbitan di dalam transaksi pemanggil. `viaRequest` = dipanggil saat moderator menyetujui
+ * permintaan harga impor portal: versi bertanda `diverifikasi_admin` dan tarif langsung terbit.
+ */
+export async function publishBatchTx(tx: Tx, ctx: ActorContext, batchId: string, opts: { viaRequest?: boolean } = {}) {
+  const locked = await repo.lockBatch(tx, batchId);
+  if (!locked) throw notFound('IMPORT_NOT_FOUND', 'Batch impor');
+  if (locked.status !== 'divalidasi' && locked.status !== 'ditinjau') {
+    throw new AppError('IMPORT_NOT_READY', `Batch berstatus "${locked.status}" tidak dapat diterbitkan`);
   }
-  const batch = await db().transaction(async (tx) => {
-    const b = await repo.insertBatch(tx, { objectKey, facilityId, sourceKind: 'faskes', uploadedBy: ctx.actorId });
-    await recordAudit(tx, {
+  const batch = (await repo.findBatch(tx, batchId))!;
+  if (batch.facilityId && !opts.viaRequest) {
+    throw new AppError('IMPORT_NOT_READY', 'Batch dari portal mitra diterbitkan lewat persetujuan permintaan harga');
+  }
+  const portalFacility = batch.facilityId ? await findFacility(tx, batch.facilityId) : null;
+  const rows = await repo.validRowsForPublish(tx, batchId);
+  type Parsed = {
+    priceType: 'tetap' | 'rentang' | 'mulai_dari' | 'paket' | 'tanya';
+    priceMin: number | null;
+    priceMax: number | null;
+    effectiveFrom: string;
+    sourceTitle: string;
+    sourceUrl: string | null;
+  };
+  const items = rows.map((row) => ({
+    rowNo: row.rowNo,
+    facilityId: row.matchedFacilityId!,
+    serviceId: row.matchedServiceId!,
+    p: row.parsed as Parsed,
+  }));
+  const sourceKind = portalFacility ? FASKES_SOURCE.kind : batch.sourceKind;
+  // Batch admin dan batch portal yang sudah disetujui moderator sama-sama langsung terbit.
+  const newStatus = 'terbit' as const;
+  const pairKey = (f: string, s: string) => `${f}|${s}`;
+
+  // Semua langkah berbasis himpunan: jumlah query tetap, tidak bertambah per baris.
+  const sources = await writeRepo.upsertDataSources(
+    tx,
+    items.map((it) => ({ kind: sourceKind, title: it.p.sourceTitle, url: it.p.sourceUrl })),
+  );
+  const pairs = [...new Map(items.map((it) => [pairKey(it.facilityId, it.serviceId), { facilityId: it.facilityId, serviceId: it.serviceId }])).values()];
+  const tariffByPair = new Map((await writeRepo.lockTariffsByKeys(tx, pairs)).map((t) => [pairKey(t.facilityId, t.serviceId), t]));
+  const existingDates = await writeRepo.existingVersionDates(tx, [...tariffByPair.values()].map((t) => t.id));
+
+  // Lewati baris yang tanggal berlakunya sudah ada (unggah ulang berkas yang sama = idempoten).
+  const seenKeys = new Set<string>();
+  const todo = items.filter((it) => {
+    const t = tariffByPair.get(pairKey(it.facilityId, it.serviceId));
+    const key = `${pairKey(it.facilityId, it.serviceId)}|${it.p.effectiveFrom}`;
+    if ((t && existingDates.has(`${t.id}|${it.p.effectiveFrom}`)) || seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
+  const skipped = items.length - todo.length;
+
+  const missing = [...new Map(todo.filter((it) => !tariffByPair.has(pairKey(it.facilityId, it.serviceId))).map((it) => [pairKey(it.facilityId, it.serviceId), it])).values()];
+  for (const t of await writeRepo.insertTariffs(
+    tx,
+    missing.map((it) => ({ facilityId: it.facilityId, serviceId: it.serviceId, packageId: null, status: 'draft' as const })),
+  )) {
+    tariffByPair.set(pairKey(t.facilityId, t.serviceId), t);
+  }
+
+  const latest = new Map((await writeRepo.latestVersions(tx, [...new Set(todo.map((it) => tariffByPair.get(pairKey(it.facilityId, it.serviceId))!.id))])).map((v) => [v.tariffId, v]));
+  const nextNo = new Map([...latest].map(([id, v]) => [id, v.versionNo]));
+  const verifiedAt = new Date();
+  const planned = todo.map((it) => {
+    const tariff = tariffByPair.get(pairKey(it.facilityId, it.serviceId))!;
+    const versionNo = (nextNo.get(tariff.id) ?? 0) + 1;
+    nextNo.set(tariff.id, versionNo);
+    const isAsk = it.p.priceType === 'tanya';
+    return {
+      it,
+      tariff,
+      version: {
+        tariffId: tariff.id,
+        versionNo,
+        priceType: it.p.priceType,
+        priceMin: isAsk ? null : it.p.priceMin,
+        priceMax: isAsk ? null : it.p.priceMax,
+        effectiveFrom: it.p.effectiveFrom,
+        effectiveTo: null,
+        verifiedAt,
+        verification: portalFacility ? ('diverifikasi_admin' as const) : ('dari_dokumen_publik' as const),
+        sourceId: sources.get(`${sourceKind}|${it.p.sourceTitle}|${it.p.sourceUrl ?? ''}`) ?? null,
+        inclusions: null,
+        exclusions: null,
+        createdBy: ctx.actorId,
+      },
+    };
+  });
+  const inserted = await writeRepo.insertVersions(tx, planned.map((x) => x.version));
+  const insertedByKey = new Map(inserted.map((v) => [`${v.tariffId}|${v.versionNo}`, v]));
+
+  // Versi terakhir yang disisipkan per tarif menjadi versi saat ini (sama seperti appendVersion berurutan).
+  const current = new Map<string, { tariffId: string; versionId: string; status: 'terbit' | 'menunggu_tinjauan' | 'ditarik' }>();
+  const audits: Parameters<typeof recordAudits>[1] = [];
+  const previousOf = new Map(latest);
+  for (const x of planned) {
+    const v = insertedByKey.get(`${x.tariff.id}|${x.version.versionNo}`)!;
+    current.set(x.tariff.id, { tariffId: x.tariff.id, versionId: v.id, status: x.tariff.status === 'ditarik' ? 'ditarik' : newStatus });
+    audits.push({
       actorId: ctx.actorId,
-      action: 'import.create',
-      entity: 'import_batch',
-      entityId: b.id,
-      before: null,
-      after: b,
+      action: 'tariff.version.import',
+      entity: 'tariff',
+      entityId: x.tariff.id,
+      before: previousOf.get(x.tariff.id) ?? null,
+      after: { ...v, importBatchId: batchId, rowNo: x.it.rowNo },
       ip: ctx.ip,
       requestId: ctx.requestId,
     });
-    return b;
-  });
-  // Berkas portal kecil (maks. 2.000 baris): diproses langsung dalam request.
-  await processBatch(batch.id, { timeBudgetMs: 60_000 });
-  const processed = await getBatch(batch.id, undefined, 200);
-  if (processed.batch.status !== 'divalidasi') {
-    throw new AppError(
-      'IMPORT_ROW_INVALID',
-      processed.batch.error ?? 'Berkas ditolak',
-      processed.problemRows.flatMap((r) =>
-        r.errors.map((e) => ({ path: `baris ${r.rowNo}.${e.field}`, message: e.message, code: e.code })),
-      ),
-    );
+    previousOf.set(x.tariff.id, v);
   }
-  const published = await publishBatch(ctx, batch.id);
-  return { batchId: batch.id, ...published };
+  await writeRepo.setCurrentVersions(tx, [...current.values()]);
+  await recordAudits(tx, audits);
+  const created = planned.length;
+  const affected = new Set(planned.map((x) => x.it.facilityId));
+
+  await repo.updateBatch(tx, batchId, { status: 'diterbitkan', publishedAt: new Date(), publishedBy: ctx.actorId });
+  await recordAudit(tx, {
+    actorId: ctx.actorId,
+    action: 'import.publish',
+    entity: 'import_batch',
+    entityId: batchId,
+    before: { status: locked.status },
+    after: { status: 'diterbitkan', created, skipped },
+    ip: ctx.ip,
+    requestId: ctx.requestId,
+  });
+  return { created, skipped, affected: [...affected] };
 }

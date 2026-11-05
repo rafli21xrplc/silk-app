@@ -10,7 +10,6 @@ import {
   user,
   type DbOrTx,
 } from '@silk/db';
-import { pointSql } from '@silk/db';
 
 export async function isMember(db: DbOrTx, userId: string, facilityId: string): Promise<boolean> {
   if (!/^[0-9a-f-]{36}$/i.test(facilityId)) return false;
@@ -29,6 +28,7 @@ export function myFacilities(db: DbOrTx, userId: string) {
       slug: facilities.slug,
       name: facilities.name,
       city: facilities.city,
+      type: facilities.type,
       status: facilities.status,
       verification: facilities.verification,
       role: memberships.role,
@@ -64,38 +64,15 @@ export async function findFacility(db: DbOrTx, id: string) {
   return row ?? null;
 }
 
-export async function updateFacility(
-  db: DbOrTx,
-  id: string,
-  v: {
-    name?: string;
-    description?: string | null;
-    address?: string;
-    phone?: string | null;
-    website?: string | null;
-    hours?: Record<string, string> | null;
-    lat?: number;
-    lng?: number;
-    status?: 'draft' | 'menunggu_tinjauan' | 'terbit' | 'ditarik';
-  },
-) {
-  const { lat, lng, ...rest } = v;
-  await db
-    .update(facilities)
-    .set({
-      ...rest,
-      ...(lat !== undefined && lng !== undefined ? { location: pointSql(lat, lng) } : {}),
-      updatedAt: new Date(),
-    })
-    .where(eq(facilities.id, id));
-}
-
-/** Semua tarif faskes (semua status) dengan versi terbaru — untuk portal. */
 export async function facilityTariffs(db: DbOrTx, facilityId: string) {
   const rows = await db
     .select({
       id: tariffs.id,
       status: tariffs.status,
+      active: tariffs.active,
+      /** Permintaan harga yang masih menunggu moderator untuk tarif ini (K4). */
+      pendingRequestId: sql<string | null>`(SELECT r.id FROM tariff_change_requests r
+        WHERE r.tariff_id = ${tariffs.id} AND r.status = 'pending' ORDER BY r.created_at DESC LIMIT 1)`,
       serviceId: services.id,
       serviceSlug: services.slug,
       serviceName: services.name,

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { DOCUMENT_ALLOWED_MIME, DOCUMENT_MAX_BYTES, CSV_MAX_BYTES } from '../constants';
 import { checkPriceFields } from '../price';
 import { isoDateSchema, priceTypeSchema, rupiahSchema, uuidSchema } from './common';
-import { locationsSchema, schedulesSchema, tariffSourceFields } from './profile';
+import { locationsSchema, profileFieldsSchema, schedulesSchema, tariffSourceFields } from './profile';
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
 
@@ -34,6 +34,13 @@ export const facilityUpdateSchema = z
     path: ['locations'],
   });
 export type FacilityUpdateInput = z.infer<typeof facilityUpdateSchema>;
+
+/**
+ * Isi revisi profil terbit (K3) setelah dinormalkan: address/lat/lng lama sudah dilebur ke
+ * `locations`. Divalidasi ulang saat moderator menyetujui.
+ */
+export const revisionPayloadSchema = profileFieldsSchema.extend({ hours: hoursSchema });
+export type RevisionPayload = z.infer<typeof revisionPayloadSchema>;
 
 export const packageInputSchema = z.object({
   name: z.string().trim().min(3).max(200),
@@ -102,4 +109,9 @@ export const csvPresignSchema = z.object({
 });
 export type CsvPresignInput = z.infer<typeof csvPresignSchema>;
 
-export const importRequestSchema = z.object({ objectKey: z.string().min(1).max(300) });
+export const importRequestSchema = z.object({
+  objectKey: z.string().min(1).max(300),
+  /** Fase 2 (K4): impor portal menjadi satu permintaan harga; sumber ringkas untuk moderator. */
+  sourceTitle: tariffSourceFields.sourceTitle.optional(),
+  sourceUrl: tariffSourceFields.sourceUrl,
+});

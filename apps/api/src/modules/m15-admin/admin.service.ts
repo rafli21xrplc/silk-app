@@ -5,6 +5,7 @@ import { notFound } from '../../lib/errors';
 import { decodeIdCursor, decodeOffsetCursor, encodeIdCursor, pageOf } from '../../lib/pagination';
 import { revalidate, tags } from '../../lib/revalidate';
 import * as writeRepo from '../m2-tariffs/tariff-write.repo';
+import { afterAdminFacilityUpdate } from '../profiles/profiles.service';
 import * as repo from './admin.repo';
 import { recordAudit, searchAudit } from './audit.repo';
 
@@ -22,6 +23,8 @@ export async function updateFacility(
     const before = await repo.findFacility(tx, id);
     if (!before) throw notFound('FACILITY_NOT_FOUND', 'Faskes');
     await repo.updateFacility(tx, id, input);
+    // Praktisi milik mitra ikut status profil; koreksi koordinat ikut ke lokasi utama (Fase 2).
+    await afterAdminFacilityUpdate(tx, id, input);
     const updated = await repo.findFacility(tx, id);
     await recordAudit(tx, {
       actorId: ctx.actorId,

@@ -4,9 +4,17 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { CSV_COLUMNS, CSV_MAX_BYTES } from '@silk/shared';
 import { FormError } from '@/components/app-shell';
+import { ProofUpload } from '@/components/portal/proof-upload';
 import { api, ClientApiError, errorMessage, uploadToSignedUrl } from '@/lib/client-api';
 import { t } from '@/messages/id';
 import { PortalShell } from '../../../portal-shell';
+
+interface ImportResult {
+  batchId: string;
+  requestId: string;
+  status: string;
+  rowsValid: number;
+}
 
 interface Presigned {
   uploadUrl: string;
@@ -14,7 +22,10 @@ interface Presigned {
   objectKey: string;
 }
 
-/** Wizard impor CSV (M6): presign → unggah langsung ke penyimpanan → API memvalidasi dan menerbitkan. */
+/**
+ * Wizard impor CSV (M6): presign → unggah langsung ke penyimpanan → API memvalidasi. Sejak Fase 2 (K4)
+ * seluruh berkas menjadi satu permintaan harga yang terbit setelah moderator memeriksa dokumen bukti.
+ */
 export default function PortalImportPage() {
   const { id } = useParams<{ id: string }>();
   return <PortalShell facilityId={id}>{() => <ImportWizard facilityId={id} />}</PortalShell>;
@@ -23,13 +34,15 @@ export default function PortalImportPage() {
 function ImportWizard({ facilityId }: { facilityId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rowErrors, setRowErrors] = useState<{ path?: string; message: string }[]>([]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!file) return;
+    const form = new FormData(e.currentTarget);
+    const sourceTitle = String(form.get('sourceTitle') ?? '').trim();
     setBusy(true);
     setError(null);
     setRowErrors([]);
@@ -41,8 +54,9 @@ function ImportWizard({ facilityId }: { facilityId: string }) {
         sizeBytes: file.size,
       });
       await uploadToSignedUrl(upload, file);
-      const { data } = await api<{ created: number; skipped: number }>('POST', `/portal/facilities/${facilityId}/tariffs/import`, {
+      const { data } = await api<ImportResult>('POST', `/portal/facilities/${facilityId}/tariffs/import`, {
         objectKey: upload.objectKey,
+        ...(sourceTitle ? { sourceTitle } : {}),
       });
       setResult(data);
     } catch (err) {
@@ -65,14 +79,22 @@ function ImportWizard({ facilityId }: { facilityId: string }) {
           {t.portal.csvChoose}
           <input type="file" accept=".csv,text/csv" required onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
+        <label>
+          {t.priceRequest.importSource}
+          <input name="sourceTitle" minLength={3} maxLength={200} placeholder={t.priceRequest.sourceTitlePlaceholder} />
+        </label>
+        <p className="small muted">{t.priceRequest.formHelp}</p>
         <button type="submit" className="btn-primary" disabled={busy || !file}>
           {busy ? t.common.loading : t.portal.csvUpload}
         </button>
       </form>
       {result && (
-        <p className="success" role="status">
-          {t.portal.csvDone(result.created, result.skipped)}
-        </p>
+        <div className="stack card">
+          <p className="success" role="status">
+            {t.priceRequest.importDone(result.rowsValid)}
+          </p>
+          <ProofUpload requestId={result.requestId} />
+        </div>
       )}
       <FormError error={error} />
       {rowErrors.length > 0 && (

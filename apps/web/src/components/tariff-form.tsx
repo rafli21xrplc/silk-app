@@ -28,6 +28,16 @@ export interface PortalTariff {
   inclusions: string | null;
   exclusions: string | null;
   components: { label: string; included: boolean }[];
+  /** Fase 2 (K5): layanan nonaktif disembunyikan dari publik. */
+  active: boolean;
+  /** Permintaan harga yang masih menunggu untuk tarif ini (K4). */
+  pendingRequestId: string | null;
+}
+
+export interface TariffRequestResult {
+  requestId: string;
+  status: string;
+  needsReview: boolean;
 }
 
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
@@ -38,8 +48,9 @@ const toInt = (v: FormDataEntryValue | null) => {
 const textOrNull = (v: FormDataEntryValue | null) => String(v ?? '').trim() || null;
 
 /**
- * Form tarif (M6). Mode `create` dapat menyertakan paket; mode `update` selalu membuat versi baru
- * dengan `expectedVersionNo` agar perubahan bersamaan terdeteksi.
+ * Form usulan harga (M6, K4). Hasilnya permintaan harga yang menunggu moderator, bukan versi terbit.
+ * Mode `create` dapat menyertakan paket; mode `update` membawa `expectedVersionNo` agar perubahan
+ * bersamaan terdeteksi. Setiap usulan wajib menyebut sumber; dokumen bukti diunggah sesudahnya.
  */
 export function TariffForm({
   facilityId,
@@ -49,7 +60,7 @@ export function TariffForm({
 }: {
   facilityId: string;
   tariff?: PortalTariff;
-  onSaved: (result: { status: string; needsReview: boolean }) => void;
+  onSaved: (result: TariffRequestResult) => void;
   onCancel: () => void;
 }) {
   const isUpdate = Boolean(tariff);
@@ -80,16 +91,18 @@ export function TariffForm({
       effectiveTo: textOrNull(f.get('effectiveTo')),
       inclusions: textOrNull(f.get('inclusions')),
       exclusions: textOrNull(f.get('exclusions')),
+      sourceTitle: String(f.get('sourceTitle') ?? '').trim(),
+      sourceUrl: textOrNull(f.get('sourceUrl')),
     };
     setBusy(true);
     setError(null);
     try {
       const { data } = isUpdate
-        ? await api<{ status: string; needsReview: boolean }>('PUT', `/portal/tariffs/${tariff!.id}`, {
+        ? await api<TariffRequestResult>('PUT', `/portal/tariffs/${tariff!.id}`, {
             ...fields,
             expectedVersionNo: tariff!.versionNo ?? 1,
           })
-        : await api<{ status: string; needsReview: boolean }>('POST', `/portal/facilities/${facilityId}/tariffs`, {
+        : await api<TariffRequestResult>('POST', `/portal/facilities/${facilityId}/tariffs`, {
             ...fields,
             serviceId: String(f.get('serviceId')),
             ...(withPackage
@@ -112,7 +125,8 @@ export function TariffForm({
 
   return (
     <form onSubmit={onSubmit} className="card stack">
-      <h2>{isUpdate ? `${t.portal.editTariff}: ${tariff!.packageName ?? tariff!.serviceName}` : t.portal.addTariff}</h2>
+      <h2>{isUpdate ? `${t.priceRequest.submitChange}: ${tariff!.packageName ?? tariff!.serviceName}` : t.priceRequest.submitNew}</h2>
+      <p className="small muted">{t.priceRequest.formHelp}</p>
       <FormError error={error} />
       {!isUpdate && (
         <>
@@ -208,10 +222,20 @@ export function TariffForm({
         {t.portal.exclusions}
         <textarea name="exclusions" rows={2} maxLength={1000} defaultValue={tariff?.exclusions ?? ''} />
       </label>
+      <div className="row">
+        <label>
+          {t.priceRequest.sourceTitle}
+          <input name="sourceTitle" required minLength={3} maxLength={200} placeholder={t.priceRequest.sourceTitlePlaceholder} />
+        </label>
+        <label>
+          {t.priceRequest.sourceUrl}
+          <input name="sourceUrl" type="url" maxLength={500} placeholder="https://" />
+        </label>
+      </div>
       <p className="small muted">{t.portal.descriptionHelp}</p>
       <div className="actions">
         <button type="submit" className="btn-primary" disabled={busy}>
-          {busy ? t.common.loading : t.portal.save}
+          {busy ? t.common.loading : isUpdate ? t.priceRequest.submitChange : t.priceRequest.submitNew}
         </button>
         <button type="button" className="btn" onClick={onCancel}>
           {t.report.cancel}

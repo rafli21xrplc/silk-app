@@ -503,6 +503,10 @@
   .dialog h2 {
     @apply mt-0;
   }
+  /* Judul di awal kartu tidak perlu jarak atas tambahan (padding kartu sudah cukup). */
+  .card > h2:first-child {
+    @apply mt-0;
+  }
 
   main :not(pre) > code {
     @apply rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[0.85em] [overflow-wrap:anywhere];
@@ -521,6 +525,9 @@
   }
   .map {
     @apply h-[280px] w-full overflow-hidden rounded-card border border-line shadow-soft md:h-full md:min-h-[320px];
+  }
+  .map.map-picker {
+    @apply h-[260px] md:h-[300px] md:min-h-0;
   }
 }
 

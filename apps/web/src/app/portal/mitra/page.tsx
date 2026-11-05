@@ -1,6 +1,7 @@
 'use client';
 
 import { BadgeCheck, Clock, FileText, XCircle, type LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { FACILITY_TYPES, partnerTypeForRole, type Partner, type PartnerRole, type PartnerType } from '@silk/shared';
 import { FormError } from '@/components/app-shell';
@@ -9,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { api, errorMessage } from '@/lib/client-api';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
+import { canCreateProfile } from '@/lib/profile';
 import { queryCache } from '@/lib/query-cache';
 import type { Me } from '@/lib/types';
 import { t } from '@/messages/id';
@@ -102,6 +104,13 @@ function PartnerForm({ me }: { me: Me }) {
   return (
     <div className="max-w-2xl">
       <StatusBanner partner={p} />
+      {canCreateProfile(me) && (
+        <p className="mb-6">
+          <Link href="/portal/profil-baru" className={buttonVariants({ variant: 'primary' })}>
+            {t.profile.create}
+          </Link>
+        </p>
+      )}
       <p className="mt-0 text-ink-soft">{t.partner.intro}</p>
       <form onSubmit={onSubmit} className="grid gap-4 rounded-2xl border border-line bg-white p-5 shadow-soft sm:p-6">
         <FormError error={error} />

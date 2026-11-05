@@ -8,7 +8,9 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"} https://challenges.cloudflare.com https://*.posthog.com`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
+  // Media profil: domain publik R2 (https) di produksi; origin API di dev. blob: = pratinjau sebelum unggah.
+  `img-src 'self' data: blob: https: ${apiOrigin}`,
+  `media-src 'self' blob: https: ${apiOrigin}`,
   "font-src 'self' data:",
   `connect-src 'self' ${apiOrigin} https://*.posthog.com https: ${isProd ? '' : 'ws:'}`,
   'frame-src https://challenges.cloudflare.com',

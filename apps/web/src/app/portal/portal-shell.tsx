@@ -8,12 +8,12 @@ import { useMe } from '@/lib/use-me';
 import { t } from '@/messages/id';
 
 /**
- * Muat pengguna portal lalu render isinya. Default hanya mitra faskes; `/portal/mitra` memakai `partner`
- * (semua jenis mitra). `facilityId` menambah tab per faskes.
+ * Muat pengguna portal lalu render isinya. Sejak Fase 2 portal terbuka untuk semua jenis mitra;
+ * halaman klaim memakai `faskes`. `facilityId` menambah tab per profil.
  */
 export function PortalShell({
   facilityId,
-  require = 'faskes',
+  require = 'partner',
   title,
   children,
 }: {

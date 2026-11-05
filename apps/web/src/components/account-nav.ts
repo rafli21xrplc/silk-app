@@ -10,10 +10,12 @@ export interface NavItem {
 /** Navigasi samping area akun/portal per role (menu admin lengkap ada di AdminShell). */
 export function accountNav(me: Me): NavItem[] {
   const nav: NavItem[] = [];
-  if (me.user.role === 'faskes') {
-    nav.push({ href: '/portal', label: t.portal.myFacilities }, { href: '/portal/klaim', label: t.portal.claims });
+  if (isPartnerRole(me.user.role)) {
+    const faskes = me.user.role === 'faskes';
+    nav.push({ href: '/portal', label: faskes ? t.portal.myFacilities : t.portal.myProfiles });
+    if (faskes) nav.push({ href: '/portal/klaim', label: t.portal.claims });
+    nav.push({ href: '/portal/mitra', label: t.partner.title });
   }
-  if (isPartnerRole(me.user.role)) nav.push({ href: '/portal/mitra', label: t.partner.title });
   if (isStaffRole(me.user.role)) nav.push({ href: '/admin', label: t.admin.title });
   nav.push({ href: '/akun', label: t.account.title });
   return nav;

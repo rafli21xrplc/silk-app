@@ -29,7 +29,7 @@ interface MyClaim {
 }
 
 export function ClaimsView() {
-  return <PortalShell>{() => <Claims />}</PortalShell>;
+  return <PortalShell require="faskes">{() => <Claims />}</PortalShell>;
 }
 
 function Claims() {

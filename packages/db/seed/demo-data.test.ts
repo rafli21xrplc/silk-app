@@ -1,6 +1,6 @@
 import { checkContent, PRICE_TYPES, VERIFICATION_LEVELS } from '@silk/shared';
 import { describe, expect, it } from 'vitest';
-import { CONTENT_RULES, FACILITIES, SERVICES } from './data';
+import { CONTENT_RULES, FACILITIES, PRACTITIONERS, SERVICES } from './data';
 import { buildDemoData, DEMO_SERVICES } from './demo-data';
 
 const demo = buildDemoData();
@@ -12,8 +12,13 @@ describe('data demo seed', () => {
     expect(buildDemoData()).toEqual(demo);
   });
 
+  it('tarif 20 faskes awal tetap di ruang ID `de`; faskes tambahan memakai `df`', () => {
+    const base = new Set(demo.facilities.slice(0, 20).map((f) => f.id));
+    for (const t of demo.tariffs) expect(t.id.startsWith(base.has(t.facilityId) ? 'de' : 'df')).toBe(true);
+  });
+
   it('cukup banyak untuk mengisi halaman publik', () => {
-    expect(demo.facilities.length).toBe(20);
+    expect(demo.facilities.length).toBe(21);
     expect(demo.tariffs.length).toBeGreaterThanOrEqual(150);
   });
 
@@ -23,6 +28,35 @@ describe('data demo seed', () => {
     expect(new Set(ids).size).toBe(ids.length);
     const slugs = [...demo.facilities.map((f) => f.slug), ...FACILITIES.map((f) => f.slug)];
     expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it('dokter demo fiktif: tempat praktik dan cabang ada di data demo, jadwal valid, M17 lolos', () => {
+    const slugs = new Set(demo.facilities.map((f) => f.slug));
+    expect(demo.practitioners.length).toBeGreaterThanOrEqual(2);
+    for (const p of demo.practitioners) {
+      expect(p.id).toMatch(UUID);
+      expect(p.name).toContain('Contoh');
+      for (const x of p.practices) {
+        expect(slugs.has(x.facilitySlug)).toBe(true);
+        for (const s of x.schedules) {
+          expect(s.weekday).toBeGreaterThanOrEqual(1);
+          expect(s.weekday).toBeLessThanOrEqual(7);
+          expect(s.start < s.end).toBe(true);
+        }
+      }
+    }
+    for (const b of demo.branches) expect(slugs.has(b.facilitySlug)).toBe(true);
+    // ID dan slug tidak boleh bertabrakan dengan praktisi data uji (seed ulang memakai onConflictDoNothing).
+    const testIds = new Set<string>(PRACTITIONERS.map((p) => p.id));
+    const testSlugs = new Set<string>(PRACTITIONERS.map((p) => p.slug));
+    for (const p of demo.practitioners) {
+      expect(testIds.has(p.id)).toBe(false);
+      expect(testSlugs.has(p.slug)).toBe(false);
+    }
+    // Profil praktik dokter demo punya deskripsi khusus yang lolos filter konten.
+    const praktik = demo.facilities.find((f) => f.slug === 'praktik-dr-contoh-rahma-putri-sp-a')!;
+    expect(praktik.description).toContain('spesialis anak');
+    expect(checkContent({ text: praktik.description }, rules).violations).toEqual([]);
   });
 
   it('semua faskes fiktif ("Contoh") dan berada di wilayah Malang', () => {

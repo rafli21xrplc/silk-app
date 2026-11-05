@@ -1,7 +1,21 @@
 import { inArray } from 'drizzle-orm';
 import type { Database } from '../src/client';
 import { pointSql } from '../src/geo';
-import { dataSources, facilities, packageComponents, packages, regions, serviceCategories, services, tariffs, tariffVersions } from '../src/schema/index';
+import {
+  dataSources,
+  facilities,
+  facilityPractitioners,
+  packageComponents,
+  packages,
+  practitioners,
+  profileLocations,
+  regions,
+  schedules,
+  serviceCategories,
+  services,
+  tariffs,
+  tariffVersions,
+} from '../src/schema/index';
 import { SOURCES } from './data';
 import { buildDemoData, DEMO_CATEGORIES, DEMO_SERVICES } from './demo-data';
 import { seedPrimaryLocations, setMissingCurrentVersions } from './run';
@@ -10,6 +24,7 @@ export interface DemoSeedResult {
   facilities: number;
   tariffs: number;
   versions: number;
+  practitioners: number;
 }
 
 /**
@@ -69,6 +84,70 @@ export async function seedDemoData(db: Database, now: Date = new Date()): Promis
     .returning({ id: facilities.id });
   await seedPrimaryLocations(db);
 
+  // Fase 4b: lokasi cabang, dokter, tautan praktik, dan jadwal. Cabang dan jadwal hanya ditulis saat
+  // faskes/dokter baru dibuat (tabelnya tanpa kunci alami), jadi seed ulang tidak menggandakan.
+  const facilityIdBySlug = new Map(demo.facilities.map((f) => [f.slug, f.id]));
+  const idOf = (slug: string) => {
+    const id = facilityIdBySlug.get(slug);
+    if (!id) throw new Error(`Faskes demo ${slug} tidak ada`);
+    return id;
+  };
+  const newFacilityIds = new Set(insertedFacilities.map((r) => r.id));
+  const branches = demo.branches.filter((b) => newFacilityIds.has(idOf(b.facilitySlug)));
+  if (branches.length) {
+    await db.insert(profileLocations).values(
+      branches.map((b, i) => {
+        const region = regionBySlug.get(b.regionSlug)!;
+        return {
+          facilityId: idOf(b.facilitySlug),
+          label: b.label,
+          address: b.address,
+          city: region.name,
+          province: 'Jawa Timur',
+          regionId: region.id,
+          location: pointSql(b.lat, b.lng),
+          isPrimary: false,
+          sortOrder: i + 1,
+        };
+      }),
+    );
+  }
+  const insertedPractitioners = await db
+    .insert(practitioners)
+    .values(
+      demo.practitioners.map((p) => ({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        specialty: p.specialty,
+        strNo: p.strNo,
+        strVerifiedAt: p.strVerifiedAt === null ? null : cap(p.strVerifiedAt),
+        status: 'terbit' as const,
+      })),
+    )
+    .onConflictDoNothing({ target: practitioners.id })
+    .returning({ id: practitioners.id });
+  const links = demo.practitioners.flatMap((p) => p.practices.map((x) => ({ facilityId: idOf(x.facilitySlug), practitionerId: p.id })));
+  if (links.length) await db.insert(facilityPractitioners).values(links).onConflictDoNothing();
+  const newPractitionerIds = new Set(insertedPractitioners.map((r) => r.id));
+  const scheduleRows = demo.practitioners
+    .filter((p) => newPractitionerIds.has(p.id))
+    .flatMap((p) =>
+      p.practices.flatMap((x) =>
+        x.schedules.map((s) => ({
+          facilityId: idOf(x.facilitySlug),
+          practitionerId: p.id,
+          kind: 'praktik' as const,
+          weekday: s.weekday,
+          startTime: s.start,
+          endTime: s.end,
+          timezone: 'Asia/Jakarta',
+          note: s.note,
+        })),
+      ),
+    );
+  if (scheduleRows.length) await db.insert(schedules).values(scheduleRows);
+
   const serviceRows = await db.select({ id: services.id, slug: services.slug }).from(services);
   const serviceIdBySlug = new Map(serviceRows.map((s) => [s.slug, s.id]));
   const serviceId = (slug: string) => {
@@ -116,5 +195,5 @@ export async function seedDemoData(db: Database, now: Date = new Date()): Promis
     });
   }
 
-  return { facilities: insertedFacilities.length, tariffs: todo.length, versions: versions.length };
+  return { facilities: insertedFacilities.length, tariffs: todo.length, versions: versions.length, practitioners: insertedPractitioners.length };
 }

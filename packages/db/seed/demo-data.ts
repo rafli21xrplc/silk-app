@@ -136,7 +136,19 @@ const FACILITY_ROWS: [string, FacilityType, RegionSlug, string, number, number, 
   ['Praktik Dokter Contoh Dau', 'praktik_dokter', 'kabupaten-malang', 'Dau', -7.918, 112.57, 'diisi_faskes'],
   ['Laboratorium Contoh Bululawang', 'laboratorium', 'kabupaten-malang', 'Bululawang', -8.08, 112.64, 'publik_belum_diverifikasi'],
   ['Puskesmas Contoh Tumpang', 'puskesmas', 'kabupaten-malang', 'Tumpang', -8.005, 112.755, 'dari_dokumen_publik'],
+  // Fase 4b: profil praktik dokter demo (ditambahkan di akhir agar ID dan tarif lain tidak bergeser).
+  ['Praktik dr. Contoh Rahma Putri, Sp.A', 'praktik_dokter', 'kota-malang', 'Lowokwaru', -7.952, 112.618, 'diisi_faskes'],
 ];
+
+/** Jumlah faskes demo awal; faskes sesudahnya memakai ruang ID tarif terpisah. */
+const BASE_FACILITY_COUNT = 20;
+
+/** Deskripsi khusus (selain templat), mis. profil praktik dokter demo. Lolos filter konten M17. */
+const DESCRIPTION_OVERRIDE: Record<string, string> = {
+  'praktik-dr-contoh-rahma-putri-sp-a':
+    'Praktik dokter spesialis anak (fiktif, data demo SILK). Melayani pemeriksaan tumbuh kembang, imunisasi sesuai jadwal, ' +
+    'dan konsultasi keluhan umum pada bayi dan anak. Mohon membawa buku KIA atau catatan imunisasi saat berkunjung.',
+};
 
 export interface DemoFacility {
   id: string;
@@ -186,11 +198,92 @@ export interface DemoTariff {
   versions: DemoVersion[];
 }
 
+/** Fase 4b: dokter demo fiktif, jadwal praktiknya per faskes, dan lokasi cabang profil praktik. */
+export interface DemoPractitioner {
+  id: string;
+  slug: string;
+  name: string;
+  specialty: string;
+  strNo: string;
+  /** ISO, UTC; `null` = STR belum diverifikasi. */
+  strVerifiedAt: string | null;
+  practices: { facilitySlug: string; schedules: { weekday: number; start: string; end: string; note: string | null }[] }[];
+}
+
+export interface DemoBranch {
+  facilitySlug: string;
+  label: string;
+  address: string;
+  regionSlug: RegionSlug;
+  lat: number;
+  lng: number;
+}
+
 export interface DemoData {
   facilities: DemoFacility[];
   packages: DemoPackage[];
   tariffs: DemoTariff[];
+  practitioners: DemoPractitioner[];
+  branches: DemoBranch[];
 }
+
+const uuid = (prefix: string, n: number) => `${prefix}000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+const PRACTITIONERS: DemoPractitioner[] = [
+  {
+    id: '',
+    slug: 'dr-contoh-rahma-putri-sp-a',
+    name: 'dr. Contoh Rahma Putri, Sp.A',
+    specialty: 'Anak',
+    strNo: 'STR-CONTOH-0101',
+    strVerifiedAt: '2026-10-01T02:00:00.000Z',
+    practices: [
+      {
+        facilitySlug: 'praktik-dr-contoh-rahma-putri-sp-a',
+        schedules: [
+          { weekday: 1, start: '16:00', end: '20:00', note: null },
+          { weekday: 3, start: '16:00', end: '20:00', note: null },
+          { weekday: 5, start: '16:00', end: '20:00', note: null },
+          { weekday: 6, start: '09:00', end: '12:00', note: 'Dengan perjanjian' },
+        ],
+      },
+      {
+        facilitySlug: 'rs-contoh-lowokwaru',
+        schedules: [
+          { weekday: 2, start: '09:00', end: '12:00', note: 'Poli anak' },
+          { weekday: 4, start: '09:00', end: '12:00', note: 'Poli anak' },
+        ],
+      },
+    ],
+  },
+  {
+    id: '',
+    slug: 'dr-contoh-bima-pratama',
+    name: 'dr. Contoh Bima Pratama',
+    specialty: 'Dokter umum',
+    strNo: 'STR-CONTOH-0102',
+    strVerifiedAt: null,
+    practices: [
+      {
+        facilitySlug: 'klinik-contoh-sawojajar',
+        schedules: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, start: '08:00', end: '14:00', note: null })),
+      },
+      { facilitySlug: 'puskesmas-contoh-blimbing', schedules: [{ weekday: 6, start: '07:30', end: '12:00', note: null }] },
+    ],
+  },
+  // Prefiks `d0`: `dc` sudah dipakai praktisi data uji (seed/data.ts).
+].map((p, i) => ({ ...p, id: uuid('d0', i + 1) }));
+
+const BRANCHES: DemoBranch[] = [
+  {
+    facilitySlug: 'praktik-dr-contoh-rahma-putri-sp-a',
+    label: 'Cabang Singosari',
+    address: 'Jl. Contoh Singosari No. 8, Singosari',
+    regionSlug: 'kabupaten-malang',
+    lat: -7.894,
+    lng: 112.664,
+  },
+];
 
 /** Titik acuan tanggal agar data tetap sama di setiap run. */
 const ANCHOR = '2026-11-01';
@@ -207,7 +300,6 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-const uuid = (prefix: string, n: number) => `${prefix}000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
 export function slugify(text: string): string {
   return text
@@ -245,7 +337,7 @@ export function buildDemoData(): DemoData {
       slug: slugify(name),
       name,
       type,
-      description: `${TYPE_LABEL[type]} fiktif di ${district}, ${city}, untuk data demo SILK.`,
+      description: DESCRIPTION_OVERRIDE[slugify(name)] ?? `${TYPE_LABEL[type]} fiktif di ${district}, ${city}, untuk data demo SILK.`,
       address: `Jl. Contoh ${district} No. ${int(1, 120)}, ${district}`,
       regionSlug,
       lat,
@@ -259,6 +351,7 @@ export function buildDemoData(): DemoData {
 
   const packages: DemoPackage[] = [];
   const tariffs: DemoTariff[] = [];
+  let extraTariffs = 0;
 
   for (const f of facilities) {
     const [fMin, fMax] = PRICE_FACTOR[f.type];
@@ -329,9 +422,13 @@ export function buildDemoData(): DemoData {
         });
       }
 
-      tariffs.push({ id: uuid('de', tariffs.length + 1), facilityId: f.id, serviceSlug, packageId, status: 'terbit', versions });
+      // Faskes tambahan (Fase 4b dst.) memakai ruang ID `df` agar tidak bertabrakan dengan tarif `de` yang sudah
+      // ada di DB lama (jumlahnya bisa berbeda dari versi pembangun ini).
+      const extra = facilities.indexOf(f) >= BASE_FACILITY_COUNT;
+      const id = extra ? uuid('df', ++extraTariffs) : uuid('de', tariffs.length - extraTariffs + 1);
+      tariffs.push({ id, facilityId: f.id, serviceSlug, packageId, status: 'terbit', versions });
     }
   }
 
-  return { facilities, packages, tariffs };
+  return { facilities, packages, tariffs, practitioners: PRACTITIONERS, branches: BRANCHES };
 }

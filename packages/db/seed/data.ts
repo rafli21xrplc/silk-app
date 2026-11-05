@@ -13,6 +13,9 @@ export const REGIONS = [
 export const CATEGORIES = [
   { slug: 'laboratorium', name: 'Laboratorium' },
   { slug: 'mcu', name: 'Medical Check-Up' },
+  // Fase 2 (F-02): kategori baru lewat taksonomi, bukan hardcode di kode.
+  { slug: 'gaya-hidup-sehat', name: 'Gaya hidup sehat' },
+  { slug: 'rumah-duka', name: 'Rumah duka' },
 ] as const;
 
 export const SERVICES: {
@@ -30,6 +33,13 @@ export const SERVICES: {
   { slug: 'urin-lengkap', category: 'laboratorium', name: 'Urin lengkap', description: 'Urinalisis rutin.', aliases: ['urinalisis', 'cek urin'] },
   { slug: 'mcu-dasar', category: 'mcu', name: 'Medical Check-Up Dasar', description: 'Paket pemeriksaan kesehatan dasar.', aliases: ['mcu', 'check up', 'cek kesehatan'] },
   { slug: 'mcu-pra-kerja', category: 'mcu', name: 'Medical Check-Up Pra-kerja', description: 'Pemeriksaan kesehatan untuk syarat kerja.', aliases: ['mcu kerja', 'surat sehat kerja'] },
+  { slug: 'konsultasi-gizi', category: 'gaya-hidup-sehat', name: 'Konsultasi gizi', description: 'Konsultasi pola makan dengan ahli gizi.', aliases: ['ahli gizi', 'nutrisionis', 'diet'] },
+  { slug: 'sesi-latihan-pribadi', category: 'gaya-hidup-sehat', name: 'Sesi latihan pribadi', description: 'Latihan kebugaran satu lawan satu dengan pelatih.', aliases: ['personal trainer', 'pt', 'latihan fisik'] },
+  { slug: 'kelas-senam', category: 'gaya-hidup-sehat', name: 'Kelas senam', description: 'Kelas senam atau olahraga berkelompok.', aliases: ['senam', 'aerobik', 'yoga', 'pilates'] },
+  { slug: 'konseling-gaya-hidup', category: 'gaya-hidup-sehat', name: 'Konseling gaya hidup', description: 'Pendampingan kebiasaan sehat (tidur, aktivitas, berhenti merokok).', aliases: ['konseling', 'coaching kesehatan'] },
+  { slug: 'pemulasaraan-jenazah', category: 'rumah-duka', name: 'Pemulasaraan jenazah', description: 'Perawatan jenazah sebelum persemayaman atau pemakaman.', aliases: ['memandikan jenazah', 'perawatan jenazah'] },
+  { slug: 'sewa-ruang-persemayaman', category: 'rumah-duka', name: 'Sewa ruang persemayaman', description: 'Ruang persemayaman jenazah per hari.', aliases: ['ruang duka', 'persemayaman'] },
+  { slug: 'mobil-jenazah', category: 'rumah-duka', name: 'Mobil jenazah', description: 'Layanan antar jenazah.', aliases: ['ambulans jenazah', 'kereta jenazah'] },
 ];
 
 export const CONTENT_RULES: { pattern: string; kind: 'kata' | 'regex'; level: 'blokir' | 'tinjau' }[] = [

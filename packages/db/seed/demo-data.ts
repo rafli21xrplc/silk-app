@@ -50,6 +50,13 @@ const BASE_PRICE: Record<string, number> = {
   ekg: 100_000,
   'mcu-dasar': 350_000,
   'mcu-pra-kerja': 250_000,
+  'konsultasi-gizi': 150_000,
+  'sesi-latihan-pribadi': 200_000,
+  'kelas-senam': 50_000,
+  'konseling-gaya-hidup': 175_000,
+  'pemulasaraan-jenazah': 1_500_000,
+  'sewa-ruang-persemayaman': 750_000,
+  'mobil-jenazah': 600_000,
 };
 
 const LAB = ['hemoglobin', 'darah-lengkap', 'gula-darah-puasa', 'kolesterol-total', 'asam-urat', 'urin-lengkap', 'trigliserida', 'kolesterol-hdl', 'kolesterol-ldl', 'fungsi-hati', 'fungsi-ginjal', 'hba1c', 'hbsag'];
@@ -62,6 +69,8 @@ const MENU: Record<FacilityType, string[]> = {
   puskesmas: ['hemoglobin', 'gula-darah-puasa', 'kolesterol-total', 'asam-urat', 'urin-lengkap', 'hbsag', 'mcu-pra-kerja'],
   praktik_dokter: ['gula-darah-puasa', 'kolesterol-total', 'asam-urat', 'ekg'],
   apotek: ['gula-darah-puasa', 'kolesterol-total', 'asam-urat'],
+  gaya_hidup: ['konsultasi-gizi', 'sesi-latihan-pribadi', 'kelas-senam', 'konseling-gaya-hidup'],
+  rumah_duka: ['pemulasaraan-jenazah', 'sewa-ruang-persemayaman', 'mobil-jenazah'],
 };
 
 /** Rentang faktor harga per jenis faskes (puskesmas lebih rendah, RS lebih tinggi). */
@@ -72,6 +81,8 @@ const PRICE_FACTOR: Record<FacilityType, [number, number]> = {
   laboratorium: [0.85, 1.15],
   klinik: [0.9, 1.2],
   rumah_sakit: [1.1, 1.4],
+  gaya_hidup: [0.8, 1.3],
+  rumah_duka: [0.8, 1.3],
 };
 
 const PACKAGE_COMPONENTS: Record<string, string[]> = {
@@ -86,6 +97,8 @@ const HOURS: Record<FacilityType, Record<string, string>> = {
   klinik: { senin: '08.00–21.00', selasa: '08.00–21.00', rabu: '08.00–21.00', kamis: '08.00–21.00', jumat: '08.00–21.00', sabtu: '08.00–17.00' },
   praktik_dokter: { senin: '17.00–21.00', selasa: '17.00–21.00', rabu: '17.00–21.00', kamis: '17.00–21.00', jumat: '17.00–21.00' },
   apotek: { senin: '08.00–22.00', selasa: '08.00–22.00', rabu: '08.00–22.00', kamis: '08.00–22.00', jumat: '08.00–22.00', sabtu: '08.00–22.00', minggu: '08.00–22.00' },
+  gaya_hidup: { senin: '06.00–20.00', selasa: '06.00–20.00', rabu: '06.00–20.00', kamis: '06.00–20.00', jumat: '06.00–20.00', sabtu: '06.00–12.00' },
+  rumah_duka: { senin: '24 jam', selasa: '24 jam', rabu: '24 jam', kamis: '24 jam', jumat: '24 jam', sabtu: '24 jam', minggu: '24 jam' },
 };
 
 const TYPE_LABEL: Record<FacilityType, string> = {
@@ -95,6 +108,8 @@ const TYPE_LABEL: Record<FacilityType, string> = {
   laboratorium: 'Laboratorium klinik',
   praktik_dokter: 'Praktik dokter',
   apotek: 'Apotek',
+  gaya_hidup: 'Penyedia gaya hidup sehat',
+  rumah_duka: 'Rumah duka',
 };
 
 type RegionSlug = 'kota-malang' | 'kabupaten-malang';

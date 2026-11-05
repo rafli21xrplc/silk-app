@@ -114,6 +114,7 @@ export async function seedTestData(db: Database, now: Date = new Date()): Promis
       }),
     )
     .onConflictDoNothing({ target: facilities.id });
+  await seedPrimaryLocations(db);
 
   await db
     .insert(practitioners)
@@ -187,10 +188,25 @@ export async function setMissingCurrentVersions(db: Pick<Database, 'execute'>): 
 }
 
 /** Kosongkan semua tabel aplikasi (hanya untuk uji). TRUNCATE tidak memicu trigger append-only. */
+/**
+ * Lokasi utama (Fase 2) untuk faskes yang belum punya, disalin dari kolom faskes. Sama dengan
+ * langkah data migrasi 0006; dipakai seed karena seed menyisipkan faskes setelah migrasi.
+ */
+export async function seedPrimaryLocations(db: Database): Promise<void> {
+  await db.execute(sql`
+    INSERT INTO profile_locations (facility_id, address, city, province, region_id, location, is_primary)
+    SELECT f.id, f.address, f.city, f.province, f.region_id, f.location, true
+    FROM facilities f
+    WHERE f.location IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM profile_locations l WHERE l.facility_id = f.id)
+  `);
+}
+
 export async function truncateAll(db: Database): Promise<void> {
   await db.execute(sql`
     TRUNCATE TABLE
-      audit_logs, partners, jwks, data_reports, import_rows, import_batches, documents, facility_claims,
+      audit_logs, profile_media, profile_revisions, schedules, profile_locations, tariff_change_requests,
+      partners, jwks, data_reports, import_rows, import_batches, documents, facility_claims,
       memberships, tariff_versions, tariffs, package_components, packages, data_sources,
       facility_practitioners, practitioners, facilities, services, service_categories,
       regions, content_rules, jobs, rate_limit_counters, rate_limit,

@@ -4,7 +4,7 @@ import { pointSql } from '../src/geo';
 import { dataSources, facilities, packageComponents, packages, regions, serviceCategories, services, tariffs, tariffVersions } from '../src/schema/index';
 import { SOURCES } from './data';
 import { buildDemoData, DEMO_CATEGORIES, DEMO_SERVICES } from './demo-data';
-import { setMissingCurrentVersions } from './run';
+import { seedPrimaryLocations, setMissingCurrentVersions } from './run';
 
 export interface DemoSeedResult {
   facilities: number;
@@ -67,6 +67,7 @@ export async function seedDemoData(db: Database, now: Date = new Date()): Promis
     )
     .onConflictDoNothing({ target: facilities.id })
     .returning({ id: facilities.id });
+  await seedPrimaryLocations(db);
 
   const serviceRows = await db.select({ id: services.id, slug: services.slug }).from(services);
   const serviceIdBySlug = new Map(serviceRows.map((s) => [s.slug, s.id]));

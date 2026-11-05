@@ -17,6 +17,7 @@ import {
   smallint,
   smallserial,
   text,
+  time,
   timestamp,
   unique,
   uniqueIndex,
@@ -28,9 +29,13 @@ import {
   facilityType,
   geographyPoint,
   inet,
+  mediaKind,
   partnerStatus,
   partnerType,
   priceType,
+  reviewStatus,
+  scheduleKind,
+  tariffRequestKind,
   verificationLevel,
 } from './enums';
 
@@ -239,6 +244,8 @@ export const tariffs = pgTable(
     /** Diisi setelah versi pertama dibuat. */
     currentVersionId: uuid('current_version_id'),
     status: entityStatus('status').notNull().default('draft'),
+    /** Fase 2 (K5): mitra bisa menonaktifkan layanan; VIEW published_tariffs menyaring `active`. */
+    active: boolean('active').notNull().default(true),
   },
   (t) => [
     unique('tariffs_facility_service_package').on(t.facilityId, t.serviceId, t.packageId).nullsNotDistinct(),
@@ -330,9 +337,11 @@ export const documents = pgTable(
   'documents',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    claimId: uuid('claim_id')
-      .notNull()
-      .references(() => facilityClaims.id, { onDelete: 'cascade' }),
+    /** Induk dokumen: klaim (M7) atau permintaan harga (Fase 2); tepat satu terisi. */
+    claimId: uuid('claim_id').references(() => facilityClaims.id, { onDelete: 'cascade' }),
+    tariffChangeRequestId: uuid('tariff_change_request_id').references((): AnyPgColumn => tariffChangeRequests.id, {
+      onDelete: 'cascade',
+    }),
     objectKey: text('object_key').notNull().unique(),
     fileName: text('file_name').notNull(),
     mime: text('mime').notNull(),
@@ -342,7 +351,11 @@ export const documents = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     uploadedAt: timestamp('uploaded_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('documents_claim_idx').on(t.claimId)],
+  (t) => [
+    index('documents_claim_idx').on(t.claimId),
+    index('documents_tariff_request_idx').on(t.tariffChangeRequestId),
+    check('documents_one_parent', sql`num_nonnulls(${t.claimId}, ${t.tariffChangeRequestId}) = 1`),
+  ],
 );
 
 /* ---------- M5: impor ---------- */
@@ -508,8 +521,9 @@ export const rateLimitCounters = pgTable(
 /**
  * Satu-satunya definisi "tarif terbit" (bagian 4): faskes dan tarif berstatus `terbit`, dengan versi
  * yang tanggal berlakunya paling akhir namun sudah dimulai (effective_from <= hari ini WIB) dan belum
- * berakhir; ralat pada tanggal yang sama dimenangkan nomor versi tertinggi.
- * Dibuat di migrasi 0003; skema di sini hanya untuk tipe query.
+ * berakhir; ralat pada tanggal yang sama dimenangkan nomor versi tertinggi. Layanan nonaktif
+ * (`tariffs.active = false`, Fase 2) tidak ikut.
+ * Dibuat di migrasi 0003, diganti di 0006; skema di sini hanya untuk tipe query.
  */
 export const publishedTariffs = pgView('published_tariffs', {
   tariffId: uuid('tariff_id').notNull(),
@@ -529,3 +543,167 @@ export const publishedTariffs = pgView('published_tariffs', {
   inclusions: text('inclusions'),
   exclusions: text('exclusions'),
 }).existing();
+
+/* ---------- Fase 2 (F-02): profil layanan ---------- */
+
+/**
+ * Lokasi profil (boleh lebih dari satu). Lokasi utama juga disalin ke kolom `facilities`
+ * (address, city, province, region_id, location) agar pencarian dan peta lama tetap berjalan.
+ */
+export const profileLocations = pgTable(
+  'profile_locations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    facilityId: uuid('facility_id')
+      .notNull()
+      .references(() => facilities.id, { onDelete: 'cascade' }),
+    label: text('label'),
+    address: text('address').notNull(),
+    city: text('city').notNull(),
+    province: text('province').notNull(),
+    regionId: integer('region_id').references(() => regions.id),
+    location: geographyPoint('location').notNull(),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    sortOrder: smallint('sort_order').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('profile_locations_facility_idx').on(t.facilityId),
+    uniqueIndex('profile_locations_one_primary').on(t.facilityId).where(sql`${t.isPrimary}`),
+    index('profile_locations_location_gix').using('gist', t.location),
+  ],
+);
+
+/** Jadwal berulang: jam lokal + zona waktu (bukan UTC), Senin = 1 … Minggu = 7. */
+export const schedules = pgTable(
+  'schedules',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    facilityId: uuid('facility_id')
+      .notNull()
+      .references(() => facilities.id, { onDelete: 'cascade' }),
+    practitionerId: uuid('practitioner_id').references(() => practitioners.id, { onDelete: 'set null' }),
+    kind: scheduleKind('kind').notNull(),
+    weekday: smallint('weekday').notNull(),
+    startTime: time('start_time').notNull(),
+    endTime: time('end_time').notNull(),
+    timezone: text('timezone').notNull().default('Asia/Jakarta'),
+    note: text('note'),
+  },
+  (t) => [
+    index('schedules_facility_idx').on(t.facilityId, t.weekday),
+    check('schedules_weekday', sql`${t.weekday} BETWEEN 1 AND 7`),
+    check('schedules_time_order', sql`${t.endTime} > ${t.startTime}`),
+  ],
+);
+
+/** Foto dan video profil. Tampil publik hanya setelah `approved` (disalin ke penyimpanan publik). */
+export const profileMedia = pgTable(
+  'profile_media',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    facilityId: uuid('facility_id')
+      .notNull()
+      .references(() => facilities.id, { onDelete: 'cascade' }),
+    kind: mediaKind('kind').notNull(),
+    objectKey: text('object_key').notNull().unique(),
+    fileName: text('file_name').notNull(),
+    mime: text('mime').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    durationSec: integer('duration_sec'),
+    caption: text('caption'),
+    status: reviewStatus('status').notNull().default('pending'),
+    rejectionReason: text('rejection_reason'),
+    sortOrder: smallint('sort_order').notNull().default(0),
+    /** URL publik; terisi setelah disetujui. */
+    publicUrl: text('public_url'),
+    uploadedBy: uuid('uploaded_by').references(() => user.id, { onDelete: 'set null' }),
+    /** Terisi setelah API memeriksa ukuran dan magic bytes; sebelum itu bukan antrean moderasi. */
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    reviewedBy: uuid('reviewed_by').references(() => user.id, { onDelete: 'set null' }),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('profile_media_facility_idx').on(t.facilityId, t.kind, t.sortOrder),
+    index('profile_media_queue_idx').on(t.status, t.createdAt).where(sql`${t.confirmedAt} IS NOT NULL`),
+    check('profile_media_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
+    check('profile_media_public_url', sql`${t.status} = 'approved' OR ${t.publicUrl} IS NULL`),
+  ],
+);
+
+/**
+ * Usulan perubahan field publik profil yang sudah terbit (K3). Publik tetap melihat data lama sampai
+ * disetujui. Maksimal satu `pending` per profil; usulan baru digabung dan yang lama menjadi `superseded`.
+ */
+export const profileRevisions = pgTable(
+  'profile_revisions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    facilityId: uuid('facility_id')
+      .notNull()
+      .references(() => facilities.id, { onDelete: 'cascade' }),
+    payload: jsonb('payload').notNull(),
+    status: reviewStatus('status').notNull().default('pending'),
+    submittedBy: uuid('submitted_by').references(() => user.id, { onDelete: 'set null' }),
+    reviewedBy: uuid('reviewed_by').references(() => user.id, { onDelete: 'set null' }),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    rejectionReason: text('rejection_reason'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('profile_revisions_one_pending').on(t.facilityId).where(sql`${t.status} = 'pending'`),
+    index('profile_revisions_queue_idx').on(t.status, t.createdAt),
+    check('profile_revisions_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
+  ],
+);
+
+/**
+ * Usulan harga dari mitra (K4). `tariff_versions` baru ditulis saat moderator menyetujui, sehingga
+ * tabel itu tetap append-only dan hanya berisi harga yang sudah diverifikasi.
+ */
+export const tariffChangeRequests = pgTable(
+  'tariff_change_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    facilityId: uuid('facility_id')
+      .notNull()
+      .references(() => facilities.id, { onDelete: 'cascade' }),
+    kind: tariffRequestKind('kind').notNull(),
+    /** Null = layanan baru untuk profil ini (tarif dibuat saat disetujui). */
+    tariffId: uuid('tariff_id').references(() => tariffs.id, { onDelete: 'cascade' }),
+    serviceId: uuid('service_id').references(() => services.id),
+    /** Paket baru (nama, catatan, komponen) untuk tarif baru bertipe paket. */
+    packagePayload: jsonb('package_payload'),
+    importBatchId: uuid('import_batch_id').references(() => importBatches.id, { onDelete: 'cascade' }),
+    /** Nomor versi saat usulan dibuat; beda saat disetujui = harga sudah berubah, usulan harus diulang. */
+    baseVersionNo: integer('base_version_no'),
+    priceType: priceType('price_type'),
+    priceMin: bigint('price_min', { mode: 'number' }),
+    priceMax: bigint('price_max', { mode: 'number' }),
+    effectiveFrom: date('effective_from', { mode: 'string' }),
+    effectiveTo: date('effective_to', { mode: 'string' }),
+    inclusions: text('inclusions'),
+    exclusions: text('exclusions'),
+    sourceTitle: text('source_title').notNull(),
+    sourceUrl: text('source_url'),
+    status: reviewStatus('status').notNull().default('pending'),
+    submittedBy: uuid('submitted_by').references(() => user.id, { onDelete: 'set null' }),
+    decidedBy: uuid('decided_by').references(() => user.id, { onDelete: 'set null' }),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    rejectionReason: text('rejection_reason'),
+    resultingVersionId: uuid('resulting_version_id').references(() => tariffVersions.id),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('tariff_change_requests_queue_idx').on(t.status, t.createdAt),
+    index('tariff_change_requests_facility_idx').on(t.facilityId, t.createdAt),
+    check(
+      'tariff_change_requests_kind_fields',
+      sql`(${t.kind} = 'tunggal' AND ${t.serviceId} IS NOT NULL AND ${t.priceType} IS NOT NULL AND ${t.effectiveFrom} IS NOT NULL)
+        OR (${t.kind} = 'impor' AND ${t.importBatchId} IS NOT NULL)`,
+    ),
+    check('tariff_change_requests_price_order', sql`${t.priceMax} IS NULL OR ${t.priceMax} >= ${t.priceMin}`),
+    check('tariff_change_requests_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
+  ],
+);

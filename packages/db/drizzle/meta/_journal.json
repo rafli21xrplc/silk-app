@@ -43,6 +43,13 @@
       "when": 1793888581629,
       "tag": "0005_fase1_partners_jwt",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793890654958,
+      "tag": "0006_fase2_profile",
+      "breakpoints": true
     }
   ]
 }

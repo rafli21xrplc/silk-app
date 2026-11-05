@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { serviceDetailSchema, serviceListItemSchema, servicesQuerySchema, slugSchema } from '@silk/shared';
+import { serviceCategorySchema, serviceDetailSchema, serviceListItemSchema, servicesQuerySchema, slugSchema } from '@silk/shared';
 import { defineRoute } from '../../lib/route';
 import * as c from './tariffs.controller';
 
@@ -13,6 +13,14 @@ export function tariffsRoutes(router: Router): void {
     query: servicesQuerySchema,
     response: z.array(serviceListItemSchema),
     handler: (input) => c.listServices(input),
+  });
+  defineRoute(router, '', {
+    method: 'get',
+    path: '/service-categories',
+    summary: 'Kategori layanan untuk filter pencarian, termasuk kategori baru (F-03)',
+    tags: ['Publik'],
+    response: z.array(serviceCategorySchema),
+    handler: () => c.listCategories(),
   });
   defineRoute(router, '', {
     method: 'get',

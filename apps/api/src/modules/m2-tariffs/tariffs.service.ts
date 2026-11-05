@@ -1,4 +1,4 @@
-import type { PublicTariff, ServiceDetail, ServiceListItem, ServicesQuery } from '@silk/shared';
+import type { PublicTariff, ServiceCategory, ServiceDetail, ServiceListItem, ServicesQuery } from '@silk/shared';
 import { db } from '../../lib/db';
 import { notFound } from '../../lib/errors';
 import { decodeOffsetCursor, pageOf } from '../../lib/pagination';
@@ -64,4 +64,9 @@ export async function publicTariffsForFacility(facilityId: string, now = new Dat
     inclusions: r.inclusions,
     exclusions: r.exclusions,
   }));
+}
+
+export async function listCategories(): Promise<ServiceCategory[]> {
+  const rows = await repo.listCategories(db());
+  return rows.map((r) => ({ slug: r.slug, name: r.name, serviceCount: Number(r.serviceCount) }));
 }

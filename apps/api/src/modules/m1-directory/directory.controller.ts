@@ -5,7 +5,11 @@ import * as service from './directory.service';
 
 export async function search(input: { query: z.output<typeof facilitySearchQuerySchema> }): Promise<HandlerResult> {
   const r = await service.searchFacilities(input.query);
-  return { data: r.items, meta: { nextCursor: r.nextCursor }, cache: 'public' };
+  return {
+    data: r.items,
+    meta: { nextCursor: r.nextCursor, ...(r.unpricedCount !== undefined ? { unpricedCount: r.unpricedCount } : {}) },
+    cache: 'public',
+  };
 }
 
 export async function detail(input: { params: { slug: string } }): Promise<HandlerResult> {

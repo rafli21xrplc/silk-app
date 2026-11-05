@@ -125,7 +125,7 @@
     },
     "/v1/facilities": {
       "get": {
-        "summary": "Cari faskes: q, city, type, service, lat, lng, radius (M1)",
+        "summary": "Cari faskes: q, city, type, service, category, lat/lng/radius, priceMin/priceMax, minRating (ber-flag) (M1, F-03)",
         "tags": [
           "Publik"
         ],
@@ -181,6 +181,17 @@
           },
           {
             "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "required": false,
+            "name": "category",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": [
                 "number",
                 "null"
@@ -217,12 +228,49 @@
           },
           {
             "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1000000000000
+            },
+            "required": false,
+            "name": "priceMin",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1000000000000
+            },
+            "required": false,
+            "name": "priceMax",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "required": false,
+            "name": "minRating",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "string",
               "enum": [
                 "price_asc",
                 "price_desc",
                 "name",
-                "distance"
+                "distance",
+                "rating"
               ]
             },
             "required": false,
@@ -441,6 +489,55 @@
                               "stale",
                               "source"
                             ]
+                          },
+                          "publishedTariffCount": {
+                            "type": "integer"
+                          },
+                          "priceAvailable": {
+                            "type": "boolean"
+                          },
+                          "nearestLocation": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "city": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "label",
+                              "address",
+                              "city"
+                            ]
+                          },
+                          "rating": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "avg": {
+                                "type": "number"
+                              },
+                              "count": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "avg",
+                              "count"
+                            ]
                           }
                         },
                         "required": [
@@ -454,7 +551,11 @@
                           "location",
                           "distanceM",
                           "price",
-                          "trust"
+                          "trust",
+                          "publishedTariffCount",
+                          "priceAvailable",
+                          "nearestLocation",
+                          "rating"
                         ]
                       }
                     },
@@ -1447,6 +1548,107 @@
                           "name",
                           "description",
                           "category"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/service-categories": {
+      "get": {
+        "summary": "Kategori layanan untuk filter pencarian, termasuk kategori baru (F-03)",
+        "tags": [
+          "Publik"
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "serviceCount": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "name",
+                          "serviceCount"
                         ]
                       }
                     },

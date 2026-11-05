@@ -11,3 +11,7 @@ export async function listServices(input: { query: z.output<typeof servicesQuery
 export async function getService(input: { params: { slug: string } }): Promise<HandlerResult> {
   return { data: await service.getService(input.params.slug), cache: 'public' };
 }
+
+export async function listCategories(): Promise<HandlerResult> {
+  return { data: await service.listCategories(), cache: 'public' };
+}

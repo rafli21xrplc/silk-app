@@ -16,7 +16,7 @@ export function directoryRoutes(router: Router): void {
   defineRoute(router, '', {
     method: 'get',
     path: '/facilities',
-    summary: 'Cari faskes: q, city, type, service, lat, lng, radius (M1)',
+    summary: 'Cari faskes: q, city, type, service, category, lat/lng/radius, priceMin/priceMax, minRating (ber-flag) (M1, F-03)',
     tags: ['Publik'],
     query: facilitySearchQuerySchema,
     response: z.array(facilityListItemSchema),

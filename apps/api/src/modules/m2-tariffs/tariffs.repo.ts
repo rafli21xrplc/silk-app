@@ -214,3 +214,17 @@ export async function cityPriceSummary(db: DbOrTx, serviceId: string) {
   `);
   return result.rows;
 }
+
+/** Kategori layanan untuk filter pencarian (F-03), urut sesuai id (urutan katalog). */
+export function listCategories(db: DbOrTx) {
+  return db
+    .select({
+      slug: serviceCategories.slug,
+      name: serviceCategories.name,
+      serviceCount: sql<number>`count(${services.id})::int`,
+    })
+    .from(serviceCategories)
+    .leftJoin(services, eq(services.categoryId, serviceCategories.id))
+    .groupBy(serviceCategories.id)
+    .orderBy(asc(serviceCategories.id));
+}

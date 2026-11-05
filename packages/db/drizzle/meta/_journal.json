@@ -57,6 +57,13 @@
       "when": 1793916754523,
       "tag": "0007_fase3_facility_ratings",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793918413432,
+      "tag": "0008_fase4_partner_articles",
+      "breakpoints": true
     }
   ]
 }

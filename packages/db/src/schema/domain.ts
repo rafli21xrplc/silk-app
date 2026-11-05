@@ -26,6 +26,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import {
+  articleStatus,
+  citext,
   entityStatus,
   facilityType,
   geographyPoint,
@@ -727,5 +729,55 @@ export const facilityRatings = pgTable(
   (t) => [
     check('facility_ratings_avg_range', sql`${t.ratingAvg} BETWEEN 1 AND 5`),
     check('facility_ratings_count', sql`${t.ratingCount} >= 0`),
+  ],
+);
+
+/**
+ * Artikel edukasi dari mitra (Fase 4, F-05). Satu baris menyimpan salinan kerja (`title`, `summary`, `body`)
+ * dan salinan terbit (`published_*`). Endpoint publik hanya membaca salinan terbit, jadi draf dan perubahan
+ * yang menunggu tinjauan tidak pernah tampil. Artikel editorial tetap di Sanity.
+ */
+export const partnerArticles = pgTable(
+  'partner_articles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    partnerId: uuid('partner_id')
+      .notNull()
+      .references(() => partners.id, { onDelete: 'cascade' }),
+    authorUserId: uuid('author_user_id').references(() => user.id, { onDelete: 'set null' }),
+    slug: citext('slug').notNull().unique(),
+    status: articleStatus('status').notNull().default('draft'),
+    title: text('title').notNull(),
+    summary: text('summary').notNull().default(''),
+    /** Markdown terbatas (lihat `parseArticleBody` di @silk/shared). */
+    body: text('body').notNull().default(''),
+    publishedTitle: text('published_title'),
+    publishedSummary: text('published_summary'),
+    publishedBody: text('published_body'),
+    firstPublishedAt: timestamp('first_published_at', { withTimezone: true }),
+    publishedUpdatedAt: timestamp('published_updated_at', { withTimezone: true }),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewedBy: uuid('reviewed_by').references(() => user.id, { onDelete: 'set null' }),
+    rejectionReason: text('rejection_reason'),
+    /** Cocok dengan aturan M17 `tinjau` saat diajukan. */
+    needsReview: boolean('needs_review').notNull().default(false),
+    withdrawnReason: text('withdrawn_reason'),
+    /** Waktu mitra mencentang pernyataan bebas promosi saat terakhir mengajukan. */
+    declarationAt: timestamp('declaration_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('partner_articles_queue_idx').on(t.status, t.submittedAt),
+    index('partner_articles_partner_idx').on(t.partnerId, t.updatedAt.desc()),
+    index('partner_articles_public_idx').on(t.publishedUpdatedAt.desc()).where(sql`${t.publishedBody} IS NOT NULL`),
+    check(
+      'partner_articles_published_together',
+      sql`(${t.publishedTitle} IS NULL) = (${t.publishedBody} IS NULL) AND (${t.publishedSummary} IS NULL) = (${t.publishedBody} IS NULL)
+        AND (${t.publishedBody} IS NULL) = (${t.firstPublishedAt} IS NULL)`,
+    ),
+    check('partner_articles_published_status', sql`${t.status} <> 'published' OR ${t.publishedBody} IS NOT NULL`),
+    check('partner_articles_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
   ],
 );

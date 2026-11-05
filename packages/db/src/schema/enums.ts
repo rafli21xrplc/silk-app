@@ -1,6 +1,7 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 import { customType } from 'drizzle-orm/pg-core';
 import {
+  ARTICLE_STATUSES,
   ENTITY_STATUSES,
   FACILITY_TYPES,
   MEDIA_KINDS,
@@ -22,6 +23,7 @@ export const partnerStatus = pgEnum('partner_status', PARTNER_STATUSES);
 export const scheduleKind = pgEnum('schedule_kind', SCHEDULE_KINDS);
 export const mediaKind = pgEnum('media_kind', MEDIA_KINDS);
 export const reviewStatus = pgEnum('review_status', REVIEW_STATUSES);
+export const articleStatus = pgEnum('article_status', ARTICLE_STATUSES);
 export const tariffRequestKind = pgEnum('tariff_request_kind', TARIFF_REQUEST_KINDS);
 
 /**

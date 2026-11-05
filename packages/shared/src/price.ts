@@ -89,3 +89,21 @@ export function checkPriceFields(input: {
 export function priceSortKey(price: PriceValue): number {
   return price.type === 'tanya' || price.min === null ? Number.POSITIVE_INFINITY : price.min;
 }
+
+/**
+ * Rentang harga sebuah tarif untuk filter biaya (F-03): `tetap`/`paket` = [min, max ?? min],
+ * `rentang` = [min, max ?? min], `mulai_dari` = [min, tak terbatas]. `tanya` atau tanpa angka = null.
+ * Rumus yang sama dipakai di SQL pencarian (`directory.repo.ts`).
+ */
+export function priceBounds(price: PriceValue): { low: number; high: number } | null {
+  if (price.type === 'tanya' || price.min === null) return null;
+  if (price.type === 'mulai_dari') return { low: price.min, high: Number.POSITIVE_INFINITY };
+  return { low: price.min, high: price.max ?? price.min };
+}
+
+/** Tarif cocok dengan filter biaya bila rentangnya beririsan dengan [from, to] (batas kosong = terbuka). */
+export function priceMatchesRange(price: PriceValue, range: { from?: number | null; to?: number | null }): boolean {
+  const b = priceBounds(price);
+  if (!b) return false;
+  return (range.to == null || b.low <= range.to) && (range.from == null || b.high >= range.from);
+}

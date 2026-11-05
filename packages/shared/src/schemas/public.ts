@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FACILITY_TYPES, MEDIA_KINDS, SCHEDULE_KINDS } from '../constants';
+import { FACILITY_SORT_OPTIONS, FACILITY_TYPES, MEDIA_KINDS, SCHEDULE_KINDS } from '../constants';
 import {
   booleanQuerySchema,
   cursorSchema,
@@ -16,16 +16,26 @@ import {
 const latSchema = z.coerce.number().min(-90).max(90);
 const lngSchema = z.coerce.number().min(-180).max(180);
 
+/** Rupiah utuh dari query string (filter biaya). */
+const rupiahQuerySchema = z.coerce.number().int().min(0).max(1_000_000_000_000);
+
 export const facilitySearchQuerySchema = z
   .object({
     q: z.string().trim().min(1).max(100).optional(),
     city: z.string().trim().min(1).max(100).optional(),
     type: z.enum(FACILITY_TYPES).optional(),
     service: slugSchema.optional(),
+    /** Fase 3: slug kategori layanan; faskes yang punya tarif terbit di kategori itu. */
+    category: slugSchema.optional(),
     lat: latSchema.optional(),
     lng: lngSchema.optional(),
     radius: z.coerce.number().int().min(100).max(50_000).optional(),
-    sort: sortSchema.optional(),
+    /** Fase 3: rentang biaya (rupiah), wajib bersama `service` atau `category`. */
+    priceMin: rupiahQuerySchema.optional(),
+    priceMax: rupiahQuerySchema.optional(),
+    /** Fase 3: rating minimal; hanya bila flag reviews_enabled menyala (selain itu 404). */
+    minRating: z.coerce.number().int().min(1).max(5).optional(),
+    sort: z.enum(FACILITY_SORT_OPTIONS).optional(),
     limit: limitSchema,
     cursor: cursorSchema,
   })
@@ -39,8 +49,17 @@ export const facilitySearchQuerySchema = z
     if ((v.sort === 'price_asc' || v.sort === 'price_desc') && !v.service) {
       ctx.addIssue({ code: 'custom', path: ['sort'], message: 'Pengurutan harga memerlukan parameter service' });
     }
+    if ((v.priceMin !== undefined || v.priceMax !== undefined) && !v.service && !v.category) {
+      ctx.addIssue({ code: 'custom', path: ['priceMin'], message: 'Filter biaya memerlukan layanan atau kategori' });
+    }
+    if (v.priceMin !== undefined && v.priceMax !== undefined && v.priceMin > v.priceMax) {
+      ctx.addIssue({ code: 'custom', path: ['priceMax'], message: 'Biaya maksimal harus lebih besar dari biaya minimal' });
+    }
   });
 export type FacilitySearchQuery = z.infer<typeof facilitySearchQuerySchema>;
+
+export const serviceCategorySchema = z.object({ slug: z.string(), name: z.string(), serviceCount: z.number().int() });
+export type ServiceCategory = z.infer<typeof serviceCategorySchema>;
 
 export const servicesQuerySchema = z.object({
   q: z.string().trim().min(1).max(100).optional(),
@@ -91,6 +110,14 @@ export const facilityListItemSchema = z.object({
   distanceM: z.number().nullable(),
   price: priceSchema.nullable(),
   trust: trustSchema.nullable(),
+  /** Fase 3: jumlah tarif terbit; 0 = "tarif belum tersedia". */
+  publishedTariffCount: z.number().int(),
+  /** Fase 3: ada angka harga untuk layanan yang dicari (bukan `tanya`). */
+  priceAvailable: z.boolean(),
+  /** Fase 3: lokasi terdekat dari titik pencarian bila bukan lokasi utama. */
+  nearestLocation: z.object({ label: z.string().nullable(), address: z.string(), city: z.string() }).nullable(),
+  /** Fase 3/6: rata-rata rating; hanya bila reviews_enabled dan jumlah ulasan cukup. */
+  rating: z.object({ avg: z.number(), count: z.number().int() }).nullable(),
 });
 export type FacilityListItem = z.infer<typeof facilityListItemSchema>;
 

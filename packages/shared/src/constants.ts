@@ -118,6 +118,16 @@ export type ContentRuleLevel = (typeof CONTENT_RULE_LEVELS)[number];
 export const SORT_OPTIONS = ['price_asc', 'price_desc', 'name', 'distance'] as const;
 export type SortOption = (typeof SORT_OPTIONS)[number];
 
+/**
+ * Urutan pencarian faskes (F-03). `rating` hanya bila flag `reviews_enabled` menyala dan hanya bila
+ * pengguna memilihnya; urutan bawaan tidak pernah memakai rating, pembayaran, atau langganan.
+ */
+export const FACILITY_SORT_OPTIONS = [...SORT_OPTIONS, 'rating'] as const;
+export type FacilitySortOption = (typeof FACILITY_SORT_OPTIONS)[number];
+
+/** Rating dianggap ada setelah sekian ulasan disetujui (filter dan urut rating, Fase 3/6). */
+export const RATING_MIN_COUNT = 3;
+
 export const DEFAULT_STALE_AFTER_DAYS = 180;
 
 /** Batas unggahan dokumen klaim (M7). */

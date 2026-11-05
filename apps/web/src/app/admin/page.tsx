@@ -10,6 +10,10 @@ interface QueueCounts {
   tariffs: number;
   reports: number;
   imports: number;
+  profiles: number;
+  revisions: number;
+  media: number;
+  tariffRequests: number;
 }
 
 export default function AdminHome() {
@@ -19,6 +23,10 @@ export default function AdminHome() {
 function Overview() {
   const { items, error } = useAdminData<QueueCounts>('/admin/overview');
   const cards: { key: keyof QueueCounts; href: string; label: string }[] = [
+    { key: 'tariffRequests', href: '/admin/moderasi?tab=harga', label: t.moderation.tabs.harga },
+    { key: 'revisions', href: '/admin/moderasi?tab=revisi', label: t.moderation.tabs.revisi },
+    { key: 'media', href: '/admin/moderasi?tab=media', label: t.moderation.tabs.media },
+    { key: 'profiles', href: '/admin/moderasi?tab=profil', label: t.moderation.tabs.profil },
     { key: 'claims', href: '/admin/klaim', label: t.admin.claims },
     { key: 'tariffs', href: '/admin/tarif', label: t.admin.tariffs },
     { key: 'reports', href: '/admin/laporan', label: t.admin.reports },

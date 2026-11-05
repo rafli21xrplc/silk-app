@@ -14,6 +14,7 @@ import { t } from '@/messages/id';
 
 const NAV = [
   { href: '/admin', label: t.admin.overview },
+  { href: '/admin/moderasi', label: t.moderation.title },
   { href: '/admin/klaim', label: t.admin.claims },
   { href: '/admin/mitra', label: t.admin.partners },
   { href: '/admin/tarif', label: t.admin.tariffs },

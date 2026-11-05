@@ -15,8 +15,10 @@ export const user = pgTable('user', {
   image: text('image'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  // plugin admin: faskes | moderator | admin
-  role: text('role').notNull().default('faskes'),
+  // plugin admin: role akun (USER_ROLES di @silk/shared); daftar mandiri = pasien (Fase 1)
+  role: text('role').notNull().default('pasien'),
+  /** Nomor HP opsional (SRS: noHp). Belum dipakai untuk OTP SMS. */
+  phone: text('phone'),
   banned: boolean('banned').default(false),
   banReason: text('ban_reason'),
   banExpires: timestamp('ban_expires', { withTimezone: true }),
@@ -100,4 +102,18 @@ export const rateLimit = pgTable('rate_limit', {
   key: text('key').notNull().unique(),
   count: integer('count').notNull(),
   lastRequest: bigint('last_request', { mode: 'number' }).notNull(),
+});
+
+/**
+ * Kunci penandatangan JWT (plugin jwt Better Auth, Fase 1). Kunci privat dienkripsi Better Auth dengan
+ * BETTER_AUTH_SECRET. Rotasi otomatis; kunci lama tetap ada selama masa tenggang.
+ */
+export const jwks = pgTable('jwks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  publicKey: text('public_key').notNull(),
+  privateKey: text('private_key').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  alg: text('alg'),
+  crv: text('crv'),
 });

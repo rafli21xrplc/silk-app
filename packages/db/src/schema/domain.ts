@@ -28,6 +28,8 @@ import {
   facilityType,
   geographyPoint,
   inet,
+  partnerStatus,
+  partnerType,
   priceType,
   verificationLevel,
 } from './enums';
@@ -108,6 +110,53 @@ export const facilityPractitioners = pgTable(
       .references(() => practitioners.id, { onDelete: 'cascade' }),
   },
   (t) => [primaryKey({ columns: [t.facilityId, t.practitionerId] })],
+);
+
+/* ---------- Fase 1 (F-01): mitra ---------- */
+
+/**
+ * Data usaha dan izin mitra (diagram kelas SRS: Mitra dan turunannya). Satu baris per akun mitra.
+ * Kolom per jenis bersifat nullable; CHECK menjamin atribut wajib per jenis. Profil faskes tetap di
+ * `facilities` (lewat `memberships`), tenaga medis ditautkan ke `practitioners` lewat `practitioner_id`.
+ */
+export const partners = pgTable(
+  'partners',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    partnerType: partnerType('partner_type').notNull(),
+    businessName: text('business_name').notNull(),
+    licenseNo: text('license_no'),
+    status: partnerStatus('status').notNull().default('pending'),
+    rejectionReason: text('rejection_reason'),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    verifiedBy: uuid('verified_by').references(() => user.id, { onDelete: 'set null' }),
+    specialty: text('specialty'),
+    strNo: text('str_no'),
+    practitionerId: uuid('practitioner_id').references(() => practitioners.id, { onDelete: 'set null' }),
+    facilityKind: facilityType('facility_kind'),
+    roomCount: integer('room_count'),
+    field: text('field'),
+    siaNo: text('sia_no'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('partners_status_type_idx').on(t.status, t.partnerType, t.createdAt),
+    check(
+      'partners_type_attributes',
+      sql`(${t.partnerType} <> 'tenaga_medis' OR ${t.strNo} IS NOT NULL)
+        AND (${t.partnerType} <> 'fasilitas' OR ${t.facilityKind} IS NOT NULL)
+        AND (${t.partnerType} <> 'gaya_hidup' OR ${t.field} IS NOT NULL)
+        AND (${t.partnerType} <> 'apotek' OR ${t.siaNo} IS NOT NULL)`,
+    ),
+    check('partners_verified_at', sql`(${t.status} = 'verified') = (${t.verifiedAt} IS NOT NULL)`),
+    check('partners_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
+    check('partners_room_count', sql`${t.roomCount} IS NULL OR ${t.roomCount} >= 0`),
+  ],
 );
 
 /* ---------- M2: layanan, paket, tarif ---------- */

@@ -190,7 +190,7 @@ export async function setMissingCurrentVersions(db: Pick<Database, 'execute'>): 
 export async function truncateAll(db: Database): Promise<void> {
   await db.execute(sql`
     TRUNCATE TABLE
-      audit_logs, data_reports, import_rows, import_batches, documents, facility_claims,
+      audit_logs, partners, jwks, data_reports, import_rows, import_batches, documents, facility_claims,
       memberships, tariff_versions, tariffs, package_components, packages, data_sources,
       facility_practitioners, practitioners, facilities, services, service_categories,
       regions, content_rules, jobs, rate_limit_counters, rate_limit,

@@ -25,8 +25,49 @@ export type PriceType = (typeof PRICE_TYPES)[number];
 export const ENTITY_STATUSES = ['draft', 'menunggu_tinjauan', 'terbit', 'ditarik'] as const;
 export type EntityStatus = (typeof ENTITY_STATUSES)[number];
 
-export const USER_ROLES = ['faskes', 'moderator', 'admin'] as const;
+/** Role akun (F-01). `faskes` = mitra fasilitas kesehatan. Role staf hanya diberikan admin. */
+export const USER_ROLES = ['pasien', 'faskes', 'tenaga_medis', 'gaya_hidup', 'apotek', 'moderator', 'admin'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
+
+export const STAFF_ROLES = ['moderator', 'admin'] as const satisfies readonly UserRole[];
+export const PARTNER_ROLES = ['faskes', 'tenaga_medis', 'gaya_hidup', 'apotek'] as const satisfies readonly UserRole[];
+export type PartnerRole = (typeof PARTNER_ROLES)[number];
+
+/** Jenis mitra (diagram kelas SRS: FasilitasKesehatan, TenagaMedis, PenyediaGayaHidup, ApotekMitra). */
+export const PARTNER_TYPES = ['fasilitas', 'tenaga_medis', 'gaya_hidup', 'apotek'] as const;
+export type PartnerType = (typeof PARTNER_TYPES)[number];
+
+export const PARTNER_STATUSES = ['pending', 'verified', 'rejected'] as const;
+export type PartnerStatus = (typeof PARTNER_STATUSES)[number];
+
+/** Pilihan saat daftar mandiri. Tidak ada jalur ke role staf. */
+export const ACCOUNT_TYPES = ['pasien', ...PARTNER_TYPES] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+const ACCOUNT_TYPE_ROLE: Record<AccountType, UserRole> = {
+  pasien: 'pasien',
+  fasilitas: 'faskes',
+  tenaga_medis: 'tenaga_medis',
+  gaya_hidup: 'gaya_hidup',
+  apotek: 'apotek',
+};
+const ROLE_PARTNER_TYPE: Record<PartnerRole, PartnerType> = {
+  faskes: 'fasilitas',
+  tenaga_medis: 'tenaga_medis',
+  gaya_hidup: 'gaya_hidup',
+  apotek: 'apotek',
+};
+
+/** Role untuk jenis akun yang dipilih saat daftar; nilai tak dikenal jatuh ke `pasien`. */
+export function roleForAccountType(type: unknown): UserRole {
+  return (ACCOUNT_TYPES as readonly unknown[]).includes(type) ? ACCOUNT_TYPE_ROLE[type as AccountType] : 'pasien';
+}
+
+export const isPartnerRole = (role: string | null | undefined): role is PartnerRole =>
+  (PARTNER_ROLES as readonly string[]).includes(role ?? '');
+export const isStaffRole = (role: string | null | undefined): boolean =>
+  (STAFF_ROLES as readonly string[]).includes(role ?? '');
+export const partnerTypeForRole = (role: PartnerRole): PartnerType => ROLE_PARTNER_TYPE[role];
 
 export const DATA_SOURCE_KINDS = ['perda', 'pmk', 'faskes', 'admin', 'lainnya'] as const;
 export type DataSourceKind = (typeof DATA_SOURCE_KINDS)[number];

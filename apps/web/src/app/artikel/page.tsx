@@ -4,7 +4,7 @@ import { ArrowRight, BookOpen, Sparkles } from 'lucide-react';
 import { ArticleBrowser } from '@/components/article/article-browser';
 import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { listArticles } from '@/lib/sanity';
+import { listArticles } from '@/lib/articles';
 import { t } from '@/messages/id';
 
 export const revalidate = 3600;

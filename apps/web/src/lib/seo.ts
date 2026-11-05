@@ -60,7 +60,7 @@ export function physicianLd(p: PractitionerDetail) {
   };
 }
 
-export function articleLd(a: { title: string; description: string; slug: string; publishedAt: string; updatedAt?: string; author?: string }) {
+export function articleLd(a: { title: string; description: string; slug: string; publishedAt: string; updatedAt?: string; author?: string; authorType?: 'Person' | 'Organization' }) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -69,7 +69,7 @@ export function articleLd(a: { title: string; description: string; slug: string;
     mainEntityOfPage: absoluteUrl(`/artikel/${a.slug}`),
     datePublished: a.publishedAt,
     dateModified: a.updatedAt ?? a.publishedAt,
-    ...(a.author ? { author: { '@type': 'Person', name: a.author } } : {}),
+    ...(a.author ? { author: { '@type': a.authorType ?? 'Person', name: a.author } } : {}),
     publisher: { '@type': 'Organization', name: t.site.name, url: SITE_URL },
   };
 }

@@ -31,6 +31,8 @@ export interface ArticleSummary {
   readingMinutes: number;
   /** Artikel contoh pengembangan (bukan dari CMS). */
   sample?: boolean;
+  /** Fase 4: artikel ditulis mitra (dari API SILK), bukan editorial Sanity. */
+  partner?: { name: string; partnerType: string; profilePath: string | null };
 }
 
 export interface Article extends ArticleSummary {

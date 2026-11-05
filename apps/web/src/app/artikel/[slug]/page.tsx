@@ -12,7 +12,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { tocOf } from '@/lib/article-meta';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/format';
-import { getArticle, listArticles } from '@/lib/sanity';
+import { getArticle, listArticles } from '@/lib/articles';
 import { articleLd } from '@/lib/seo';
 import { t } from '@/messages/id';
 
@@ -58,7 +58,7 @@ export default async function ArticlePage({ params }: { params: Params }) {
   return (
     <>
       <ReadingProgress targetId={BODY_ID} />
-      <JsonLd data={articleLd({ ...a, author: a.author ?? undefined })} />
+      <JsonLd data={articleLd({ ...a, author: a.author ?? undefined, authorType: a.partner && a.partner.partnerType !== 'tenaga_medis' ? 'Organization' : 'Person' })} />
       <div className="container">
         <Breadcrumbs
           items={[
@@ -86,6 +86,9 @@ export default async function ArticlePage({ params }: { params: Params }) {
                   {t.articles.sample}
                 </span>
               )}
+              {a.partner && (
+                <span className="rounded-full bg-mint px-3 py-1 font-semibold text-mint-ink shadow-soft">{t.articles.partnerBadge}</span>
+              )}
             </p>
             <h1 className="animate-rise text-[clamp(1.8rem,1.2rem+2.4vw,2.75rem)] leading-[1.12] font-extrabold tracking-[-0.03em]">
               {a.title}
@@ -107,7 +110,8 @@ export default async function ArticlePage({ params }: { params: Params }) {
                 {a.author && (
                   <p className="m-0 font-semibold text-ink">
                     <span className="sr-only">{t.articles.writtenBy} </span>
-                    {a.author}
+                    {a.partner?.profilePath ? <Link href={a.partner.profilePath}>{a.author}</Link> : a.author}
+                    {a.partner && <span className="font-normal text-muted"> · {t.partner.types[a.partner.partnerType] ?? a.partner.partnerType}</span>}
                   </p>
                 )}
                 <p className="m-0 text-muted">
@@ -153,7 +157,7 @@ export default async function ArticlePage({ params }: { params: Params }) {
 
             <aside className="mt-10 flex items-start gap-3 rounded-2xl border border-sand-200 bg-sand-50 px-5 py-4 text-sm text-ink-soft">
               <Info className="mt-0.5 size-[18px] shrink-0 text-warn" aria-hidden="true" />
-              <p className="m-0">{t.articles.medicalNote}</p>
+              <p className="m-0">{a.partner ? t.articles.partnerNote : t.articles.medicalNote}</p>
             </aside>
 
             <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">

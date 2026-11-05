@@ -14,6 +14,7 @@ interface QueueCounts {
   revisions: number;
   media: number;
   tariffRequests: number;
+  articles: number;
 }
 
 export default function AdminHome() {
@@ -25,6 +26,7 @@ function Overview() {
   const cards: { key: keyof QueueCounts; href: string; label: string }[] = [
     { key: 'tariffRequests', href: '/admin/moderasi?tab=harga', label: t.moderation.tabs.harga },
     { key: 'revisions', href: '/admin/moderasi?tab=revisi', label: t.moderation.tabs.revisi },
+    { key: 'articles', href: '/admin/moderasi?tab=artikel', label: t.moderation.tabs.artikel },
     { key: 'media', href: '/admin/moderasi?tab=media', label: t.moderation.tabs.media },
     { key: 'profiles', href: '/admin/moderasi?tab=profil', label: t.moderation.tabs.profil },
     { key: 'claims', href: '/admin/klaim', label: t.admin.claims },

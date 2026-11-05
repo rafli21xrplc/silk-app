@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Inbox } from 'lucide-react';
 import { useState } from 'react';
-import { formatPrice, REVIEW_STATUSES, type PriceType } from '@silk/shared';
+import { ARTICLE_STATUSES, formatPrice, REVIEW_STATUSES, type AdminArticleListItem, type PriceType } from '@silk/shared';
 import { FormError } from '@/components/app-shell';
 import { buttonVariants } from '@/components/ui/button';
 import { DataPanel } from '@/components/ui/data-panel';
@@ -18,10 +18,10 @@ import { t } from '@/messages/id';
 import { AdminShell, StatusFilter, useAdminList } from '../admin-shell';
 import { RejectForm } from './reject-form';
 
-const TABS = ['profil', 'revisi', 'media', 'harga'] as const;
+const TABS = ['profil', 'revisi', 'media', 'harga', 'artikel'] as const;
 type Tab = (typeof TABS)[number];
 
-/** Antrean moderasi Fase 2: profil baru, revisi profil terbit (K3), media (K8), dan harga mitra (K4). */
+/** Antrean moderasi: profil baru, revisi profil terbit (K3), media (K8), harga mitra (K4), dan artikel mitra (F-05). */
 export function ModerationView() {
   const params = useSearchParams();
   const raw = params.get('tab');
@@ -46,6 +46,7 @@ export function ModerationView() {
           {tab === 'revisi' && <Revisions />}
           {tab === 'media' && <Media />}
           {tab === 'harga' && <PriceRequests />}
+          {tab === 'artikel' && <Articles />}
         </section>
       )}
     </AdminShell>
@@ -350,6 +351,60 @@ function PriceRequests() {
                   <td className="whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
                   <td className="text-right">
                     <Link href={`/admin/moderasi/harga/${r.id}`} className={buttonVariants({ size: 'sm' })}>
+                      {t.moderation.open}
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </DataPanel>
+      )}
+    </>
+  );
+}
+
+/* ---------- Artikel mitra (Fase 4, F-05) ---------- */
+
+function Articles() {
+  const [status, setStatus] = useState<string>('pending');
+  const { rows, busy, pagination, error } = useAdminList<AdminArticleListItem>(`/admin/articles?status=${status}`);
+  return (
+    <>
+      <StatusFilter value={status} options={ARTICLE_STATUSES} onChange={setStatus} labels={t.articleEditor.status} />
+      {error && <p className="error">{error}</p>}
+      {rows === null && !error && <LoadingTable cols={4} />}
+      {rows?.length === 0 && <Empty tab="artikel" />}
+      {rows && rows.length > 0 && (
+        <DataPanel pagination={pagination} busy={busy} label={t.moderation.tabs.artikel}>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{t.articleEditor.fieldTitle}</th>
+                <th scope="col">{t.moderation.articleAuthor}</th>
+                <th scope="col">{t.common.date}</th>
+                <th scope="col">
+                  <span className="sr-only">{t.common.action}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((a) => (
+                <tr key={a.id}>
+                  <th scope="row">
+                    {a.title}
+                    <div className="small muted font-normal">
+                      {a.revision ? t.moderation.articleRevision : t.moderation.articleNew}
+                      {a.needsReview && <span className="badge badge-stale ml-2">{t.moderation.articleFlagged}</span>}
+                    </div>
+                  </th>
+                  <td className="small">
+                    {a.author.name}
+                    <div className="muted">{t.partner.types[a.author.partnerType] ?? a.author.partnerType}</div>
+                  </td>
+                  <td className="whitespace-nowrap">{formatDateTime(a.submittedAt ?? a.updatedAt)}</td>
+                  <td className="text-right">
+                    <Link href={`/admin/moderasi/artikel/${a.id}`} className={buttonVariants({ size: 'sm' })}>
                       {t.moderation.open}
                     </Link>
                   </td>

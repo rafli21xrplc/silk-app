@@ -28,6 +28,11 @@ export function ArticleMeta({
         {t.articles.minutes(article.readingMinutes)}
       </span>
       {article.sample && <span className="badge badge-stale">{t.articles.sample}</span>}
+      {article.partner && (
+        <span className="rounded-full bg-mint px-2.5 py-0.5 text-xs font-semibold text-mint-ink" title={article.partner.name}>
+          {t.articles.partnerBadge}
+        </span>
+      )}
     </p>
   );
 }

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { apiGet } from '@/lib/api';
-import { listArticles } from '@/lib/sanity';
+import { listArticles } from '@/lib/articles';
 import { absoluteUrl } from '@/lib/seo';
 import type { SitemapData } from '@/lib/types';
 

@@ -28,7 +28,7 @@ export function AppShell({ me, title, nav, children }: { me: Me; title: string; 
     .join('');
   return (
     <div className="container app-shell grid gap-6 lg:grid-cols-[240px_1fr] lg:gap-10">
-      <aside className="lg:sticky lg:top-24 lg:self-start">
+      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <div className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-soft">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-100 font-bold text-primary-800" aria-hidden="true">
             {initials}

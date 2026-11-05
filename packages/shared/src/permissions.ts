@@ -1,4 +1,4 @@
-import { PARTNER_ROLES, USER_ROLES, type UserRole } from './constants';
+import { ARTICLE_AUTHOR_ROLES, PARTNER_ROLES, USER_ROLES, type UserRole } from './constants';
 
 /**
  * Matriks role × permission (Fase 1, docs/enablement/01-rencana-fase-1.md bagian 5). Satu-satunya sumber;
@@ -22,6 +22,8 @@ export const PERMISSIONS = {
   'partner.self': PARTNER_ROLES,
   /** Portal profil layanan (M6, Fase 2) untuk semua mitra; akses per profil dicek lewat `memberships`. */
   'portal.facility': PARTNER_ROLES,
+  /** Menulis artikel edukasi (F-05, Fase 4); hanya mitra terverifikasi, dicek di service. */
+  'portal.articles': ARTICLE_AUTHOR_ROLES,
   /** Klaim profil faskes yang sudah ada (M7). */
   'portal.claims': ['faskes'],
   /** Seluruh `/v1/admin/*` (wajib TOTP). */

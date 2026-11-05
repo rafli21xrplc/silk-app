@@ -44,6 +44,7 @@ const MATRIX: Record<Permission, Actor[]> = {
   'account.self': ['pasien', 'faskes', 'tenaga_medis', 'gaya_hidup', 'apotek', 'moderator', 'admin'],
   'partner.self': ['faskes', 'tenaga_medis', 'gaya_hidup', 'apotek'],
   'portal.facility': ['faskes', 'tenaga_medis', 'gaya_hidup', 'apotek'],
+  'portal.articles': ['faskes', 'tenaga_medis', 'gaya_hidup'],
   'portal.claims': ['faskes'],
   'admin.access': ['moderator', 'admin'],
   'admin.partners': ['moderator', 'admin'],

@@ -154,6 +154,20 @@ export type MediaKind = (typeof MEDIA_KINDS)[number];
 export const REVIEW_STATUSES = ['pending', 'approved', 'rejected', 'superseded'] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
+/** Fase 4 (F-05): status artikel mitra. Label UI ada di berkas pesan web. */
+export const ARTICLE_STATUSES = ['draft', 'pending', 'published', 'rejected', 'withdrawn'] as const;
+export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
+/** Role mitra yang boleh menulis artikel (apotek tidak, lihat rencana fase 4 A2). */
+export const ARTICLE_AUTHOR_ROLES = ['faskes', 'tenaga_medis', 'gaya_hidup'] as const satisfies readonly UserRole[];
+export const ARTICLE_TITLE_MIN = 10;
+export const ARTICLE_TITLE_MAX = 140;
+export const ARTICLE_SUMMARY_MIN = 30;
+export const ARTICLE_SUMMARY_MAX = 300;
+export const ARTICLE_BODY_MIN = 300;
+export const ARTICLE_BODY_MAX = 20_000;
+/** Maksimal artikel berstatus `pending` per mitra, agar antrean moderasi tidak dibanjiri. */
+export const ARTICLE_MAX_PENDING = 5;
+
 /** Permintaan harga: satu tarif dari form, atau satu berkas CSV portal. */
 export const TARIFF_REQUEST_KINDS = ['tunggal', 'impor'] as const;
 export type TariffRequestKind = (typeof TARIFF_REQUEST_KINDS)[number];

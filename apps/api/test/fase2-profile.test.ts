@@ -74,6 +74,9 @@ describe('Fase 2: profil layanan, jadwal, media, harga', () => {
       expect(res.body.data).toMatchObject({ type: 'gaya_hidup', status: 'draft', city: 'Kota Malang' });
       expect(res.body.data.locations).toHaveLength(1);
       gayaProfile = { id: res.body.data.id, slug: res.body.data.slug };
+      // /me memuat profil ini untuk mitra non-faskes (dipakai portal web)
+      const me = await gaya.agent.get('/v1/me');
+      expect(me.body.data.memberships).toEqual([expect.objectContaining({ id: gayaProfile.id, type: 'gaya_hidup', status: 'draft' })]);
       // Draft tidak tampil publik
       expect((await request(getApp()).get(`/v1/facilities/${gayaProfile.slug}`)).status).toBe(404);
     });

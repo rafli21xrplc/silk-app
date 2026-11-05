@@ -11,7 +11,8 @@ import * as repo from './account.repo';
 export async function me(u: SessionUser) {
   const [profile, memberships, partner] = await Promise.all([
     repo.findProfile(db(), u.id),
-    u.role === 'faskes' ? myFacilities(db(), u.id) : Promise.resolve([]),
+    // Fase 2 (K1): semua jenis mitra mengelola profil layanan lewat memberships.
+    isPartnerRole(u.role) ? myFacilities(db(), u.id) : Promise.resolve([]),
     isPartnerRole(u.role) ? findByUser(db(), u.id) : Promise.resolve(null),
   ]);
   return {

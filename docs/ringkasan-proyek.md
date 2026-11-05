@@ -183,7 +183,7 @@ Variabel lingkungan (nama saja):
 - Katalog `/layanan` memanggil detail tiap layanan untuk menampilkan harga (paralel 6, di-cache 1 jam). Kalau layanan sudah ratusan, sebaiknya API menyediakan ringkasan harga langsung di daftar. Ini perubahan kontrak API, jadi perlu izin.
 - Artikel belum punya bidang gambar sampul dan kategori dari CMS; sampul saat ini dibuat otomatis secara dekoratif.
 - Folder `docs/modul/` masih kosong, padahal Definition of Done meminta dokumentasi per modul.
-- Repo belum di-git (belum ada riwayat commit atau CI).
+- Git sudah diinisialisasi (5 November 2026) tanpa remote; CI GitHub Actions ada di `.github/workflows/ci.yml`. Enablement SRS berjalan per fase, lihat `docs/enablement/`.
 
 **Syarat rilis MVP yang belum terpenuhi**
 

@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
     "./seed": "./seed/data.ts",
-    "./seed/run": "./seed/run.ts"
+    "./seed/run": "./seed/run.ts",
+    "./test-guard": "./src/test-db-guard.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

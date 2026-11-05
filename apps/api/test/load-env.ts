@@ -1,14 +1,18 @@
 import { config } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertSafeTestDatabase } from '@silk/db/test-guard';
 
-/** Muat .env root lalu arahkan ke database uji. TEST_DATABASE_URL diutamakan bila ada. */
+/**
+ * Muat .env root lalu arahkan ke database uji. Uji ini MENGOSONGKAN database, jadi guard menolak jalan
+ * bila TEST_DATABASE_URL kosong, bukan lokal/test_*, atau sama dengan DATABASE_URL (lihat @silk/db/test-guard).
+ */
 export function loadTestEnv(): void {
   config({ path: path.resolve(fileURLToPath(import.meta.url), '../../../../.env'), quiet: true });
-  if (process.env.TEST_DATABASE_URL) {
-    process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
-    process.env.DATABASE_URL_UNPOOLED = process.env.TEST_DATABASE_URL;
-  }
+  const testUrl = process.env.TEST_DATABASE_URL;
+  assertSafeTestDatabase(testUrl, process.env.DATABASE_URL);
+  process.env.DATABASE_URL = testUrl;
+  process.env.DATABASE_URL_UNPOOLED = testUrl;
   process.env.NODE_ENV = 'test';
   process.env.CRON_SECRET = 'test-cron-secret';
   process.env.SANITY_WEBHOOK_SECRET = 'test-sanity-secret';

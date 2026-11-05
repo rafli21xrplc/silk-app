@@ -9,7 +9,7 @@ import { loadTestEnv } from './load-env';
 export default async function setup(): Promise<void> {
   loadTestEnv();
   const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
-  if (!url) throw new Error('Uji integrasi butuh DATABASE_URL atau TEST_DATABASE_URL di .env root');
+  if (!url) throw new Error('Uji integrasi butuh TEST_DATABASE_URL di .env root');
   const client = new pg.Client({ connectionString: url });
   await client.connect();
   try {

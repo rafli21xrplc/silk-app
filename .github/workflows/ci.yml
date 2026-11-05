@@ -26,8 +26,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      # Uji integrasi butuh Postgres + PostGIS. Isi secret TEST_DATABASE_URL dengan branch Neon
-      # khusus CI (database ini dikosongkan setiap kali uji berjalan).
+      # Uji integrasi butuh Postgres + PostGIS. Isi secret TEST_DATABASE_URL dengan database bernama test_*
+      # di branch Neon khusus CI (dikosongkan setiap kali uji berjalan; guard menolak nama lain).
       - name: Migrasi database uji
         if: ${{ env.TEST_DATABASE_URL != '' }}
         run: pnpm --filter @silk/db db:migrate
@@ -39,6 +39,6 @@ jobs:
         run: pnpm test
       - name: Uji unit saja (secret TEST_DATABASE_URL belum diisi)
         if: ${{ env.TEST_DATABASE_URL == '' }}
-        run: pnpm --filter @silk/shared test
+        run: pnpm --filter @silk/shared --filter @silk/db --filter @silk/web test
       - name: Build web
         run: pnpm --filter @silk/web build

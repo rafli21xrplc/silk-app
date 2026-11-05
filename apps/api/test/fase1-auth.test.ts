@@ -207,9 +207,11 @@ describe('Fase 1: matriks role × endpoint', () => {
     for (const u of [pasien, moderator, admin]) expect((await u.agent.get('/v1/partners/me')).status).toBe(403);
   });
 
-  it('portal faskes hanya untuk role faskes', async () => {
-    expect((await faskes.agent.get('/v1/portal/facilities')).status).toBe(200);
-    for (const u of [pasien, medis, gaya, apotek]) expect((await u.agent.get('/v1/portal/facilities')).status).toBe(403);
+  it('portal mitra untuk semua role mitra (Fase 2, K11); klaim M7 khusus faskes', async () => {
+    for (const u of [faskes, medis, gaya, apotek]) expect((await u.agent.get('/v1/portal/facilities')).status).toBe(200);
+    expect((await pasien.agent.get('/v1/portal/facilities')).status).toBe(403);
+    expect((await faskes.agent.get('/v1/portal/claims')).status).toBe(200);
+    for (const u of [medis, gaya, apotek]) expect((await u.agent.get('/v1/portal/claims')).status).toBe(403);
   });
 
   it('admin hanya untuk staf ber-MFA', async () => {

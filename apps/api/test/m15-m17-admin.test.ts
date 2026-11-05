@@ -15,7 +15,7 @@ describe('M15 Panel admin dan M17 filter konten', () => {
     await resetDb();
     admin = await createUser({ role: 'admin', mfa: true });
     moderator = await createUser({ role: 'moderator', mfa: true });
-    faskes = await createUser({ facilityIds: [FACILITY_IDS.klinikPratama] });
+    faskes = await createUser({ facilityIds: [FACILITY_IDS.klinikPratama], partner: { type: 'fasilitas' } });
   });
 
   it('M17: admin menambah aturan tanpa deploy dan langsung berlaku', async () => {
@@ -33,7 +33,7 @@ describe('M15 Panel admin dan M17 filter konten', () => {
     expect(res.status).toBe(400);
   });
 
-  it('aturan tingkat tinjau: tarif masuk antrean moderator; moderator dapat menerbitkan', async () => {
+  it('aturan tingkat tinjau: permintaan harga ditandai perlu ditinjau dan masuk antrean moderator', async () => {
     const [svc] = await db().select().from(services).where(eq(services.slug, 'kolesterol-total'));
     const res = await send(faskes, 'post', `/v1/portal/facilities/${FACILITY_IDS.klinikPratama}/tariffs`).send({
       serviceId: svc!.id,
@@ -41,13 +41,14 @@ describe('M15 Panel admin dan M17 filter konten', () => {
       priceMin: 45000,
       effectiveFrom: '2026-10-01',
       inclusions: 'Ada promo pelajar',
+      sourceTitle: 'Papan tarif klinik',
     });
-    expect(res.status).toBe(201);
-    expect(res.body.data.status).toBe('menunggu_tinjauan');
-    const queue = await moderator.agent.get('/v1/admin/tariffs');
-    expect(queue.body.data.map((t: { id: string }) => t.id)).toContain(res.body.data.id);
-    const pub = await send(moderator, 'post', `/v1/admin/tariffs/${res.body.data.id}/publish`).send({});
-    expect(pub.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body.data).toMatchObject({ status: 'pending', needsReview: true });
+    const queue = await moderator.agent.get('/v1/admin/tariff-requests');
+    expect(queue.body.data.map((t: { id: string }) => t.id)).toContain(res.body.data.requestId);
+    const overview = await moderator.agent.get('/v1/admin/overview');
+    expect(overview.body.data.tariffRequests).toBeGreaterThanOrEqual(1);
   });
 
   it('admin mengubah status faskes; setiap aksi tercatat di audit log dengan IP', async () => {
@@ -114,6 +115,10 @@ describe('M15 Panel admin dan M17 filter konten', () => {
       tariffs: expect.any(Number),
       reports: expect.any(Number),
       imports: expect.any(Number),
+      profiles: expect.any(Number),
+      revisions: expect.any(Number),
+      media: expect.any(Number),
+      tariffRequests: expect.any(Number),
     });
     const queue = await admin.agent.get('/v1/admin/tariffs').query({ status: 'menunggu_tinjauan', limit: 100 });
     expect(res.body.data.tariffs).toBe(queue.body.data.length);

@@ -53,7 +53,14 @@ export function FacilityCard({ facility }: { facility: FacilityListItem }) {
         {facility.price && facility.trust ? (
           <>
             <div className="flex flex-wrap items-end justify-between gap-2">
-              <PriceDisplay price={facility.price} />
+              {facility.price.type === 'tanya' ? (
+                <span className="grid gap-0.5">
+                  <span className="text-sm font-semibold text-muted">{t.search.noTariff}</span>
+                  <PriceDisplay price={facility.price} />
+                </span>
+              ) : (
+                <PriceDisplay price={facility.price} />
+              )}
               <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700" aria-hidden="true">
                 {t.facility.detail} <ArrowRight className="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" />
               </span>

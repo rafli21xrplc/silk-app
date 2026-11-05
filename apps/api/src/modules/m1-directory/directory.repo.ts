@@ -7,8 +7,8 @@ import {
   serviceCategories,
   type DbOrTx,
 } from '@silk/db';
-import type { FacilitySortOption, FacilityType, PriceType, VerificationLevel } from '@silk/shared';
-import { cityCondition } from '../../lib/sql';
+import type { FacilitySortOption, FacilityType, PractitionerSortOption, PriceType, ScheduleKind, VerificationLevel } from '@silk/shared';
+import { cityCondition, likeEscape } from '../../lib/sql';
 
 export interface FacilitySearchParams {
   q?: string;
@@ -302,12 +302,269 @@ export function practitionersForFacility(db: DbOrTx, facilityId: string) {
     .orderBy(asc(practitioners.name));
 }
 
-export async function findPublishedPractitioner(db: DbOrTx, slug: string) {
-  const [row] = await db
-    .select()
-    .from(practitioners)
-    .where(and(eq(practitioners.slug, slug), eq(practitioners.status, 'terbit')));
-  return row ?? null;
+/* ---------- Dokter (Fase 4b) ---------- */
+
+/**
+ * Satu-satunya definisi "dokter tampil publik": praktisi `terbit` yang tertaut ke minimal satu
+ * faskes `terbit`. Dipakai detail, daftar, spesialisasi, sitemap, dan tautan penulis artikel.
+ */
+export function publicPractitionerCondition(alias = 'p'): SQL {
+  const p = sql.raw(alias);
+  return sql`(${p}.status = 'terbit' AND EXISTS (
+    SELECT 1 FROM facility_practitioners pub_fp JOIN facilities pub_f ON pub_f.id = pub_fp.facility_id
+    WHERE pub_fp.practitioner_id = ${p}.id AND pub_f.status = 'terbit'))`;
+}
+const PUBLIC_PRACTITIONER = publicPractitionerCondition('p');
+
+/** Akun mitra tenaga medis milik praktisi `p` mengelola faskes `f` (profil yang dibuat dokter sendiri). */
+const OWN_PRACTICE = sql`EXISTS (
+  SELECT 1 FROM partners own_pa JOIN memberships own_m ON own_m.user_id = own_pa.user_id
+  WHERE own_pa.practitioner_id = p.id AND own_m.facility_id = f.id)`;
+
+/**
+ * Profil praktik utama (D2): profil milik dokter sendiri, lalu faskes `praktik_dokter`; selain itu tidak ada.
+ * Menghasilkan kolom `id` (alias lateral `pp`).
+ */
+const PRIMARY_PRACTICE = sql`LEFT JOIN LATERAL (
+    SELECT f.id FROM facility_practitioners fp JOIN facilities f ON f.id = fp.facility_id AND f.status = 'terbit'
+    WHERE fp.practitioner_id = p.id AND (${OWN_PRACTICE} OR f.type = 'praktik_dokter')
+    ORDER BY ${OWN_PRACTICE} DESC, f.name ASC, f.id ASC
+    LIMIT 1
+  ) pp ON true`;
+
+const PARTNER_VERIFIED = sql`EXISTS (SELECT 1 FROM partners pv WHERE pv.practitioner_id = p.id AND pv.status = 'verified')`;
+
+export type PublishedPractitionerRow = {
+  id: string;
+  slug: string;
+  name: string;
+  specialty: string | null;
+  str_no: string | null;
+  str_verified_at: Date | null;
+  partner_verified: boolean;
+  primary_id: string | null;
+};
+
+export async function findPublishedPractitioner(db: DbOrTx, slug: string): Promise<PublishedPractitionerRow | null> {
+  const r = await db.execute<PublishedPractitionerRow>(sql`
+    SELECT p.id, p.slug, p.name, p.specialty, p.str_no, p.str_verified_at,
+      ${PARTNER_VERIFIED} AS partner_verified, pp.id AS primary_id
+    FROM practitioners p ${PRIMARY_PRACTICE}
+    WHERE p.slug = ${slug} AND ${PUBLIC_PRACTITIONER}
+  `);
+  const row = r.rows[0];
+  return row ? { ...row, str_verified_at: row.str_verified_at ? new Date(row.str_verified_at) : null } : null;
+}
+
+export type PracticeRow = {
+  id: string;
+  slug: string;
+  name: string;
+  type: FacilityType;
+  city: string;
+  address: string;
+  description: string | null;
+  phone: string | null;
+  website: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+
+/** Tempat praktik terbit; urutan nama (profil utama diletakkan di depan oleh service). */
+export async function practicesOf(db: DbOrTx, practitionerId: string): Promise<PracticeRow[]> {
+  const r = await db.execute<PracticeRow>(sql`
+    SELECT f.id, f.slug, f.name, f.type, f.city, f.address, f.description, f.phone, f.website,
+      ST_Y(f.location::geometry) AS lat, ST_X(f.location::geometry) AS lng
+    FROM facility_practitioners fp JOIN facilities f ON f.id = fp.facility_id
+    WHERE fp.practitioner_id = ${practitionerId} AND f.status = 'terbit'
+    ORDER BY f.name ASC, f.id ASC
+  `);
+  return r.rows;
+}
+
+export type PracticeLocationRow = {
+  facility_id: string;
+  label: string | null;
+  address: string;
+  city: string;
+  lat: number;
+  lng: number;
+  is_primary: boolean;
+};
+
+export async function locationsOfFacilities(db: DbOrTx, facilityIds: string[]): Promise<PracticeLocationRow[]> {
+  if (facilityIds.length === 0) return [];
+  const ids = sql.join(facilityIds.map((id) => sql`${id}::uuid`), sql`, `);
+  const r = await db.execute<PracticeLocationRow>(sql`
+    SELECT pl.facility_id, pl.label, pl.address, pl.city,
+      ST_Y(pl.location::geometry) AS lat, ST_X(pl.location::geometry) AS lng, pl.is_primary
+    FROM profile_locations pl
+    WHERE pl.facility_id IN (${ids})
+    ORDER BY pl.is_primary DESC, pl.sort_order ASC, pl.created_at ASC
+  `);
+  return r.rows;
+}
+
+export type PracticeScheduleRow = {
+  facility_id: string;
+  kind: ScheduleKind;
+  weekday: number;
+  start: string;
+  end: string;
+  timezone: string;
+  note: string | null;
+};
+
+/**
+ * Jadwal dokter: di profil utama semua jadwal umum dan jadwal dokter ini; di faskes lain hanya jadwal
+ * yang memuat dokter ini. Jadwal dokter lain tidak pernah ikut.
+ */
+export async function schedulesOfPractitioner(
+  db: DbOrTx,
+  practitionerId: string,
+  primaryId: string | null,
+): Promise<PracticeScheduleRow[]> {
+  const r = await db.execute<PracticeScheduleRow>(sql`
+    SELECT s.facility_id, s.kind, s.weekday, to_char(s.start_time, 'HH24:MI') AS start, to_char(s.end_time, 'HH24:MI') AS "end",
+      s.timezone, s.note
+    FROM schedules s JOIN facilities f ON f.id = s.facility_id AND f.status = 'terbit'
+    JOIN facility_practitioners fp ON fp.facility_id = f.id AND fp.practitioner_id = ${practitionerId}
+    WHERE s.practitioner_id = ${practitionerId}
+      ${primaryId ? sql`OR (s.facility_id = ${primaryId} AND s.practitioner_id IS NULL)` : sql``}
+    ORDER BY s.kind ASC, s.weekday ASC, s.start_time ASC
+  `);
+  return r.rows;
+}
+
+export interface PractitionerSearchParams {
+  q?: string;
+  specialty?: string;
+  city?: string;
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  sort?: PractitionerSortOption;
+  limit: number;
+  offset: number;
+}
+
+export type PractitionerSearchRow = {
+  slug: string;
+  name: string;
+  specialty: string | null;
+  str_verified: boolean;
+  partner_verified: boolean;
+  photo_url: string | null;
+  cities: string[] | null;
+  practices: { slug: string; name: string }[] | null;
+  practice_count: number;
+  distance_m: number | null;
+  has_video: boolean;
+  has_schedule: boolean;
+  score: number;
+};
+
+/**
+ * Daftar dan pencarian dokter (F-03, Fase 4b). Lokasi dokter = lokasi semua tempat praktiknya yang terbit.
+ * Urutan: relevansi (ada `q`), jarak (ada titik), atau nama; pemecah seri `slug`.
+ * Urutan TIDAK PERNAH memakai data pembayaran atau langganan (prinsip 1; diuji regresi).
+ */
+export async function searchPractitioners(db: DbOrTx, p: PractitionerSearchParams): Promise<PractitionerSearchRow[]> {
+  const point = p.lat !== undefined && p.lng !== undefined ? sql`ST_SetSRID(ST_MakePoint(${p.lng}, ${p.lat}), 4326)::geography` : null;
+  // Faskes terbit tempat dokter `p` berpraktik (alias `pf`).
+  const practiceIds = sql`SELECT pf_fp.facility_id FROM facility_practitioners pf_fp
+    JOIN facilities pf ON pf.id = pf_fp.facility_id AND pf.status = 'terbit' WHERE pf_fp.practitioner_id = p.id`;
+  const where: SQL[] = [PUBLIC_PRACTITIONER];
+  if (p.q) {
+    const pattern = `%${likeEscape(p.q)}%`;
+    where.push(sql`(p.name ILIKE ${pattern} OR p.specialty ILIKE ${pattern} OR p.name % ${p.q} OR ${p.q} <% p.name
+      OR ${p.q} <% coalesce(p.specialty, ''))`);
+  }
+  if (p.specialty) where.push(sql`lower(btrim(p.specialty)) = lower(btrim(${p.specialty}))`);
+  if (p.city) {
+    where.push(sql`(EXISTS (
+        SELECT 1 FROM facilities f LEFT JOIN regions r ON r.id = f.region_id
+        WHERE f.id IN (${practiceIds}) AND ${cityCondition(p.city)}
+      ) OR EXISTS (
+        SELECT 1 FROM profile_locations pl LEFT JOIN regions pr ON pr.id = pl.region_id
+        WHERE pl.facility_id IN (${practiceIds}) AND ${cityCondition(p.city, 'pl', 'pr')}
+      ))`);
+  }
+  if (point && p.radius) {
+    where.push(sql`(EXISTS (
+        SELECT 1 FROM profile_locations pl WHERE pl.facility_id IN (${practiceIds}) AND ST_DWithin(pl.location, ${point}, ${p.radius})
+      ) OR EXISTS (
+        SELECT 1 FROM facilities fr WHERE fr.id IN (${practiceIds}) AND ST_DWithin(fr.location, ${point}, ${p.radius})
+      ))`);
+  }
+  const score = p.q
+    ? sql`GREATEST(similarity(p.name, ${p.q}), word_similarity(${p.q}, p.name),
+        similarity(coalesce(p.specialty, ''), ${p.q}), word_similarity(${p.q}, coalesce(p.specialty, '')))`
+    : sql`0`;
+  const distance = point
+    ? sql`(SELECT min(d) FROM (
+        SELECT ST_Distance(pl.location, ${point}) AS d FROM profile_locations pl WHERE pl.facility_id IN (${practiceIds})
+        UNION ALL
+        SELECT ST_Distance(fd.location, ${point}) FROM facilities fd WHERE fd.id IN (${practiceIds}) AND fd.location IS NOT NULL
+      ) dist)`
+    : sql`NULL::float8`;
+  const byName = sql`p.name ASC, p.slug ASC`;
+  let orderBy: SQL;
+  if (p.sort === 'name') orderBy = byName;
+  else if (p.sort === 'distance') orderBy = sql`distance_m ASC NULLS LAST, ${byName}`;
+  else if (p.q) orderBy = point ? sql`score DESC, distance_m ASC NULLS LAST, ${byName}` : sql`score DESC, ${byName}`;
+  else orderBy = point ? sql`distance_m ASC NULLS LAST, ${byName}` : byName;
+
+  const r = await db.execute<PractitionerSearchRow>(sql`
+    SELECT p.slug, p.name, p.specialty, p.str_verified_at IS NOT NULL AS str_verified,
+      ${PARTNER_VERIFIED} AS partner_verified,
+      (SELECT pm.public_url FROM profile_media pm
+        WHERE pm.facility_id = pp.id AND pm.kind = 'foto' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
+        ORDER BY pm.sort_order ASC, pm.created_at ASC LIMIT 1) AS photo_url,
+      EXISTS (SELECT 1 FROM profile_media pm
+        WHERE pm.facility_id = pp.id AND pm.kind = 'video' AND pm.status = 'approved' AND pm.public_url IS NOT NULL) AS has_video,
+      EXISTS (SELECT 1 FROM schedules s WHERE s.facility_id IN (${practiceIds})
+        AND (s.practitioner_id = p.id OR (s.facility_id = pp.id AND s.practitioner_id IS NULL))) AS has_schedule,
+      (SELECT array_agg(c.city ORDER BY c.city) FROM (
+        SELECT DISTINCT cf.city FROM facilities cf WHERE cf.id IN (${practiceIds})
+        UNION
+        SELECT DISTINCT cl.city FROM profile_locations cl WHERE cl.facility_id IN (${practiceIds})
+        ORDER BY 1 LIMIT 3
+      ) c) AS cities,
+      (SELECT json_agg(json_build_object('slug', x.slug, 'name', x.name)) FROM (
+        SELECT xf.slug, xf.name FROM facilities xf WHERE xf.id IN (${practiceIds})
+        ORDER BY (xf.id = pp.id) DESC NULLS LAST, xf.name ASC, xf.id ASC LIMIT 2
+      ) x) AS practices,
+      (SELECT count(*)::int FROM (${practiceIds}) n) AS practice_count,
+      ${distance} AS distance_m,
+      ${score} AS score
+    FROM practitioners p ${PRIMARY_PRACTICE}
+    WHERE ${sql.join(where, sql` AND `)}
+    ORDER BY ${orderBy}
+    LIMIT ${p.limit + 1} OFFSET ${p.offset}
+  `);
+  return r.rows;
+}
+
+/** Spesialisasi dokter yang tampil, digabung tanpa membedakan huruf besar/kecil. */
+export async function practitionerSpecialties(db: DbOrTx): Promise<{ name: string; count: number }[]> {
+  const r = await db.execute<{ name: string; count: number }>(sql`
+    SELECT min(btrim(p.specialty)) AS name, count(*)::int AS count
+    FROM practitioners p
+    WHERE ${PUBLIC_PRACTITIONER} AND p.specialty IS NOT NULL AND btrim(p.specialty) <> ''
+    GROUP BY lower(btrim(p.specialty))
+    ORDER BY lower(min(btrim(p.specialty))) ASC
+  `);
+  return r.rows;
+}
+
+/** Slug dokter yang berpraktik di faskes ini (revalidate halaman dokter saat data faskes berubah). */
+export async function practitionerSlugsOfFacility(db: DbOrTx, facilityId: string): Promise<string[]> {
+  const r = await db.execute<{ slug: string }>(sql`
+    SELECT p.slug FROM facility_practitioners fp JOIN practitioners p ON p.id = fp.practitioner_id
+    WHERE fp.facility_id = ${facilityId}
+  `);
+  return r.rows.map((x) => x.slug);
 }
 
 export function facilitiesForPractitioner(db: DbOrTx, practitionerId: string) {
@@ -327,12 +584,7 @@ export async function sitemapEntries(db: DbOrTx) {
       .from(facilities)
       .where(eq(facilities.status, 'terbit'))
       .orderBy(asc(facilities.slug)),
-    db.execute<{ slug: string }>(sql`
-      SELECT DISTINCT p.slug FROM practitioners p
-      JOIN facility_practitioners fp ON fp.practitioner_id = p.id
-      JOIN facilities f ON f.id = fp.facility_id AND f.status = 'terbit'
-      WHERE p.status = 'terbit' ORDER BY p.slug
-    `),
+    db.execute<{ slug: string }>(sql`SELECT p.slug FROM practitioners p WHERE ${PUBLIC_PRACTITIONER} ORDER BY p.slug`),
     db.execute<{ slug: string; has_tariffs: boolean; last_verified: Date | null }>(sql`
       SELECT s.slug, count(pt.tariff_id) > 0 AS has_tariffs, max(pt.verified_at) AS last_verified
       FROM services s LEFT JOIN published_tariffs pt ON pt.service_id = s.id

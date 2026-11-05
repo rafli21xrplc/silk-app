@@ -14,6 +14,7 @@ import { AppError, notFound } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { decodeOffsetCursor, pageOf } from '../../lib/pagination';
 import { revalidate, tags } from '../../lib/revalidate';
+import { revalidatePractitionersOfFacilities } from '../m1-directory/practitioner-cache';
 import { sniffMime, storage } from '../../lib/storage';
 import { recordAudit } from '../m15-admin/audit.repo';
 import { assertContentAllowed } from '../m17-content-rules/content-rules.service';
@@ -334,6 +335,7 @@ export async function setActive(ctx: ActorContext, tariffId: string, active: boo
     tags.facility(tariff.facilitySlug),
     ...(service ? [tags.service(service.slug), tags.compare(service.slug)] : []),
   ]);
+  await revalidatePractitionersOfFacilities([tariff.facilityId]);
   return { id: tariffId, active };
 }
 

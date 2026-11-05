@@ -4,6 +4,7 @@ import type { ActorContext } from '../../lib/context';
 import { notFound } from '../../lib/errors';
 import { decodeIdCursor, decodeOffsetCursor, encodeIdCursor, pageOf } from '../../lib/pagination';
 import { revalidate, tags } from '../../lib/revalidate';
+import { revalidatePractitionersOfFacilities } from '../m1-directory/practitioner-cache';
 import * as writeRepo from '../m2-tariffs/tariff-write.repo';
 import { afterAdminFacilityUpdate } from '../profiles/profiles.service';
 import * as repo from './admin.repo';
@@ -39,6 +40,7 @@ export async function updateFacility(
     return updated!;
   });
   await revalidate([tags.facility(after.slug), tags.facilities, tags.sitemap]);
+  await revalidatePractitionersOfFacilities([id]);
   return after;
 }
 
@@ -64,9 +66,10 @@ export async function setTariffStatus(ctx: ActorContext, tariffId: string, statu
       ip: ctx.ip,
       requestId: ctx.requestId,
     });
-    return { id: tariffId, status, facilitySlug: before.facilitySlug };
+    return { id: tariffId, status, facilitySlug: before.facilitySlug, facilityId: before.facilityId };
   });
   await revalidate([tags.facility(result.facilitySlug)]);
+  await revalidatePractitionersOfFacilities([result.facilityId]);
   return { id: result.id, status: result.status };
 }
 

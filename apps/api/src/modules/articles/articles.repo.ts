@@ -1,6 +1,7 @@
 import { desc, eq, sql } from 'drizzle-orm';
 import { partnerArticles, type DbOrTx } from '@silk/db';
 import type { ArticleStatus, PartnerType } from '@silk/shared';
+import { publicPractitionerCondition } from '../m1-directory/directory.repo';
 
 export type ArticleRow = typeof partnerArticles.$inferSelect;
 
@@ -25,8 +26,8 @@ const AUTHOR_COLS = sql`
   CASE WHEN p.partner_type = 'tenaga_medis' AND pr.name IS NOT NULL THEN pr.name ELSE p.business_name END AS author_name,
   p.partner_type, p.status AS partner_status,
   CASE
+    WHEN pr.slug IS NOT NULL AND ${publicPractitionerCondition('pr')} THEN '/dokter/' || pr.slug
     WHEN pf.slug IS NOT NULL THEN '/faskes/' || pf.slug
-    WHEN pr.slug IS NOT NULL AND pr.status = 'terbit' THEN '/dokter/' || pr.slug
   END AS profile_path`;
 
 /**
@@ -147,6 +148,26 @@ export async function publicBySlug(db: DbOrTx, slug: string): Promise<PublicRow 
     WHERE a.slug = ${slug} AND ${LIVE}
   `);
   return r.rows[0] ?? null;
+}
+
+/** Fase 4b: artikel tampil karya dokter (akun mitra yang tertaut ke praktisi ini), terbaru dulu. */
+export async function publicByPractitioner(db: DbOrTx, practitionerId: string, limit: number): Promise<PublicRow[]> {
+  const r = await db.execute<PublicRow>(sql`
+    SELECT ${PUBLIC_COLS}, ${AUTHOR_COLS}
+    FROM partner_articles a ${AUTHOR_JOIN}
+    WHERE p.practitioner_id = ${practitionerId} AND ${LIVE}
+    ORDER BY a.first_published_at DESC, a.id
+    LIMIT ${limit}
+  `);
+  return r.rows;
+}
+
+/** Slug praktisi milik akun mitra (penulis tenaga medis), untuk revalidate halaman dokternya. */
+export async function practitionerSlugOfPartner(db: DbOrTx, partnerId: string): Promise<string | null> {
+  const r = await db.execute<{ slug: string }>(sql`
+    SELECT pr.slug FROM partners p JOIN practitioners pr ON pr.id = p.practitioner_id WHERE p.id = ${partnerId}
+  `);
+  return r.rows[0]?.slug ?? null;
 }
 
 /** Slug artikel yang sedang tampil milik satu mitra (revalidate saat status mitra berubah). */

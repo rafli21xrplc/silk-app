@@ -5,6 +5,9 @@ import {
   facilityListItemSchema,
   facilitySearchQuerySchema,
   practitionerDetailSchema,
+  practitionerListItemSchema,
+  practitionerSearchQuerySchema,
+  practitionerSpecialtySchema,
   slugSchema,
 } from '@silk/shared';
 import { defineRoute } from '../../lib/route';
@@ -33,8 +36,25 @@ export function directoryRoutes(router: Router): void {
   });
   defineRoute(router, '', {
     method: 'get',
+    path: '/practitioners',
+    summary: 'Cari dokter: q, specialty, city, lat/lng/radius; urut relevansi, nama, atau jarak (Fase 4b, F-03)',
+    tags: ['Publik'],
+    query: practitionerSearchQuerySchema,
+    response: z.array(practitionerListItemSchema),
+    handler: (input) => c.searchPractitioners(input),
+  });
+  defineRoute(router, '', {
+    method: 'get',
+    path: '/practitioner-specialties',
+    summary: 'Spesialisasi dokter yang tampil, untuk filter (Fase 4b)',
+    tags: ['Publik'],
+    response: z.array(practitionerSpecialtySchema),
+    handler: () => c.practitionerSpecialties(),
+  });
+  defineRoute(router, '', {
+    method: 'get',
     path: '/practitioners/:slug',
-    summary: 'Detail tenaga medis (M1)',
+    summary: 'Detail dokter: profil praktik utama, jadwal, tempat praktik, tarif, artikel (M1, Fase 4b)',
     tags: ['Publik'],
     params: slugParams,
     response: practitionerDetailSchema,

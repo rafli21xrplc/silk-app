@@ -12,6 +12,9 @@ export const tags = {
   sitemap: 'sitemap',
   articles: 'articles',
   article: (slug: string) => `article:${slug}`,
+  /** Fase 4b: halaman dokter (`/dokter/[slug]`) dan daftar dokter (`/dokter`). */
+  practitioner: (slug: string) => `practitioner:${slug}`,
+  practitioners: 'practitioners',
 };
 
 export function signRevalidateBody(body: string, secret: string): string {

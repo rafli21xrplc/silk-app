@@ -16,6 +16,7 @@ import type { ActorContext } from '../../lib/context';
 import { AppError, notFound } from '../../lib/errors';
 import { decodeOffsetCursor, pageOf } from '../../lib/pagination';
 import { revalidate, tags } from '../../lib/revalidate';
+import { revalidatePractitionersOfFacilities } from '../m1-directory/practitioner-cache';
 import { sniffMime, storage } from '../../lib/storage';
 import { recordAudit } from '../m15-admin/audit.repo';
 import { assertContentAllowed } from '../m17-content-rules/content-rules.service';
@@ -61,7 +62,10 @@ function view(m: MediaRow, url: string | null) {
 
 async function revalidateIfPublic(facilityId: string) {
   const f = await repo.facilityStatus(db(), facilityId);
-  if (f?.status === 'terbit') await revalidate([tags.facility(f.slug)]);
+  if (f?.status !== 'terbit') return;
+  await revalidate([tags.facility(f.slug)]);
+  // Foto dan video profil praktik juga tampil di halaman dokter (Fase 4b).
+  await revalidatePractitionersOfFacilities([facilityId]);
 }
 
 /* ---------- Portal ---------- */

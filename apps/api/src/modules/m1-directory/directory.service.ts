@@ -3,12 +3,16 @@ import type {
   FacilityListItem,
   FacilitySearchQuery,
   PractitionerDetail,
+  PractitionerListItem,
+  PractitionerSearchQuery,
+  PractitionerSpecialty,
 } from '@silk/shared';
-import { RATING_MIN_COUNT } from '@silk/shared';
+import { PRACTITIONER_ARTICLE_LIMIT, RATING_MIN_COUNT } from '@silk/shared';
 import { db } from '../../lib/db';
 import { featureEnabled } from '../../lib/env';
 import { AppError, notFound } from '../../lib/errors';
 import { decodeOffsetCursor, pageOf } from '../../lib/pagination';
+import { publicOfPractitioner } from '../articles/articles.service';
 import { publicTariffsForFacility } from '../m2-tariffs/tariffs.service';
 import { findServiceBySlug } from '../m2-tariffs/tariffs.repo';
 import { toPrice, toTrust } from '../m4-trust/trust.mapper';
@@ -131,27 +135,111 @@ export async function getFacility(slug: string, now = new Date()): Promise<Facil
   };
 }
 
-export async function getPractitioner(slug: string): Promise<PractitionerDetail> {
+export async function getPractitioner(slug: string, now = new Date()): Promise<PractitionerDetail> {
   const p = await repo.findPublishedPractitioner(db(), slug);
   if (!p) throw notFound('PRACTITIONER_NOT_FOUND', 'Tenaga medis');
-  const facilityRows = await repo.facilitiesForPractitioner(db(), p.id);
+  // Berurutan per kelompok kecil: pool koneksi kecil di Vercel Functions.
+  const [practiceRows, scheduleRows] = await Promise.all([
+    repo.practicesOf(db(), p.id),
+    repo.schedulesOfPractitioner(db(), p.id, p.primary_id),
+  ]);
+  const primary = practiceRows.find((f) => f.id === p.primary_id) ?? null;
+  const [locationRows, media, tariffs, articles] = await Promise.all([
+    repo.locationsOfFacilities(
+      db(),
+      practiceRows.map((f) => f.id),
+    ),
+    primary ? publicMedia(primary.id) : Promise.resolve([]),
+    primary ? publicTariffsForFacility(primary.id, now) : Promise.resolve([]),
+    publicOfPractitioner(p.id, PRACTITIONER_ARTICLE_LIMIT),
+  ]);
+  // Tempat praktik: profil utama lebih dulu, lalu nama.
+  const ordered = primary ? [primary, ...practiceRows.filter((f) => f.id !== primary.id)] : practiceRows;
+  const photo = media.find((m) => m.kind === 'foto');
+  const video = media.find((m) => m.kind === 'video');
   // STR hanya tampil bila sudah diverifikasi (M1).
-  const strVerified = p.strVerifiedAt !== null;
+  const strVerified = p.str_verified_at !== null;
   return {
     slug: p.slug,
     name: p.name,
     specialty: p.specialty,
-    strNo: strVerified ? p.strNo : null,
-    strVerifiedAt: strVerified ? p.strVerifiedAt!.toISOString() : null,
-    facilities: facilityRows,
+    strNo: strVerified ? p.str_no : null,
+    strVerifiedAt: strVerified ? p.str_verified_at!.toISOString() : null,
+    facilities: practiceRows.map((f) => ({ slug: f.slug, name: f.name, city: f.city })),
+    verification: { str: strVerified, partner: p.partner_verified },
+    photo: photo ? { url: photo.url, caption: photo.caption } : null,
+    about: primary?.description ?? null,
+    contact: primary && (primary.phone || primary.website) ? { phone: primary.phone, website: primary.website } : null,
+    video: video ? { url: video.url, mime: video.mime, durationSec: video.durationSec, caption: video.caption } : null,
+    practices: ordered.map((f) => {
+      const locations = locationRows
+        .filter((l) => l.facility_id === f.id)
+        .map((l) => ({ label: l.label, address: l.address, city: l.city, lat: Number(l.lat), lng: Number(l.lng), isPrimary: l.is_primary }));
+      return {
+        facility: { slug: f.slug, name: f.name, type: f.type, city: f.city },
+        isPrimary: f.id === p.primary_id,
+        // Data lama tanpa baris lokasi: pakai alamat dan titik di kolom faskes.
+        locations:
+          locations.length > 0 || f.lat === null || f.lng === null
+            ? locations
+            : [{ label: null, address: f.address, city: f.city, lat: Number(f.lat), lng: Number(f.lng), isPrimary: true }],
+        schedules: scheduleRows
+          .filter((x) => x.facility_id === f.id)
+          .map(({ facility_id: _f, ...x }) => x),
+      };
+    }),
+    tariffs,
+    articles,
+    // Fase 6 mengisi rating di balik flag reviews_enabled.
+    rating: null,
   };
+}
+
+/** Daftar dan pencarian dokter (Fase 4b). Urutan netral: relevansi, jarak, atau nama. */
+export async function searchPractitioners(q: PractitionerSearchQuery): Promise<{ items: PractitionerListItem[]; nextCursor: string | null }> {
+  const offset = decodeOffsetCursor(q.cursor);
+  const rows = await repo.searchPractitioners(db(), {
+    q: q.q,
+    specialty: q.specialty,
+    city: q.city,
+    lat: q.lat,
+    lng: q.lng,
+    radius: q.radius,
+    sort: q.sort,
+    limit: q.limit,
+    offset,
+  });
+  const page = pageOf(rows, q.limit, offset);
+  return {
+    items: page.items.map((r) => ({
+      slug: r.slug,
+      name: r.name,
+      specialty: r.specialty,
+      verification: { str: r.str_verified, partner: r.partner_verified },
+      photoUrl: r.photo_url,
+      cities: r.cities ?? [],
+      practices: r.practices ?? [],
+      practiceCount: Number(r.practice_count),
+      distanceM: r.distance_m === null ? null : Math.round(Number(r.distance_m)),
+      hasVideo: r.has_video,
+      hasSchedule: r.has_schedule,
+    })),
+    nextCursor: page.nextCursor,
+  };
+}
+
+export function practitionerSpecialties(): Promise<PractitionerSpecialty[]> {
+  return repo.practitionerSpecialties(db());
 }
 
 export async function sitemap() {
   const s = await repo.sitemapEntries(db());
   return {
     facilities: s.facilityRows.map((f) => ({ path: `/faskes/${f.slug}`, lastModified: f.updatedAt.toISOString() })),
-    practitioners: s.practitionerRows.map((p) => ({ path: `/dokter/${p.slug}`, lastModified: null })),
+    practitioners: [
+      { path: '/dokter', lastModified: null },
+      ...s.practitionerRows.map((p) => ({ path: `/dokter/${p.slug}`, lastModified: null })),
+    ],
     services: s.serviceRows.map((r) => ({
       path: `/layanan/${r.slug}`,
       lastModified: r.last_verified ? new Date(r.last_verified).toISOString() : null,

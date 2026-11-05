@@ -13,6 +13,7 @@ import type { ActorContext } from '../../lib/context';
 import { AppError, notFound } from '../../lib/errors';
 import { decodeOffsetCursor, pageOf } from '../../lib/pagination';
 import { revalidate, tags } from '../../lib/revalidate';
+import { revalidatePractitionersOfFacilities } from '../m1-directory/practitioner-cache';
 import { recordAudit } from '../m15-admin/audit.repo';
 import { assertContentAllowed } from '../m17-content-rules/content-rules.service';
 import { addMembership, findFacility } from '../m6-portal/portal.repo';
@@ -326,9 +327,10 @@ export async function approveRevision(ctx: ActorContext, id: string) {
       ip: ctx.ip,
       requestId: ctx.requestId,
     });
-    return { decided, slug: f.slug };
+    return { decided, slug: f.slug, facilityId: rev.facilityId };
   });
   await revalidate([tags.facility(result.slug), tags.facilities, tags.sitemap]);
+  await revalidatePractitionersOfFacilities([result.facilityId]);
   return revisionView(result.decided);
 }
 

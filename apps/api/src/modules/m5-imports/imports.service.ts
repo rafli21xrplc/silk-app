@@ -17,6 +17,7 @@ import { AppError, notFound } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { decodeOffsetCursor, pageOf } from '../../lib/pagination';
 import { revalidate, tags } from '../../lib/revalidate';
+import { revalidatePractitionersOfFacilities } from '../m1-directory/practitioner-cache';
 import { storage } from '../../lib/storage';
 import { enqueueJob } from '../../jobs/jobs.repo';
 import { recordAudit, recordAudits } from '../m15-admin/audit.repo';
@@ -333,6 +334,7 @@ export async function publishBatch(ctx: ActorContext, batchId: string) {
 export async function revalidateFacilities(facilityIds: string[]) {
   const slugs = await repo.facilitySlugs(db(), facilityIds);
   await revalidate([...slugs.map(tags.facility), tags.facilities, tags.sitemap]);
+  await revalidatePractitionersOfFacilities(facilityIds);
 }
 
 /**

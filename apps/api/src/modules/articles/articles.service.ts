@@ -70,7 +70,11 @@ function portalView(a: ArticleRow, partnerVerified: boolean): PortalArticle {
 
 const authorView = (r: AuthorRow) => ({ name: r.author_name, partnerType: r.partner_type, profilePath: r.profile_path });
 
-const articleTags = (slug: string) => [tags.articles, tags.article(slug), tags.sitemap];
+/** Tag artikel, ditambah halaman dokter penulisnya (Fase 4b: daftar artikel di profil dokter). */
+async function articleTags(a: { slug: string; partnerId: string }): Promise<string[]> {
+  const author = await repo.practitionerSlugOfPartner(db(), a.partnerId);
+  return [tags.articles, tags.article(a.slug), tags.sitemap, ...(author ? [tags.practitioner(author)] : [])];
+}
 
 /** Pastikan isi lengkap sebelum masuk antrean; pesan per kolom untuk formulir. */
 function assertSubmittable(a: { title: string; summary: string; body: string }) {
@@ -231,7 +235,7 @@ async function withdraw(ctx: ActorContext, id: string, reason: string | null, pa
     await audit(tx, ctx, partnerId ? 'article.withdraw' : 'article.staff_withdraw', row, auditState(a), { ...auditState(row), reason });
     return row;
   });
-  if (hasPublished(next)) await revalidate(articleTags(next.slug));
+  if (hasPublished(next)) await revalidate(await articleTags(next));
   return next;
 }
 
@@ -294,7 +298,7 @@ export async function approve(ctx: ActorContext, id: string): Promise<AdminArtic
     await audit(tx, ctx, 'article.approve', next, auditState(a), auditState(next));
     return next;
   });
-  await revalidate(articleTags(row.slug));
+  await revalidate(await articleTags(row));
   return detail(row.id);
 }
 
@@ -318,8 +322,10 @@ export async function staffWithdraw(ctx: ActorContext, id: string, reason: strin
 
 /** Dipanggil saat status mitra berubah: artikelnya ikut tampil/tersembunyi. */
 export async function revalidatePartnerArticles(partnerId: string, database: DbOrTx = db()): Promise<void> {
-  const slugs = await repo.liveSlugsOfPartner(database, partnerId);
-  if (slugs.length) await revalidate([tags.articles, tags.sitemap, ...slugs.map(tags.article)]);
+  const [slugs, author] = await Promise.all([repo.liveSlugsOfPartner(database, partnerId), repo.practitionerSlugOfPartner(database, partnerId)]);
+  // Lencana "Mitra terverifikasi" di halaman dokter ikut status mitra (Fase 4b).
+  const list = [...(slugs.length ? [tags.articles, tags.sitemap, ...slugs.map(tags.article)] : []), ...(author ? [tags.practitioner(author), tags.practitioners] : [])];
+  if (list.length) await revalidate(list);
 }
 
 /* ---------- Publik ---------- */
@@ -349,6 +355,11 @@ export async function publicList(q: { limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
   const page = pageOf(await repo.publicList(db(), { limit: q.limit, offset }), q.limit, offset);
   return { items: (await notBlocked(page.items)).map(publicSummary), nextCursor: page.nextCursor };
+}
+
+/** Fase 4b: artikel di halaman profil dokter; filter M17 sama dengan daftar publik. */
+export async function publicOfPractitioner(practitionerId: string, limit: number): Promise<PublicArticleSummary[]> {
+  return (await notBlocked(await repo.publicByPractitioner(db(), practitionerId, limit))).map(publicSummary);
 }
 
 export async function publicGet(slug: string): Promise<PublicArticle> {

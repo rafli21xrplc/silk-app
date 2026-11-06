@@ -2,7 +2,6 @@ import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
 import {
   facilities,
   facilityPractitioners,
-  practitioners,
   regions,
   serviceCategories,
   type DbOrTx,
@@ -293,13 +292,19 @@ export async function findPublishedFacilityBySlug(db: DbOrTx, slug: string) {
   return row ?? null;
 }
 
-export function practitionersForFacility(db: DbOrTx, facilityId: string) {
-  return db
-    .select({ slug: practitioners.slug, name: practitioners.name, specialty: practitioners.specialty })
-    .from(facilityPractitioners)
-    .innerJoin(practitioners, eq(practitioners.id, facilityPractitioners.practitionerId))
-    .where(and(eq(facilityPractitioners.facilityId, facilityId), eq(practitioners.status, 'terbit')))
-    .orderBy(asc(practitioners.name));
+/** Dokter yang berpraktik di faskes ini, dengan foto profil praktik utamanya (Fase 4b). */
+export async function practitionersForFacility(db: DbOrTx, facilityId: string) {
+  const r = await db.execute<{ slug: string; name: string; specialty: string | null; photoUrl: string | null }>(sql`
+    SELECT p.slug, p.name, p.specialty,
+      (SELECT pm.public_url FROM profile_media pm
+        WHERE pm.facility_id = pp.id AND pm.kind = 'foto' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
+        ORDER BY pm.sort_order ASC, pm.created_at ASC LIMIT 1) AS "photoUrl"
+    FROM facility_practitioners fx JOIN practitioners p ON p.id = fx.practitioner_id
+    ${PRIMARY_PRACTICE}
+    WHERE fx.facility_id = ${facilityId} AND p.status = 'terbit'
+    ORDER BY p.name ASC, p.slug ASC
+  `);
+  return r.rows;
 }
 
 /* ---------- Dokter (Fase 4b) ---------- */

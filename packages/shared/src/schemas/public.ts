@@ -152,7 +152,8 @@ export const facilityDetailSchema = z.object({
   hours: z.record(z.string(), z.string()).nullable(),
   verification: verificationSchema,
   updatedAt: z.string(),
-  practitioners: z.array(z.object({ slug: z.string(), name: z.string(), specialty: z.string().nullable() })),
+  /** Fase 4b: `photoUrl` = foto pertama profil praktik utama dokter (aditif). */
+  practitioners: z.array(z.object({ slug: z.string(), name: z.string(), specialty: z.string().nullable(), photoUrl: z.string().nullable() })),
   tariffs: z.array(publicTariffSchema),
   /** Fase 2: semua lokasi (utama lebih dulu), jadwal terstruktur, dan media yang sudah disetujui. */
   locations: z.array(
@@ -220,7 +221,7 @@ export const practitionerDetailSchema = z.object({
   /** Tempat praktik; profil utama lebih dulu. Jadwal faskes lain hanya yang memuat dokter ini. */
   practices: z.array(
     z.object({
-      facility: z.object({ slug: z.string(), name: z.string(), type: z.enum(FACILITY_TYPES), city: z.string() }),
+      facility: z.object({ id: uuidSchema, slug: z.string(), name: z.string(), type: z.enum(FACILITY_TYPES), city: z.string() }),
       isPrimary: z.boolean(),
       locations: z.array(
         z.object({

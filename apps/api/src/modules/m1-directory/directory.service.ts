@@ -176,7 +176,7 @@ export async function getPractitioner(slug: string, now = new Date()): Promise<P
         .filter((l) => l.facility_id === f.id)
         .map((l) => ({ label: l.label, address: l.address, city: l.city, lat: Number(l.lat), lng: Number(l.lng), isPrimary: l.is_primary }));
       return {
-        facility: { slug: f.slug, name: f.name, type: f.type, city: f.city },
+        facility: { id: f.id, slug: f.slug, name: f.name, type: f.type, city: f.city },
         isPrimary: f.id === p.primary_id,
         // Data lama tanpa baris lokasi: pakai alamat dan titik di kolom faskes.
         locations:

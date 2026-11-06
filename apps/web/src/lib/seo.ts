@@ -47,15 +47,29 @@ export function medicalOrganizationLd(f: FacilityDetail) {
   };
 }
 
+/** JSON-LD `Physician` (Fase 4b): foto, spesialisasi, alamat dan telepon praktik utama, tempat praktik. */
 export function physicianLd(p: PractitionerDetail) {
+  const primary = p.practices.find((x) => x.isPrimary);
+  const place = primary?.locations[0];
   return {
     '@context': 'https://schema.org',
     '@type': 'Physician',
     name: p.name,
     url: absoluteUrl(`/dokter/${p.slug}`),
     ...(p.specialty ? { medicalSpecialty: p.specialty } : {}),
-    ...(p.facilities.length
-      ? { worksFor: p.facilities.map((f) => ({ '@type': 'MedicalOrganization', name: f.name, url: absoluteUrl(`/faskes/${f.slug}`) })) }
+    ...(p.about ? { description: p.about } : {}),
+    ...(p.photo ? { image: p.photo.url } : {}),
+    ...(p.contact?.phone ? { telephone: p.contact.phone } : {}),
+    ...(place
+      ? {
+          address: { '@type': 'PostalAddress', streetAddress: place.address, addressLocality: place.city, addressCountry: 'ID' },
+          geo: { '@type': 'GeoCoordinates', latitude: place.lat, longitude: place.lng },
+        }
+      : {}),
+    ...(p.practices.length
+      ? {
+          worksFor: p.practices.map((x) => ({ '@type': 'MedicalOrganization', name: x.facility.name, url: absoluteUrl(`/faskes/${x.facility.slug}`) })),
+        }
       : {}),
   };
 }

@@ -64,12 +64,18 @@ export function apiQuery(s: SearchState, limit = 20): URLSearchParams {
   return p;
 }
 
-/** Tautan `/cari` dengan perubahan; kursor selalu dibuang kecuali diisi lagi. `null` menghapus kunci. */
-export function searchHref(s: SearchState, patch: Partial<Record<SearchKey | 'view', string | null>> = {}): string {
+/** Halaman yang memakai formulir pencarian dengan "Dekat saya" (faskes dan dokter). */
+export type SearchPath = '/cari' | '/dokter';
+
+/**
+ * Tautan pencarian dengan perubahan; kursor selalu dibuang kecuali diisi lagi. `null` menghapus kunci.
+ * `path` bawaan `/cari`; `/dokter` dipakai pencarian dokter (Fase 4b).
+ */
+export function searchHref(s: Partial<Record<string, string>>, patch: Partial<Record<string, string | null>> = {}, path: SearchPath = '/cari'): string {
   const p = new URLSearchParams();
   const merged: Record<string, string | undefined> = { ...s, cursor: undefined };
   for (const [k, v] of Object.entries(patch)) merged[k] = v ?? undefined;
   for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
   const qs = p.toString();
-  return qs ? `/cari?${qs}` : '/cari';
+  return qs ? `${path}?${qs}` : path;
 }

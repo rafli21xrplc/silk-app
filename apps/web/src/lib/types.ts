@@ -4,6 +4,8 @@ export type {
   FacilityDetail,
   FacilityListItem,
   PractitionerDetail,
+  PractitionerListItem,
+  PractitionerSpecialty,
   PortalArticle,
   PublicArticle,
   PublicArticleSummary,

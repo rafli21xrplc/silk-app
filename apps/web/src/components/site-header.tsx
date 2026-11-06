@@ -7,6 +7,7 @@ import { NavLink } from './nav-link';
 
 const LINKS = [
   { href: '/cari', label: t.nav.search },
+  { href: '/dokter', label: t.nav.doctors },
   { href: '/layanan', label: t.nav.services },
   { href: '/artikel', label: t.nav.articles },
   { href: '/metodologi', label: t.nav.methodology },

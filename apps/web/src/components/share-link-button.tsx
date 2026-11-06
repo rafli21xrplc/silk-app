@@ -5,11 +5,11 @@ import { useState } from 'react';
 import { t } from '@/messages/id';
 import { buttonVariants } from './ui/button';
 
-/** Salin URL halaman saat ini (perbandingan bisa dibagikan, M3). */
-export function ShareLinkButton() {
+/** Salin URL halaman saat ini (perbandingan M3, profil dokter Fase 4b). */
+export function ShareLinkButton({ label = t.compare.share, copiedLabel = t.compare.copied, className = 'mt-5' }: { label?: string; copiedLabel?: string; className?: string } = {}) {
   const [copied, setCopied] = useState(false);
   return (
-    <p className="mt-5 flex items-center gap-3">
+    <p className={`${className} flex items-center gap-3`}>
       <button
         type="button"
         className={buttonVariants({ variant: 'secondary' })}
@@ -19,15 +19,15 @@ export function ShareLinkButton() {
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
           } catch {
-            window.prompt(t.compare.share, window.location.href);
+            window.prompt(label, window.location.href);
           }
         }}
       >
         {copied ? <Check className="size-4 text-ok" aria-hidden="true" /> : <Link2 className="size-4" aria-hidden="true" />}
-        {t.compare.share}
+        {label}
       </button>
       <span role="status" aria-live="polite" className="text-sm text-ok">
-        {copied ? t.compare.copied : ''}
+        {copied ? copiedLabel : ''}
       </span>
     </p>
   );

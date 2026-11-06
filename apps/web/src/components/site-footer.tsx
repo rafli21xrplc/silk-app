@@ -22,6 +22,7 @@ export function SiteFooter() {
             <h2 className="mt-0 mb-3 text-sm font-semibold tracking-wide text-muted uppercase">{t.footer.explore}</h2>
             <ul className="m-0 grid list-none gap-2 p-0 text-[0.95rem]">
               <li><Link className={linkCls} href="/cari">{t.nav.search}</Link></li>
+              <li><Link className={linkCls} href="/dokter">{t.nav.doctors}</Link></li>
               <li><Link className={linkCls} href="/layanan">{t.nav.services}</Link></li>
               <li><Link className={linkCls} href="/artikel">{t.nav.articles}</Link></li>
               <li><Link className={linkCls} href="/masuk">{t.nav.login}</Link></li>

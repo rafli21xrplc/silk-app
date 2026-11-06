@@ -1,23 +1,22 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Check, Clock3, Globe, MapPin, Minus, Phone, Scale, ShieldCheck } from 'lucide-react';
+import { Clock3, Globe, MapPin, Phone, ShieldCheck } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { ContactLinks } from '@/components/contact-links';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
+import { DoctorChip } from '@/components/doctor/doctor-card';
 import { FacilityMap } from '@/components/facility-map';
 import { JsonLd } from '@/components/json-ld';
 import { Reveal } from '@/components/motion/reveal';
 import { InfoPopover } from '@/components/ui/info-popover';
-import { PriceDisplay } from '@/components/price-display';
-import { ReportDataDialog } from '@/components/report-data-dialog';
-import { TariffHistoryDrawer } from '@/components/tariff-history-drawer';
+import { TariffCard } from '@/components/tariff-card';
 import { TrackView } from '@/components/track-view';
-import { TrustBadge } from '@/components/trust-badge';
+import { WeeklySchedule } from '@/components/profile/weekly-schedule';
 import { apiGetOrNull } from '@/lib/api';
 import { MAP_STYLE_URL } from '@/lib/config';
 import { formatDate } from '@/lib/format';
-import { formatTimeRange, groupByWeekday, tzShort, weekdayName, withProfileDefaults } from '@/lib/profile';
+import { withProfileDefaults } from '@/lib/profile';
 import { medicalOrganizationLd } from '@/lib/seo';
 import type { FacilityDetail } from '@/lib/types';
 import { t } from '@/messages/id';
@@ -158,64 +157,7 @@ export default async function FacilityPage({ params }: { params: Params }) {
       ) : (
         <Reveal className="grid gap-4">
           {f.tariffs.map((tariff) => (
-            <article
-              key={tariff.id}
-              data-reveal
-              className="tariff grid gap-4 rounded-card border border-line bg-white p-5 shadow-soft sm:p-6"
-              aria-labelledby={`tariff-${tariff.id}`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-                <div className="min-w-0">
-                  <p className="mb-1 text-sm text-muted">{tariff.service.category}</p>
-                  <h3 id={`tariff-${tariff.id}`} className="m-0 text-lg">
-                    {tariff.package ? `${tariff.package.name} (${tariff.service.name})` : tariff.service.name}
-                  </h3>
-                </div>
-                <PriceDisplay price={tariff.price} size="lg" />
-              </div>
-              <TrustBadge trust={tariff.trust} />
-              {tariff.package && (
-                <ul className="m-0 grid list-none gap-1.5 rounded-2xl bg-surface p-4 sm:grid-cols-2">
-                  {tariff.package.components.map((c) => (
-                    <li key={c.label} className={`flex items-start gap-2 text-[0.92rem] ${c.included ? 'text-ink' : 'text-muted'}`}>
-                      {c.included ? (
-                        <Check className="mt-0.5 size-4 shrink-0 text-ok" strokeWidth={2.5} aria-hidden="true" />
-                      ) : (
-                        <Minus className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                      )}
-                      <span>
-                        {c.label} {!c.included && <span className="text-sm">({t.compare.notIncluded})</span>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {(tariff.inclusions || tariff.exclusions) && (
-                <div className="grid gap-1 text-[0.92rem] text-ink-soft">
-                  {tariff.inclusions && (
-                    <p className="m-0">
-                      <strong className="text-ink">{t.facility.includes}:</strong> {tariff.inclusions}
-                    </p>
-                  )}
-                  {tariff.exclusions && (
-                    <p className="m-0">
-                      <strong className="text-ink">{t.facility.excludes}:</strong> {tariff.exclusions}
-                    </p>
-                  )}
-                </div>
-              )}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-4 text-[0.92rem]">
-                <Link
-                  href={`/bandingkan/${tariff.service.slug}?kota=${encodeURIComponent(f.city)}`}
-                  className="inline-flex items-center gap-1.5 font-semibold no-underline hover:underline"
-                >
-                  <Scale className="size-4" aria-hidden="true" />
-                  {t.facility.compare}
-                </Link>
-                <ReportDataDialog tariffId={tariff.id} facilityId={f.id} service={tariff.service.slug} />
-                <TariffHistoryDrawer tariffId={tariff.id} />
-              </div>
-            </article>
+            <TariffCard key={tariff.id} tariff={tariff} facilityId={f.id} city={f.city} />
           ))}
         </Reveal>
       )}
@@ -238,11 +180,9 @@ export default async function FacilityPage({ params }: { params: Params }) {
           </h2>
           <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
             {f.practitioners.map((p) => (
-              <li key={p.slug} className="rounded-2xl border border-line bg-white px-4 py-3 shadow-soft">
-                <Link href={`/dokter/${p.slug}`} className="font-semibold no-underline hover:underline">
-                  {p.name}
-                </Link>
-                {p.specialty && <span className="block text-sm text-muted">{p.specialty}</span>}
+              <li key={p.slug}>
+                {/* Respons cache lama (sebelum Fase 4b) belum punya photoUrl. */}
+                <DoctorChip doctor={{ ...p, photoUrl: p.photoUrl ?? null }} />
               </li>
             ))}
           </ul>
@@ -266,44 +206,6 @@ function InfoRow({ icon, label, children }: { icon: React.ReactNode; label: stri
         <dd className="m-0 text-ink">{children}</dd>
       </div>
     </div>
-  );
-}
-
-type Schedule = FacilityDetail['schedules'][number];
-
-/** Jadwal per hari Senin–Minggu dalam jam lokal + zona waktu (K7); hari tanpa jadwal ditulis "Tutup". */
-function WeeklySchedule({ items, withPractitioner }: { items: Schedule[]; withPractitioner?: boolean }) {
-  const days = groupByWeekday(items);
-  return (
-    <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-      {days
-        .filter((d) => !withPractitioner || d.items.length > 0)
-        .map((d) => (
-          <div key={d.weekday} className="contents">
-            <dt className="text-ink-soft">{weekdayName(d.weekday)}</dt>
-            <dd className="m-0">
-              {d.items.length === 0 ? (
-                <span className="text-muted">{t.facility.closed}</span>
-              ) : (
-                <span className="grid gap-0.5">
-                  {d.items.map((s, i) => (
-                    <span key={i}>
-                      <span className="tabular-nums">{formatTimeRange(s.start, s.end)}</span> {tzShort(s.timezone)}
-                      {withPractitioner && s.practitioner && (
-                        <>
-                          {' · '}
-                          <Link href={`/dokter/${s.practitioner.slug}`}>{s.practitioner.name}</Link>
-                        </>
-                      )}
-                      {s.note && <span className="text-muted"> · {s.note}</span>}
-                    </span>
-                  ))}
-                </span>
-              )}
-            </dd>
-          </div>
-        ))}
-    </dl>
   );
 }
 

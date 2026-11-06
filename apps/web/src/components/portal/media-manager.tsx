@@ -33,7 +33,20 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 /** Foto dan video profil (K8): unggah lewat signed URL, konfirmasi di API, tampil setelah dimoderasi. */
-export function MediaManager({ facilityId, media, onChanged, disabled }: { facilityId: string; media: PortalMedia[]; onChanged: () => void; disabled?: boolean }) {
+export function MediaManager({
+  facilityId,
+  media,
+  onChanged,
+  disabled,
+  photoHint,
+}: {
+  facilityId: string;
+  media: PortalMedia[];
+  onChanged: () => void;
+  disabled?: boolean;
+  /** Fase 4b: profil praktik dokter memakai foto pertama sebagai foto profil dokter. */
+  photoHint?: string;
+}) {
   const photos = media.filter((m) => m.kind === 'foto');
   const videos = media.filter((m) => m.kind === 'video');
   const activePhotos = photos.filter((m) => m.status !== 'rejected').length;
@@ -108,6 +121,7 @@ export function MediaManager({ facilityId, media, onChanged, disabled }: { facil
     <section className="stack card" aria-labelledby="media-title">
       <h2 id="media-title">{t.profile.media}</h2>
       <p className="small muted">{t.profile.mediaHelp}</p>
+      {photoHint && <p className="small rounded-xl bg-sky px-3 py-2 text-sky-ink">{photoHint}</p>}
       <FormError error={error} />
 
       <h3>{t.profile.photos}</h3>

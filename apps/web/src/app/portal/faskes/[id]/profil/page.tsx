@@ -82,7 +82,13 @@ function ProfileEditor({ facilityId }: { facilityId: string }) {
           await refetch();
         }}
       />
-      <MediaManager facilityId={facilityId} media={profile.media} onChanged={refetch} disabled={profile.status === 'ditarik'} />
+      <MediaManager
+        facilityId={facilityId}
+        media={profile.media}
+        onChanged={refetch}
+        disabled={profile.status === 'ditarik'}
+        photoHint={profile.type === 'praktik_dokter' ? t.doctors.photoHint : undefined}
+      />
     </div>
   );
 }

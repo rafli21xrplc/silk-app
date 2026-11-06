@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, ArrowUpDown, Info, List, Map as MapIcon, Navigation, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, ArrowUpDown, Info, List, Map as MapIcon, Navigation, SearchX, SlidersHorizontal, Stethoscope, X } from 'lucide-react';
 import { FACILITY_TYPES, formatPrice } from '@silk/shared';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import { FacilityCard } from '@/components/facility-card';
@@ -76,6 +76,13 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
     <div className="container">
       <h1 className="mb-1">{q ? t.search.resultsFor(q) : t.search.results}</h1>
       <SearchBar q={q} city={city} />
+      <p className="-mt-2 mb-4 text-sm">
+        <Link href={q ? `/dokter?q=${encodeURIComponent(q)}` : '/dokter'} className="inline-flex items-center gap-1.5 font-semibold" title={t.doctors.findDoctorHint}>
+          <Stethoscope className="size-4" aria-hidden="true" />
+          {t.doctors.findDoctor}
+          <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
+      </p>
       <form action="/cari" method="get" className="mb-5 grid gap-3" aria-label="Filter">
         {q && <input type="hidden" name="q" value={q} />}
         {city && <input type="hidden" name="city" value={city} />}

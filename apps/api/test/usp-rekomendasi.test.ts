@@ -4,12 +4,14 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { partners } from '@silk/db';
 import { practitionerDetailSchema, practitionerListItemSchema } from '@silk/shared';
 import { db } from '../src/lib/db';
-import { CONSENT_DOC, CONSENT_SELF, JPEG_BYTES, createUser, getApp, mp4Bytes, resetDb, send, uploadMediaWithConsent, uploadTo, type TestUser } from './helpers';
+import { importDemoVideo } from '../src/modules/profiles/media-import.service';
+import { CONSENT_DOC, CONSENT_SELF, JPEG_BYTES, PDF_BYTES, createUser, getApp, mp4Bytes, resetDb, send, uploadMediaWithConsent, uploadTo, type TestUser } from './helpers';
 
 /**
  * Rekomendasi evaluasi USP (docs/evaluasi/usp-evaluasi-2026-11-10.md).
  * R3: biaya konsultasi dokter dari tarif kategori `konsultasi` di profil praktik utama.
  * R5: batas video 20–90 detik dan 50 MB. R6: persetujuan tertulis orang yang tampil di video.
+ * R7: impor video demo dari tim lewat skrip operator, tetap lewat moderasi.
  */
 
 const api = () => request(getApp());
@@ -272,5 +274,58 @@ describe('Evaluasi USP R5 dan R6: batas video dan persetujuan tertulis', () => {
     const r = await db().execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM audit_logs WHERE action = 'media.consent.grant'`);
     // Dua persetujuan berlaku (formulir studio, pernyataan dokter); unggahan gagal juga sempat tercatat saat presign.
     expect(r.rows[0]!.n).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('Evaluasi USP R7: impor video demo dari tim', () => {
+  let moderator: TestUser;
+  let doc: { facilityId: string; slug: string };
+
+  const input = (slug: string, video: Buffer, consentBytes: Buffer = PDF_BYTES) => ({
+    practitionerSlug: slug,
+    video: { fileName: 'perkenalan.mp4', bytes: video },
+    consent: { fileName: 'persetujuan.pdf', bytes: consentBytes, subjectName: 'dr. Uji Video Demo', socialMedia: true },
+    caption: 'Perkenalan singkat dan cara praktik',
+  });
+
+  beforeAll(async () => {
+    await resetDb();
+    moderator = await createUser({ role: 'moderator', mfa: true });
+    doc = await doctorWithPractice('dr. Uji Video Demo', moderator);
+  });
+
+  it('menolak durasi di luar 20–90 detik, berkas bukan MP4, dan formulir bukan PDF/JPEG/PNG', async () => {
+    await expect(importDemoVideo(input(doc.slug, mp4Bytes(15)))).rejects.toMatchObject({ code: 'MEDIA_INVALID' });
+    await expect(importDemoVideo(input(doc.slug, mp4Bytes(120)))).rejects.toMatchObject({ code: 'MEDIA_INVALID' });
+    await expect(importDemoVideo(input(doc.slug, JPEG_BYTES))).rejects.toMatchObject({ code: 'MEDIA_INVALID' });
+    await expect(importDemoVideo(input(doc.slug, mp4Bytes(45), Buffer.from('bukan formulir')))).rejects.toMatchObject({ code: 'DOCUMENT_INVALID' });
+    await expect(importDemoVideo(input('dokter-tidak-ada', mp4Bytes(45)))).rejects.toMatchObject({ code: 'PRACTITIONER_NOT_FOUND' });
+    const n = await db().execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM profile_media WHERE facility_id = ${doc.facilityId}`);
+    expect(n.rows[0]!.n).toBe(0);
+  });
+
+  it('video sah masuk antrean moderasi dengan formulir terkonfirmasi, belum tampil publik', async () => {
+    const r = await importDemoVideo(input(doc.slug, mp4Bytes(45)));
+    expect(r).toMatchObject({ status: 'diimpor', facilityId: doc.facilityId, durationSec: 45 });
+    expect((await detail(doc.slug)).video).toBeNull();
+
+    const queue = await moderator.agent.get('/v1/admin/media');
+    const row = (queue.body.data as { id: string; consent: { method: string; scopes: string[]; document: unknown } | null }[]).find((m) => m.id === (r as { mediaId: string }).mediaId);
+    expect(row?.consent).toMatchObject({ method: 'dokumen', scopes: ['profil_web', 'media_sosial'] });
+    expect(row?.consent?.document).not.toBeNull();
+
+    const audit = await db().execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM audit_logs WHERE action = 'media.import_demo' AND entity_id = ${(r as { mediaId: string }).mediaId}`);
+    expect(audit.rows[0]!.n).toBe(1);
+
+    expect((await send(moderator, 'post', `/v1/admin/media/${(r as { mediaId: string }).mediaId}/approve`).send({})).status).toBe(200);
+    const shown = await detail(doc.slug);
+    expect(shown.video).toMatchObject({ durationSec: 45, caption: 'Perkenalan singkat dan cara praktik' });
+  });
+
+  it('idempoten: profil yang sudah punya video aktif dilewati', async () => {
+    const r = await importDemoVideo(input(doc.slug, mp4Bytes(30)));
+    expect(r.status).toBe('dilewati');
+    const n = await db().execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM profile_media WHERE facility_id = ${doc.facilityId} AND kind = 'video'`);
+    expect(n.rows[0]!.n).toBe(1);
   });
 });

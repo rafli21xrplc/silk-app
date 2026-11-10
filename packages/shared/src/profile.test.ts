@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { profileTypeForPartner } from './constants';
 import { facilityUpdateSchema, tariffCreateSchema } from './schemas/portal';
-import { locationsSchema, mediaPresignSchema, profileCreateSchema, scheduleInputSchema } from './schemas/profile';
+import { demoVideoManifestSchema, locationsSchema, mediaPresignSchema, profileCreateSchema, scheduleInputSchema } from './schemas/profile';
 
 const loc = { address: 'Jl. Ijen No. 1', city: 'Kota Malang', province: 'Jawa Timur', lat: -7.97, lng: 112.63, isPrimary: true };
 
@@ -81,5 +81,31 @@ describe('jenis profil per jenis mitra', () => {
     expect(profileTypeForPartner({ partnerType: 'gaya_hidup', facilityKind: null })).toBe('gaya_hidup');
     expect(profileTypeForPartner({ partnerType: 'apotek', facilityKind: null })).toBe('apotek');
     expect(profileTypeForPartner({ partnerType: 'fasilitas', facilityKind: 'rumah_duka' })).toBe('rumah_duka');
+  });
+});
+
+describe('manifest video demo (USP R7)', () => {
+  const item = {
+    practitionerSlug: 'dr-contoh-sari-wulandari-sp-og',
+    videoFile: 'sari.mp4',
+    consentFile: 'sari-persetujuan.pdf',
+    subjectName: 'dr. Sari Wulandari',
+  };
+
+  it('menerima manifest sah dan mengisi default media sosial', () => {
+    const r = demoVideoManifestSchema.parse({ videos: [item] });
+    expect(r.videos[0]?.socialMedia).toBe(false);
+  });
+
+  it('menolak berkas di luar folder manifest dan video selain MP4', () => {
+    expect(demoVideoManifestSchema.safeParse({ videos: [{ ...item, videoFile: '../rahasia.mp4' }] }).success).toBe(false);
+    expect(demoVideoManifestSchema.safeParse({ videos: [{ ...item, consentFile: 'a/b.pdf' }] }).success).toBe(false);
+    expect(demoVideoManifestSchema.safeParse({ videos: [{ ...item, videoFile: 'sari.webm' }] }).success).toBe(false);
+  });
+
+  it('wajib nama orang yang tampil dan satu video per dokter', () => {
+    expect(demoVideoManifestSchema.safeParse({ videos: [{ ...item, subjectName: 'dr' }] }).success).toBe(false);
+    expect(demoVideoManifestSchema.safeParse({ videos: [item, { ...item, videoFile: 'lain.mp4' }] }).success).toBe(false);
+    expect(demoVideoManifestSchema.safeParse({ videos: [] }).success).toBe(false);
   });
 });

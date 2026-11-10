@@ -11,7 +11,8 @@
     "test": "vitest run",
     "openapi": "tsx scripts/openapi.ts",
     "create-admin": "tsx --env-file-if-exists=../../.env scripts/create-admin.ts",
-    "auth:generate": "npx @better-auth/cli@1.4.21 generate --config src/auth/auth.ts --output ../../packages/db/src/schema/auth.generated.ts"
+    "auth:generate": "npx @better-auth/cli@1.4.21 generate --config src/auth/auth.ts --output ../../packages/db/src/schema/auth.generated.ts",
+    "demo-videos": "tsx --env-file-if-exists=../../.env scripts/demo-videos.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "8.5.0",

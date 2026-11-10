@@ -33,6 +33,8 @@ export interface ObjectInfo {
 export interface Storage {
   presignPut(key: string, contentType: string, sizeBytes: number): Promise<PresignedUpload>;
   presignGet(key: string, expiresInSec: number): Promise<string>;
+  /** Tulis objek langsung dari server. Hanya untuk skrip operator (mis. demo-videos), bukan jalur request. */
+  put(key: string, data: Buffer, contentType: string): Promise<void>;
   head(key: string): Promise<ObjectInfo | null>;
   /** Byte awal objek (untuk cek magic bytes). */
   readStart(key: string, bytes: number): Promise<Buffer>;
@@ -89,6 +91,10 @@ class R2Storage implements Storage {
       signableHeaders: new Set(['content-type', 'content-length']),
     });
     return { uploadUrl, method: 'PUT', headers: { 'Content-Type': contentType }, objectKey: key, expiresInSec: UPLOAD_TTL_SEC };
+  }
+
+  async put(key: string, data: Buffer, contentType: string): Promise<void> {
+    await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: data, ContentType: contentType }));
   }
 
   presignGet(key: string, expiresInSec: number): Promise<string> {

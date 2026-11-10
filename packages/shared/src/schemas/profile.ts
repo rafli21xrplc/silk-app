@@ -16,7 +16,7 @@ import {
   CONSENT_DOC_MAX_BYTES,
   CONSENT_SCOPES,
 } from '../constants';
-import { cursorSchema, limitSchema, uuidSchema } from './common';
+import { cursorSchema, limitSchema, slugSchema, uuidSchema } from './common';
 
 /* ---------- Fase 2 (F-02): profil layanan ---------- */
 
@@ -136,6 +136,33 @@ export const mediaPresignSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 export type MediaPresignInput = z.infer<typeof mediaPresignSchema>;
+
+/**
+ * Manifest skrip `demo-videos` (evaluasi USP R7): video perkenalan dokter dari tim, masing-masing dengan
+ * formulir persetujuan bertanda tangan. Nama berkas relatif terhadap folder manifest, tanpa subfolder.
+ * Hanya MP4, karena durasinya bisa diukur ulang dari header berkas.
+ */
+const localFileName = z
+  .string()
+  .trim()
+  .regex(/^[\w][\w .-]{0,150}$/, 'Nama berkas tanpa folder, hanya huruf, angka, spasi, titik, minus, garis bawah');
+export const demoVideoManifestSchema = z.object({
+  videos: z
+    .array(
+      z.object({
+        practitionerSlug: slugSchema,
+        videoFile: localFileName.refine((f) => f.toLowerCase().endsWith('.mp4'), 'Video harus berkas .mp4'),
+        consentFile: localFileName,
+        subjectName: consentBase.subjectName,
+        socialMedia: z.boolean().default(false),
+        caption,
+      }),
+    )
+    .min(1)
+    .max(20)
+    .refine((v) => new Set(v.map((x) => x.practitionerSlug)).size === v.length, 'Satu dokter hanya satu video'),
+});
+export type DemoVideoManifest = z.infer<typeof demoVideoManifestSchema>;
 
 export const mediaOrderSchema = z.object({ ids: z.array(uuidSchema).min(1).max(20) });
 

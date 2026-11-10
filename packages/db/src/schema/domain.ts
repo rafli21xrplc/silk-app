@@ -832,3 +832,41 @@ export const partnerArticles = pgTable(
     check('partner_articles_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
   ],
 );
+
+/**
+ * Ulasan pengalaman per profil (Fase 6 ramping, evaluasi USP R8; flag `reviews_enabled`). Pra-moderasi:
+ * hanya `approved` yang tampil dan masuk `facility_ratings`. Satu akun satu ulasan per profil; mengubah
+ * ulasan mengembalikannya ke `pending`. `is_sample` = data contoh demo (tanpa penulis), selalu berlabel di UI.
+ */
+export const reviews = pgTable(
+  'reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    facilityId: uuid('facility_id')
+      .notNull()
+      .references(() => facilities.id, { onDelete: 'cascade' }),
+    /** Akun dihapus → ulasannya ikut terhapus (data pribadi milik penulis). */
+    authorId: uuid('author_id').references(() => user.id, { onDelete: 'cascade' }),
+    rating: smallint('rating').notNull(),
+    /** `{ aspek: 'baik' | 'kurang' }`, aspek dari REVIEW_ASPECTS; divalidasi Zod. */
+    aspects: jsonb('aspects').notNull().default({}),
+    comment: text('comment'),
+    status: reviewStatus('status').notNull().default('pending'),
+    rejectionReason: text('rejection_reason'),
+    isSample: boolean('is_sample').notNull().default(false),
+    declarationVersion: text('declaration_version').notNull(),
+    reviewedBy: uuid('reviewed_by').references(() => user.id, { onDelete: 'set null' }),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('reviews_author_facility').on(t.authorId, t.facilityId).where(sql`${t.authorId} IS NOT NULL`),
+    index('reviews_facility_idx').on(t.facilityId, t.status, t.createdAt.desc()),
+    index('reviews_queue_idx').on(t.status, t.updatedAt),
+    check('reviews_rating_range', sql`${t.rating} BETWEEN 1 AND 5`),
+    check('reviews_aspects_object', sql`jsonb_typeof(${t.aspects}) = 'object'`),
+    check('reviews_sample_author', sql`${t.isSample} = (${t.authorId} IS NULL)`),
+    check('reviews_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
+  ],
+);

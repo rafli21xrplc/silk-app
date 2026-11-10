@@ -153,7 +153,26 @@ describe('data demo seed', () => {
       ...demo.packages.flatMap((p) => [p.name, p.notes, ...p.components.map((c) => c.label)]),
       ...DEMO_SERVICES.flatMap((s) => [s.name, s.description, ...s.aliases]),
       ...SERVICES.flatMap((s) => [s.name, s.description, ...s.aliases]),
+      ...demo.reviews.flatMap((r) => (r.comment ? [r.comment] : [])),
     ];
     for (const text of fields) expect(checkContent({ text }, rules).violations).toEqual([]);
+  });
+
+  it('evaluasi USP R8: ±20 ulasan data contoh, valid, tiap profil praktik dokter punya ulasan', () => {
+    expect(demo.reviews.length).toBeGreaterThanOrEqual(18);
+    expect(demo.reviews.length).toBeLessThanOrEqual(26);
+    const facilityIds = new Set(demo.facilities.map((f) => f.id));
+    for (const r of demo.reviews) {
+      expect(r.id).toMatch(UUID);
+      expect(r.id.startsWith('e1')).toBe(true);
+      expect(facilityIds.has(r.facilityId)).toBe(true);
+      expect(Number.isInteger(r.rating) && r.rating >= 1 && r.rating <= 5).toBe(true);
+      expect(Object.values(r.aspects).every((v) => v === 'baik' || v === 'kurang')).toBe(true);
+      expect(new Date(r.createdAt).getTime()).toBeLessThan(new Date('2026-11-02').getTime());
+    }
+    for (const f of demo.facilities.filter((x) => x.type === 'praktik_dokter')) {
+      expect(demo.reviews.some((r) => r.facilityId === f.id)).toBe(true);
+    }
+    expect(new Set(demo.reviews.map((r) => r.id)).size).toBe(demo.reviews.length);
   });
 });

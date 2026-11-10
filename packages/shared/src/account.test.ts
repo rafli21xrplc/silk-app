@@ -49,6 +49,7 @@ const MATRIX: Record<Permission, Actor[]> = {
   'admin.access': ['moderator', 'admin'],
   'admin.partners': ['moderator', 'admin'],
   'admin.users': ['admin'],
+  'review.write': ['pasien'],
   'auth.token': ['pasien', 'faskes', 'tenaga_medis', 'gaya_hidup', 'apotek'],
 };
 

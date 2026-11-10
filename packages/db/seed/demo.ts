@@ -10,6 +10,7 @@ import {
   practitioners,
   profileLocations,
   regions,
+  reviews,
   schedules,
   serviceCategories,
   services,
@@ -25,6 +26,7 @@ export interface DemoSeedResult {
   tariffs: number;
   versions: number;
   practitioners: number;
+  reviews: number;
 }
 
 /**
@@ -195,5 +197,33 @@ export async function seedDemoData(db: Database, now: Date = new Date()): Promis
     });
   }
 
-  return { facilities: insertedFacilities.length, tariffs: todo.length, versions: versions.length, practitioners: insertedPractitioners.length };
+  // Evaluasi USP R8: ulasan data contoh (tanpa penulis, `is_sample`). Hanya tampil bila flag reviews_enabled
+  // menyala, selalu berlabel "Data contoh", dan tidak ikut facility_ratings.
+  const insertedReviews = await db
+    .insert(reviews)
+    .values(
+      demo.reviews.map((r) => ({
+        id: r.id,
+        facilityId: r.facilityId,
+        rating: r.rating,
+        aspects: r.aspects,
+        comment: r.comment,
+        status: 'approved' as const,
+        isSample: true,
+        declarationVersion: 'data-contoh',
+        reviewedAt: cap(r.createdAt),
+        createdAt: cap(r.createdAt),
+        updatedAt: cap(r.createdAt),
+      })),
+    )
+    .onConflictDoNothing({ target: reviews.id })
+    .returning({ id: reviews.id });
+
+  return {
+    facilities: insertedFacilities.length,
+    tariffs: todo.length,
+    versions: versions.length,
+    practitioners: insertedPractitioners.length,
+    reviews: insertedReviews.length,
+  };
 }

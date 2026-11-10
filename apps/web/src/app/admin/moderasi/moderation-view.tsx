@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Inbox } from 'lucide-react';
 import { useState } from 'react';
-import { ARTICLE_STATUSES, formatPrice, REVIEW_STATUSES, type AdminArticleListItem, type PriceType } from '@silk/shared';
+import { ARTICLE_STATUSES, formatPrice, REVIEW_STATUSES, type AdminArticleListItem, type AdminReview, type PriceType } from '@silk/shared';
 import { FormError } from '@/components/app-shell';
 import { ConsentSummary } from '@/components/portal/video-consent-fields';
+import { Stars } from '@/components/reviews/review-parts';
 import { buttonVariants } from '@/components/ui/button';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -20,13 +21,17 @@ import { t } from '@/messages/id';
 import { AdminShell, StatusFilter, useAdminList } from '../admin-shell';
 import { RejectForm } from './reject-form';
 
-const TABS = ['profil', 'revisi', 'media', 'harga', 'artikel'] as const;
-type Tab = (typeof TABS)[number];
+const ALL_TABS = ['profil', 'revisi', 'media', 'harga', 'artikel', 'ulasan'] as const;
+type Tab = (typeof ALL_TABS)[number];
 
-/** Antrean moderasi: profil baru, revisi profil terbit (K3), media (K8), harga mitra (K4), dan artikel mitra (F-05). */
-export function ModerationView() {
+/**
+ * Antrean moderasi: profil baru, revisi profil terbit (K3), media (K8), harga mitra (K4), artikel mitra (F-05),
+ * dan ulasan pengalaman (evaluasi USP R8, hanya bila flag reviews_enabled menyala).
+ */
+export function ModerationView({ reviewsEnabled = false }: { reviewsEnabled?: boolean }) {
   const params = useSearchParams();
   const raw = params.get('tab');
+  const TABS = ALL_TABS.filter((k) => k !== 'ulasan' || reviewsEnabled);
   const tab: Tab = (TABS as readonly string[]).includes(raw ?? '') ? (raw as Tab) : 'revisi';
   return (
     <AdminShell>
@@ -49,6 +54,7 @@ export function ModerationView() {
           {tab === 'media' && <Media />}
           {tab === 'harga' && <PriceRequests />}
           {tab === 'artikel' && <Articles />}
+          {tab === 'ulasan' && <Reviews />}
         </section>
       )}
     </AdminShell>
@@ -284,6 +290,86 @@ function Media() {
                       {t.admin.approve}
                     </button>
                     <RejectForm compact busy={working === m.id} onReject={(reason) => void decide(m.id, 'reject', { reason })} />
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </DataPanel>
+      )}
+    </>
+  );
+}
+
+/* ---------- Ulasan (evaluasi USP R8) ---------- */
+
+function Reviews() {
+  const [status, setStatus] = useState<string>('pending');
+  const { rows, busy, pagination, error, reload, handle } = useAdminList<AdminReview>(`/admin/reviews?status=${status}`);
+  const [working, setWorking] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function decide(id: string, kind: 'approve' | 'reject', body?: object) {
+    setWorking(id);
+    setActionError(null);
+    try {
+      await api('POST', `/admin/reviews/${id}/${kind}`, body);
+      reload();
+    } catch (err) {
+      handle(err);
+      setActionError(errorMessage(err));
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  return (
+    <>
+      <StatusFilter value={status} options={REVIEW_STATUSES.filter((s) => s !== 'superseded')} onChange={setStatus} labels={t.reviews.form.status} />
+      {error && <p className="error">{error}</p>}
+      <FormError error={actionError} />
+      {rows === null && !error && <LoadingTable cols={3} />}
+      {rows?.length === 0 && <Empty tab="ulasan" />}
+      {rows && rows.length > 0 && (
+        <DataPanel pagination={pagination} busy={busy} scroll={false} label={t.moderation.tabs.ulasan}>
+          <ul className="plain grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
+            {rows.map((r) => (
+              <li key={r.id} className="grid content-start gap-2 rounded-2xl border border-line bg-white p-3">
+                <p className="m-0 flex flex-wrap items-center gap-2">
+                  <Stars value={r.rating} />
+                  {r.sample && <span className="badge">{t.reviews.sample}</span>}
+                </p>
+                <p className="small m-0">
+                  <strong>{t.reviews.moderation.facility}:</strong>{' '}
+                  <Link href={`/faskes/${r.facilitySlug}`} target="_blank">
+                    {r.facilityName}
+                  </Link>
+                </p>
+                <p className="small m-0">
+                  <strong>{t.reviews.moderation.author}:</strong> {r.authorName ?? t.reviews.sample}
+                </p>
+                {Object.keys(r.aspects).length > 0 && (
+                  <ul className="plain flex flex-wrap gap-1.5">
+                    {Object.entries(r.aspects).map(([aspect, value]) => (
+                      <li key={aspect} className={cn('badge', value === 'kurang' && 'badge-stale')}>
+                        {t.reviews.aspects[aspect]}: {t.reviews.aspectValue[value]}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {r.comment && <p className="m-0 whitespace-pre-line">{r.comment}</p>}
+                <p className="small muted m-0">{formatDateTime(r.updatedAt)}</p>
+                {r.rejectionReason && (
+                  <p className="small m-0">
+                    <strong>{t.admin.reasonLabel}:</strong> {r.rejectionReason}
+                  </p>
+                )}
+                {r.status === 'pending' && (
+                  <>
+                    <button type="button" className="btn-primary justify-self-start" disabled={working === r.id} onClick={() => void decide(r.id, 'approve')}>
+                      {t.admin.approve}
+                    </button>
+                    <RejectForm compact busy={working === r.id} onReject={(reason) => void decide(r.id, 'reject', { reason })} />
                   </>
                 )}
               </li>

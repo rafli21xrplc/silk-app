@@ -5,7 +5,7 @@
  * Deterministik: dibangun dari PRNG berbenih dan tanggal absolut, jadi ID, harga, dan tanggal
  * sama di setiap run. Dipakai oleh `pnpm db:seed:demo` (lihat demo.ts); tidak dipakai uji API.
  */
-import type { EntityStatus, FacilityType, PriceType, VerificationLevel } from '@silk/shared';
+import { REVIEW_ASPECTS, type EntityStatus, type FacilityType, type PriceType, type ReviewAspect, type ReviewAspectValue, type VerificationLevel } from '@silk/shared';
 
 export const DEMO_CATEGORIES = [{ slug: 'radiologi-penunjang', name: 'Radiologi & penunjang' }] as const;
 
@@ -225,6 +225,17 @@ export interface DemoData {
   tariffs: DemoTariff[];
   practitioners: DemoPractitioner[];
   branches: DemoBranch[];
+  reviews: DemoReview[];
+}
+
+/** Ulasan data contoh (evaluasi USP R8). Selalu `is_sample`, tanpa penulis, berlabel "Data contoh" di UI. */
+export interface DemoReview {
+  id: string;
+  facilityId: string;
+  rating: number;
+  aspects: Partial<Record<ReviewAspect, ReviewAspectValue>>;
+  comment: string | null;
+  createdAt: string;
 }
 
 const uuid = (prefix: string, n: number) => `${prefix}000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -548,7 +559,63 @@ export function buildDemoData(): DemoData {
   }
 
   addUspData(facilities, tariffs);
-  return { facilities, packages, tariffs, practitioners: PRACTITIONERS, branches: BRANCHES };
+  return { facilities, packages, tariffs, practitioners: PRACTITIONERS, branches: BRANCHES, reviews: buildSampleReviews(facilities) };
+}
+
+/**
+ * Komentar data contoh: pengalaman kunjungan (pilar P3), campuran baik dan kurang, tanpa klaim hasil klinis.
+ * Indeks aspek menandai komentar yang bernada kurang agar aspeknya konsisten.
+ */
+const SAMPLE_COMMENTS: { text: string; weak?: ReviewAspect }[] = [
+  { text: 'Ruang tunggu bersih dan kursinya cukup.' },
+  { text: 'Staf pendaftaran ramah dan menjelaskan alur periksa dengan jelas.' },
+  { text: 'Biaya yang dibayar sama dengan yang tertera di papan tarif.' },
+  { text: 'Antre sekitar 40 menit walau sudah daftar lewat telepon.', weak: 'waktu_tunggu' },
+  { text: 'Dokter menjelaskan pilihan pemeriksaan beserta perkiraan biayanya sebelum mulai.' },
+  { text: 'Parkir sempit di jam sore, ruang tunggu agak sesak.', weak: 'kenyamanan_tempat' },
+  { text: 'Jadwal praktik sesuai dengan yang tertulis.' },
+  { text: 'Kasir memberi rincian biaya tertulis.' },
+  { text: 'Ada biaya administrasi yang tidak disebut di awal.', weak: 'kesesuaian_biaya' },
+  { text: 'Perawat sabar menjawab pertanyaan keluarga pasien.' },
+];
+
+/**
+ * ±20 ulasan data contoh untuk demo 20 Desember: 2–4 per profil praktik dokter dan dua di klinik dan RS
+ * pertama. PRNG dan ruang ID sendiri (`e1`), jadi data demo lain tidak bergeser.
+ */
+function buildSampleReviews(facilities: DemoFacility[]): DemoReview[] {
+  const rand = mulberry32(20261111);
+  const int = (min: number, max: number) => min + Math.floor(rand() * (max - min + 1));
+  const targets = [
+    ...facilities.filter((f) => f.type === 'praktik_dokter').map((f) => ({ f, n: int(2, 4) })),
+    ...(['klinik', 'rumah_sakit'] as const).flatMap((type) => {
+      const f = facilities.find((x) => x.type === type);
+      return f ? [{ f, n: 2 }] : [];
+    }),
+  ];
+  const out: DemoReview[] = [];
+  for (const { f, n } of targets) {
+    for (let k = 0; k < n; k++) {
+      const pick = SAMPLE_COMMENTS[int(0, SAMPLE_COMMENTS.length - 1)]!;
+      const withComment = rand() < 0.75;
+      const aspects: DemoReview['aspects'] = {};
+      for (const aspect of REVIEW_ASPECTS) {
+        if (rand() < 0.35) continue; // tidak semua aspek dijawab
+        aspects[aspect] = rand() < 0.82 ? 'baik' : 'kurang';
+      }
+      if (withComment && pick.weak) aspects[pick.weak] = 'kurang';
+      const weakCount = Object.values(aspects).filter((v) => v === 'kurang').length;
+      out.push({
+        id: uuid('e1', out.length + 1),
+        facilityId: f.id,
+        rating: Math.max(2, Math.min(5, int(4, 5) - weakCount)),
+        aspects,
+        comment: withComment ? pick.text : null,
+        createdAt: at9Wib(addDays(ANCHOR, -int(3, 60))),
+      });
+    }
+  }
+  return out;
 }
 
 /**

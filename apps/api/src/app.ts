@@ -12,7 +12,7 @@ import { devStorageRouter } from './lib/dev-storage.routes';
 import { env } from './lib/env';
 import { logger } from './lib/logger';
 import { generateOpenApiDocument } from './lib/openapi';
-import { loadSession, requireAdmin, requireAuth, requirePermission } from './middleware/auth';
+import { loadSession, requireAdmin, requireAuth, requireFlag, requirePermission } from './middleware/auth';
 import { issueCsrf, verifyCsrf } from './middleware/csrf';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { requestId } from './middleware/request-id';
@@ -28,6 +28,7 @@ import { portalRoutes } from './modules/m6-portal/portal.routes';
 import { adminArticleRoutes, portalArticleRoutes, publicArticleRoutes } from './modules/articles/articles.routes';
 import { accountRoutes } from './modules/account/account.routes';
 import { partnerRoutes } from './modules/partners/partners.routes';
+import { adminReviewRoutes, publicReviewRoutes, reviewWriteRoutes } from './modules/reviews/reviews.routes';
 
 const VERSION = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? process.env.npm_package_version ?? 'dev';
 
@@ -105,10 +106,13 @@ export function createApp(): Express {
       reportsRoutes(r);
       publicContentRulesRoutes(r);
       publicArticleRoutes(r);
+      publicReviewRoutes(r);
     }),
   );
   app.use('/v1/internal', router(jobsRoutes));
   app.use('/v1/me', loadSession, router(accountRoutes));
+  // Fase 6 ramping (evaluasi USP R8): flag dicek sebelum sesi agar saat OFF semua rute 404 tanpa kerja lain.
+  app.use('/v1/reviews', requireFlag('reviews_enabled'), loadSession, requirePermission('review.write'), verifyCsrf, router(reviewWriteRoutes));
   app.use('/v1/partners', loadSession, requirePermission('partner.self'), verifyCsrf, router(partnerRoutes));
   app.use('/v1/portal', loadSession, requirePermission('portal.facility'), verifyCsrf, router((r) => {
       portalRoutes(r);
@@ -117,6 +121,7 @@ export function createApp(): Express {
   app.use('/v1/admin', loadSession, requireAdmin, verifyCsrf, router((r) => {
       adminRoutes(r);
       adminArticleRoutes(r);
+      adminReviewRoutes(r);
     }));
 
   app.use(notFoundHandler);

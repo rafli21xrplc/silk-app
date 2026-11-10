@@ -17,3 +17,5 @@ export * from './schemas/import';
 export * from './schemas/account';
 export * from './schemas/profile';
 export * from './schemas/article';
+export * from './review';
+export * from './schemas/review';

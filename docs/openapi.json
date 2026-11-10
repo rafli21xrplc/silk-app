@@ -4281,6 +4281,267 @@
         }
       }
     },
+    "/v1/facilities/{slug}/reviews": {
+      "get": {
+        "summary": "Ringkasan dan ulasan pengalaman yang disetujui, terbaru dulu (flag reviews_enabled)",
+        "tags": [
+          "Publik"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "count": {
+                              "type": "integer"
+                            },
+                            "average": {
+                              "type": [
+                                "number",
+                                "null"
+                              ]
+                            },
+                            "distribution": {
+                              "type": "array",
+                              "items": {
+                                "type": "integer"
+                              }
+                            },
+                            "aspects": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "aspect": {
+                                    "type": "string",
+                                    "enum": [
+                                      "kenyamanan_tempat",
+                                      "keramahan_staf",
+                                      "kejelasan_penjelasan",
+                                      "waktu_tunggu",
+                                      "kesesuaian_biaya"
+                                    ]
+                                  },
+                                  "good": {
+                                    "type": "integer"
+                                  },
+                                  "answered": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "required": [
+                                  "aspect",
+                                  "good",
+                                  "answered"
+                                ]
+                              }
+                            },
+                            "sampleCount": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "count",
+                            "average",
+                            "distribution",
+                            "aspects",
+                            "sampleCount"
+                          ]
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "rating": {
+                                "type": "integer"
+                              },
+                              "aspects": {
+                                "type": "object",
+                                "properties": {
+                                  "kenyamanan_tempat": {
+                                    "type": "string",
+                                    "enum": [
+                                      "baik",
+                                      "kurang"
+                                    ]
+                                  },
+                                  "keramahan_staf": {
+                                    "type": "string",
+                                    "enum": [
+                                      "baik",
+                                      "kurang"
+                                    ]
+                                  },
+                                  "kejelasan_penjelasan": {
+                                    "type": "string",
+                                    "enum": [
+                                      "baik",
+                                      "kurang"
+                                    ]
+                                  },
+                                  "waktu_tunggu": {
+                                    "type": "string",
+                                    "enum": [
+                                      "baik",
+                                      "kurang"
+                                    ]
+                                  },
+                                  "kesesuaian_biaya": {
+                                    "type": "string",
+                                    "enum": [
+                                      "baik",
+                                      "kurang"
+                                    ]
+                                  }
+                                }
+                              },
+                              "comment": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "sample": {
+                                "type": "boolean"
+                              },
+                              "authorName": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "rating",
+                              "aspects",
+                              "comment",
+                              "sample",
+                              "authorName",
+                              "createdAt"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "summary",
+                        "items"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/internal/jobs/{type}": {
       "get": {
         "summary": "Jalankan job terjadwal (Vercel Cron)",
@@ -4683,6 +4944,546 @@
                       "required": [
                         "name",
                         "phone"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{slug}/mine": {
+      "get": {
+        "summary": "Ulasan saya untuk profil ini, atau null",
+        "tags": [
+          "Ulasan"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "rating": {
+                          "type": "integer"
+                        },
+                        "aspects": {
+                          "type": "object",
+                          "properties": {
+                            "kenyamanan_tempat": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "keramahan_staf": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "kejelasan_penjelasan": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "waktu_tunggu": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "kesesuaian_biaya": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            }
+                          }
+                        },
+                        "comment": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "approved",
+                            "rejected",
+                            "superseded"
+                          ]
+                        },
+                        "rejectionReason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "rating",
+                        "aspects",
+                        "comment",
+                        "status",
+                        "rejectionReason",
+                        "updatedAt"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{slug}": {
+      "put": {
+        "summary": "Tulis atau ubah ulasan sendiri; masuk antrean moderasi lagi (M17 untuk komentar)",
+        "tags": [
+          "Ulasan"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rating": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "aspects": {
+                    "type": "object",
+                    "properties": {
+                      "kenyamanan_tempat": {
+                        "type": "string",
+                        "enum": [
+                          "baik",
+                          "kurang"
+                        ]
+                      },
+                      "keramahan_staf": {
+                        "type": "string",
+                        "enum": [
+                          "baik",
+                          "kurang"
+                        ]
+                      },
+                      "kejelasan_penjelasan": {
+                        "type": "string",
+                        "enum": [
+                          "baik",
+                          "kurang"
+                        ]
+                      },
+                      "waktu_tunggu": {
+                        "type": "string",
+                        "enum": [
+                          "baik",
+                          "kurang"
+                        ]
+                      },
+                      "kesesuaian_biaya": {
+                        "type": "string",
+                        "enum": [
+                          "baik",
+                          "kurang"
+                        ]
+                      }
+                    },
+                    "default": {}
+                  },
+                  "comment": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 1000
+                  },
+                  "declaration": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                },
+                "required": [
+                  "rating",
+                  "declaration"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "rating": {
+                          "type": "integer"
+                        },
+                        "aspects": {
+                          "type": "object",
+                          "properties": {
+                            "kenyamanan_tempat": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "keramahan_staf": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "kejelasan_penjelasan": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "waktu_tunggu": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "kesesuaian_biaya": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            }
+                          }
+                        },
+                        "comment": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "approved",
+                            "rejected",
+                            "superseded"
+                          ]
+                        },
+                        "rejectionReason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "rating",
+                        "aspects",
+                        "comment",
+                        "status",
+                        "rejectionReason",
+                        "updatedAt"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Hapus ulasan sendiri",
+        "tags": [
+          "Ulasan"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "deleted": {
+                          "type": "boolean",
+                          "enum": [
+                            true
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "deleted"
                       ]
                     },
                     "meta": {
@@ -14241,6 +15042,602 @@
                         "updatedAt",
                         "author",
                         "violations"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/reviews": {
+      "get": {
+        "summary": "Antrean ulasan pengalaman per status, terlama dulu",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "superseded"
+              ],
+              "default": "pending"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "rating": {
+                            "type": "integer"
+                          },
+                          "aspects": {
+                            "type": "object",
+                            "properties": {
+                              "kenyamanan_tempat": {
+                                "type": "string",
+                                "enum": [
+                                  "baik",
+                                  "kurang"
+                                ]
+                              },
+                              "keramahan_staf": {
+                                "type": "string",
+                                "enum": [
+                                  "baik",
+                                  "kurang"
+                                ]
+                              },
+                              "kejelasan_penjelasan": {
+                                "type": "string",
+                                "enum": [
+                                  "baik",
+                                  "kurang"
+                                ]
+                              },
+                              "waktu_tunggu": {
+                                "type": "string",
+                                "enum": [
+                                  "baik",
+                                  "kurang"
+                                ]
+                              },
+                              "kesesuaian_biaya": {
+                                "type": "string",
+                                "enum": [
+                                  "baik",
+                                  "kurang"
+                                ]
+                              }
+                            }
+                          },
+                          "comment": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "approved",
+                              "rejected",
+                              "superseded"
+                            ]
+                          },
+                          "rejectionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          },
+                          "facilityName": {
+                            "type": "string"
+                          },
+                          "facilitySlug": {
+                            "type": "string"
+                          },
+                          "authorName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "sample": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "rating",
+                          "aspects",
+                          "comment",
+                          "status",
+                          "rejectionReason",
+                          "updatedAt",
+                          "facilityName",
+                          "facilitySlug",
+                          "authorName",
+                          "sample",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/reviews/{id}/approve": {
+      "post": {
+        "summary": "Setujui ulasan; ringkasan rating profil dihitung ulang",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "rating": {
+                          "type": "integer"
+                        },
+                        "aspects": {
+                          "type": "object",
+                          "properties": {
+                            "kenyamanan_tempat": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "keramahan_staf": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "kejelasan_penjelasan": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "waktu_tunggu": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "kesesuaian_biaya": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            }
+                          }
+                        },
+                        "comment": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "approved",
+                            "rejected",
+                            "superseded"
+                          ]
+                        },
+                        "rejectionReason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "rating",
+                        "aspects",
+                        "comment",
+                        "status",
+                        "rejectionReason",
+                        "updatedAt"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/reviews/{id}/reject": {
+      "post": {
+        "summary": "Tolak ulasan (alasan wajib)",
+        "tags": [
+          "Admin"
+        ],
+        "description": "Keamanan: session+mfa",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "rating": {
+                          "type": "integer"
+                        },
+                        "aspects": {
+                          "type": "object",
+                          "properties": {
+                            "kenyamanan_tempat": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "keramahan_staf": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "kejelasan_penjelasan": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "waktu_tunggu": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            },
+                            "kesesuaian_biaya": {
+                              "type": "string",
+                              "enum": [
+                                "baik",
+                                "kurang"
+                              ]
+                            }
+                          }
+                        },
+                        "comment": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "approved",
+                            "rejected",
+                            "superseded"
+                          ]
+                        },
+                        "rejectionReason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "rating",
+                        "aspects",
+                        "comment",
+                        "status",
+                        "rejectionReason",
+                        "updatedAt"
                       ]
                     },
                     "meta": {

@@ -32,6 +32,8 @@ export const PERMISSIONS = {
   'admin.partners': ['moderator', 'admin'],
   /** Ubah role, blokir akun (endpoint admin Better Auth, wajib TOTP). */
   'admin.users': ['admin'],
+  /** Tulis, ubah, hapus ulasan pengalaman sendiri (Fase 6 ramping, flag `reviews_enabled`). Hanya pasien. */
+  'review.write': ['pasien'],
   /** Terbitkan JWT (`/v1/auth/token`). Staf hanya lewat sesi cookie + TOTP. */
   'auth.token': NON_STAFF_SIGNED_IN,
 } as const satisfies Record<string, readonly Actor[]>;

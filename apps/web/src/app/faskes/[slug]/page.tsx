@@ -13,10 +13,13 @@ import { InfoPopover } from '@/components/ui/info-popover';
 import { TariffCard } from '@/components/tariff-card';
 import { TrackView } from '@/components/track-view';
 import { WeeklySchedule } from '@/components/profile/weekly-schedule';
+import { ReviewHeadline } from '@/components/reviews/review-parts';
+import { ReviewsSection } from '@/components/reviews/reviews-section';
 import { apiGetOrNull } from '@/lib/api';
 import { MAP_STYLE_URL } from '@/lib/config';
 import { formatDate } from '@/lib/format';
 import { withProfileDefaults } from '@/lib/profile';
+import { loadFacilityReviews } from '@/lib/reviews-server';
 import { medicalOrganizationLd } from '@/lib/seo';
 import type { FacilityDetail } from '@/lib/types';
 import { t } from '@/messages/id';
@@ -61,6 +64,7 @@ export default async function FacilityPage({ params }: { params: Params }) {
   const { slug } = await params;
   const f = await load(slug);
   if (!f) notFound();
+  const reviews = await loadFacilityReviews(f.slug);
   const operational = f.schedules.filter((x) => x.kind === 'operasional');
   const practice = f.schedules.filter((x) => x.kind === 'praktik');
   const otherLocations = f.locations.filter((l) => !l.isPrimary);
@@ -86,6 +90,11 @@ export default async function FacilityPage({ params }: { params: Params }) {
         </p>
         <h1 className="mb-3">{f.name}</h1>
         {f.description && <p className="prose m-0 text-[1.05rem]">{f.description}</p>}
+        {reviews && (
+          <div className="mt-3">
+            <ReviewHeadline summary={reviews.summary} href="#ulasan" />
+          </div>
+        )}
       </header>
 
       <MediaGallery media={f.media} name={f.name} />
@@ -188,6 +197,8 @@ export default async function FacilityPage({ params }: { params: Params }) {
           </ul>
         </section>
       )}
+
+      {reviews && <ReviewsSection data={reviews} facilitySlug={f.slug} />}
 
       <p className="mt-12 rounded-2xl bg-surface px-4 py-3 text-sm text-muted">
         {t.facility.updated} {formatDate(f.updatedAt)} · <Link href={`/portal/klaim?faskes=${f.id}&nama=${encodeURIComponent(f.name)}`}>{t.facility.claim}</Link>

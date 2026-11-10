@@ -134,6 +134,19 @@ export const PRACTITIONER_ARTICLE_LIMIT = 6;
 /** Rating dianggap ada setelah sekian ulasan disetujui (filter dan urut rating, Fase 3/6). */
 export const RATING_MIN_COUNT = 3;
 
+/**
+ * Ulasan pengalaman (Fase 6 ramping, evaluasi USP R8). Di balik flag `reviews_enabled`, OFF di produksi sampai
+ * opini hukum tertulis. Aspek = pilar P3 (kenyamanan dan pelayanan staf), dinilai "baik"/"kurang"; tidak ada
+ * penilaian hasil klinis. Rating tidak pernah menjadi urutan bawaan.
+ */
+export const REVIEW_ASPECTS = ['kenyamanan_tempat', 'keramahan_staf', 'kejelasan_penjelasan', 'waktu_tunggu', 'kesesuaian_biaya'] as const;
+export type ReviewAspect = (typeof REVIEW_ASPECTS)[number];
+export const REVIEW_ASPECT_VALUES = ['baik', 'kurang'] as const;
+export type ReviewAspectValue = (typeof REVIEW_ASPECT_VALUES)[number];
+export const REVIEW_COMMENT_MAX = 1000;
+/** Versi teks pernyataan penulis ulasan (pengalaman sendiri, bukan iklan). Naikkan bila teksnya berubah. */
+export const REVIEW_DECLARATION_VERSION = 'ulasan-2026-11';
+
 export const DEFAULT_STALE_AFTER_DAYS = 180;
 
 /** Batas unggahan dokumen klaim (M7). */

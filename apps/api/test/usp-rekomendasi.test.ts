@@ -1,9 +1,10 @@
 import { eq, sql } from 'drizzle-orm';
 import request from 'supertest';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { partners } from '@silk/db';
 import { practitionerDetailSchema, practitionerListItemSchema } from '@silk/shared';
 import { db } from '../src/lib/db';
+import { resetEnvCacheForTests } from '../src/lib/env';
 import { importDemoVideo } from '../src/modules/profiles/media-import.service';
 import { CONSENT_DOC, CONSENT_SELF, JPEG_BYTES, PDF_BYTES, createUser, getApp, mp4Bytes, resetDb, send, uploadMediaWithConsent, uploadTo, type TestUser } from './helpers';
 
@@ -12,6 +13,7 @@ import { CONSENT_DOC, CONSENT_SELF, JPEG_BYTES, PDF_BYTES, createUser, getApp, m
  * R3: biaya konsultasi dokter dari tarif kategori `konsultasi` di profil praktik utama.
  * R5: batas video 20–90 detik dan 50 MB. R6: persetujuan tertulis orang yang tampil di video.
  * R7: impor video demo dari tim lewat skrip operator, tetap lewat moderasi.
+ * R8: ulasan pengalaman ramping di balik flag reviews_enabled (pra-moderasi, M17, data contoh berlabel).
  */
 
 const api = () => request(getApp());
@@ -327,5 +329,138 @@ describe('Evaluasi USP R7: impor video demo dari tim', () => {
     expect(r.status).toBe('dilewati');
     const n = await db().execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM profile_media WHERE facility_id = ${doc.facilityId} AND kind = 'video'`);
     expect(n.rows[0]!.n).toBe(1);
+  });
+});
+
+describe('Evaluasi USP R8: ulasan pengalaman (Fase 6 ramping, flag reviews_enabled)', () => {
+  let moderator: TestUser;
+  let pasien: TestUser;
+  let pasien2: TestUser;
+  let doc: { facilityId: string; slug: string; user: TestUser };
+  let facilitySlug: string;
+  const review = { rating: 4, aspects: { keramahan_staf: 'baik', waktu_tunggu: 'kurang' }, comment: 'Staf menjelaskan biaya sebelum tindakan.', declaration: true };
+
+  beforeAll(async () => {
+    await resetDb();
+    moderator = await createUser({ role: 'moderator', mfa: true });
+    pasien = await createUser({ role: 'pasien' });
+    pasien2 = await createUser({ role: 'pasien' });
+    doc = await doctorWithPractice('dr. Uji Ulasan Pengalaman', moderator);
+    const f = await db().execute<{ slug: string }>(sql`SELECT slug FROM facilities WHERE id = ${doc.facilityId}`);
+    facilitySlug = f.rows[0]!.slug;
+  });
+
+  afterEach(() => {
+    delete process.env.FEATURE_FLAGS;
+    resetEnvCacheForTests();
+  });
+  const on = () => {
+    process.env.FEATURE_FLAGS = 'reviews_enabled';
+    resetEnvCacheForTests();
+  };
+
+  it('flag OFF: semua rute ulasan 404 (publik, pasien, admin)', async () => {
+    expect((await api().get(`/v1/facilities/${facilitySlug}/reviews`)).status).toBe(404);
+    expect((await send(pasien, 'put', `/v1/reviews/${facilitySlug}`).send(review)).status).toBe(404);
+    expect((await moderator.agent.get('/v1/admin/reviews')).status).toBe(404);
+  });
+
+  it('hanya pasien yang boleh menulis; mitra dan anonim ditolak', async () => {
+    on();
+    expect((await api().put(`/v1/reviews/${facilitySlug}`).send(review)).status).toBe(401);
+    expect((await send(doc.user, 'put', `/v1/reviews/${facilitySlug}`).send(review)).status).toBe(403);
+  });
+
+  it('validasi: bintang 1–5, aspek dikenal, pernyataan wajib; komentar lewat M17', async () => {
+    on();
+    expect((await send(pasien, 'put', `/v1/reviews/${facilitySlug}`).send({ ...review, rating: 6 })).status).toBe(400);
+    expect((await send(pasien, 'put', `/v1/reviews/${facilitySlug}`).send({ ...review, aspects: { kesembuhan: 'baik' } })).status).toBe(400);
+    expect((await send(pasien, 'put', `/v1/reviews/${facilitySlug}`).send({ ...review, declaration: false })).status).toBe(400);
+    const blocked = await send(pasien, 'put', `/v1/reviews/${facilitySlug}`).send({ ...review, comment: 'Klinik termurah, pasti sembuh' });
+    expect(blocked.status).toBe(422);
+    expect(blocked.body.error.code).toBe('CONTENT_RULE_VIOLATION');
+  });
+
+  it('pra-moderasi: ulasan baru menunggu dan belum tampil publik', async () => {
+    on();
+    const res = await send(pasien, 'put', `/v1/reviews/${facilitySlug}`).send(review);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.data).toMatchObject({ rating: 4, status: 'pending' });
+    const pub = await api().get(`/v1/facilities/${facilitySlug}/reviews`);
+    expect(pub.status).toBe(200);
+    expect(pub.body.data.summary.count).toBe(0);
+    expect(pub.body.data.items).toEqual([]);
+  });
+
+  it('disetujui: tampil dengan nama singkat, ringkasan per aspek, dan rating profil', async () => {
+    on();
+    const queue = await moderator.agent.get('/v1/admin/reviews');
+    expect(queue.status).toBe(200);
+    const item = (queue.body.data as { id: string; comment: string }[]).find((r) => r.comment === review.comment)!;
+    expect((await send(moderator, 'post', `/v1/admin/reviews/${item.id}/approve`).send({})).status).toBe(200);
+
+    const pub = await api().get(`/v1/facilities/${facilitySlug}/reviews`);
+    expect(pub.body.data.summary).toMatchObject({ count: 1, average: 4, distribution: [0, 0, 0, 1, 0], sampleCount: 0 });
+    expect(pub.body.data.summary.aspects).toContainEqual({ aspect: 'keramahan_staf', good: 1, answered: 1 });
+    expect(pub.body.data.items[0]).toMatchObject({ rating: 4, sample: false, authorName: expect.stringMatching(/^Pengguna U\.$/) });
+
+    const rating = await db().execute<{ rating_avg: string; rating_count: number }>(sql`SELECT rating_avg, rating_count FROM facility_ratings WHERE facility_id = ${doc.facilityId}`);
+    expect(rating.rows[0]).toMatchObject({ rating_count: 1 });
+    expect(Number(rating.rows[0]!.rating_avg)).toBe(4);
+  });
+
+  it('satu akun satu ulasan per profil; mengubah ulasan kembali ke antrean dan hilang dari publik', async () => {
+    on();
+    const res = await send(pasien, 'put', `/v1/reviews/${facilitySlug}`).send({ ...review, rating: 5 });
+    expect(res.body.data).toMatchObject({ rating: 5, status: 'pending' });
+    const n = await db().execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM reviews WHERE facility_id = ${doc.facilityId}`);
+    expect(n.rows[0]!.n).toBe(1);
+    expect((await api().get(`/v1/facilities/${facilitySlug}/reviews`)).body.data.summary.count).toBe(0);
+    const rating = await db().execute(sql`SELECT 1 FROM facility_ratings WHERE facility_id = ${doc.facilityId}`);
+    expect(rating.rows).toHaveLength(0);
+    expect((await pasien.agent.get(`/v1/reviews/${facilitySlug}/mine`)).body.data).toMatchObject({ rating: 5, status: 'pending' });
+  });
+
+  it('ditolak dengan alasan; pasien melihat alasannya', async () => {
+    on();
+    const queue = await moderator.agent.get('/v1/admin/reviews');
+    const id = (queue.body.data as { id: string }[])[0]!.id;
+    expect((await send(moderator, 'post', `/v1/admin/reviews/${id}/reject`).send({})).status).toBe(400);
+    expect((await send(moderator, 'post', `/v1/admin/reviews/${id}/reject`).send({ reason: 'Komentar menyebut nama pasien lain.' })).status).toBe(200);
+    const mine = await pasien.agent.get(`/v1/reviews/${facilitySlug}/mine`);
+    expect(mine.body.data).toMatchObject({ status: 'rejected', rejectionReason: 'Komentar menyebut nama pasien lain.' });
+    expect((await send(moderator, 'post', `/v1/admin/reviews/${id}/approve`).send({})).status).toBe(409);
+  });
+
+  it('data contoh berlabel dan tidak masuk rating pencarian', async () => {
+    on();
+    await db().execute(sql`
+      INSERT INTO reviews (facility_id, rating, aspects, comment, status, is_sample, declaration_version)
+      VALUES (${doc.facilityId}, 5, '{"kenyamanan_tempat":"baik"}', 'Ruang tunggu bersih.', 'approved', true, 'contoh')
+    `);
+    const pub = await api().get(`/v1/facilities/${facilitySlug}/reviews`);
+    expect(pub.body.data.summary).toMatchObject({ count: 1, sampleCount: 1 });
+    expect(pub.body.data.items[0]).toMatchObject({ sample: true, authorName: null });
+    await send(pasien2, 'put', `/v1/reviews/${facilitySlug}`).send({ rating: 3, declaration: true });
+    const queue = await moderator.agent.get('/v1/admin/reviews');
+    const id = (queue.body.data as { id: string }[])[0]!.id;
+    await send(moderator, 'post', `/v1/admin/reviews/${id}/approve`).send({});
+    const rating = await db().execute<{ rating_avg: string; rating_count: number }>(sql`SELECT rating_avg, rating_count FROM facility_ratings WHERE facility_id = ${doc.facilityId}`);
+    expect(rating.rows[0]).toMatchObject({ rating_count: 1 });
+    expect(Number(rating.rows[0]!.rating_avg)).toBe(3);
+  });
+
+  it('pasien bisa menghapus ulasannya; rating profil dihitung ulang', async () => {
+    on();
+    expect((await send(pasien2, 'delete', `/v1/reviews/${facilitySlug}`)).status).toBe(200);
+    expect((await pasien2.agent.get(`/v1/reviews/${facilitySlug}/mine`)).body.data).toBeNull();
+    const rating = await db().execute(sql`SELECT 1 FROM facility_ratings WHERE facility_id = ${doc.facilityId}`);
+    expect(rating.rows).toHaveLength(0);
+    expect((await send(pasien2, 'delete', `/v1/reviews/${facilitySlug}`)).status).toBe(404);
+  });
+
+  it('setiap tulis, ubah, hapus, dan keputusan tercatat di audit log', async () => {
+    const r = await db().execute<{ action: string }>(sql`SELECT DISTINCT action FROM audit_logs WHERE entity = 'review' ORDER BY action`);
+    expect(r.rows.map((x) => x.action)).toEqual(['review.approve', 'review.create', 'review.delete', 'review.reject', 'review.update']);
   });
 });

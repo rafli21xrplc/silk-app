@@ -8,6 +8,8 @@ import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import { DoctorAvatar } from '@/components/doctor/doctor-avatar';
 import { DoctorBadges } from '@/components/doctor/doctor-badges';
 import { DoctorConsultation } from '@/components/doctor/doctor-consultation';
+import { ReviewHeadline } from '@/components/reviews/review-parts';
+import { ReviewsSection } from '@/components/reviews/reviews-section';
 import { DoctorContact } from '@/components/doctor/doctor-contact';
 import { DoctorVideo } from '@/components/doctor/doctor-video';
 import { JsonLd } from '@/components/json-ld';
@@ -17,6 +19,7 @@ import { ResultsMap, type MapPoint } from '@/components/search/results-map';
 import { ShareLinkButton } from '@/components/share-link-button';
 import { TariffCard } from '@/components/tariff-card';
 import { apiGetOrNull } from '@/lib/api';
+import { loadFacilityReviews } from '@/lib/reviews-server';
 import { fromPartnerSummary } from '@/lib/article-merge';
 import { MAP_STYLE_URL } from '@/lib/config';
 import { withDoctorDefaults } from '@/lib/doctor';
@@ -63,6 +66,8 @@ export default async function PractitionerPage({ params }: { params: Params }) {
   const p = await load((await params).slug);
   if (!p) notFound();
   const primary = p.practices.find((x) => x.isPrimary) ?? null;
+  // USP P3: pengalaman pasien di profil praktik utama dokter (flag reviews_enabled).
+  const reviews = primary ? await loadFacilityReviews(primary.facility.slug) : null;
   const primaryPlace = primary?.locations.find((l) => l.isPrimary) ?? primary?.locations[0] ?? null;
   const cities = uniq(p.practices.flatMap((x) => (x.locations.length ? x.locations.map((l) => l.city) : [x.facility.city])));
   const withSchedule = p.practices.filter((x) => x.schedules.length > 0);
@@ -120,6 +125,7 @@ export default async function PractitionerPage({ params }: { params: Params }) {
         )}
         <div className="grid min-w-0 content-start gap-4 lg:col-start-1">
           {primary && <DoctorConsultation tariff={p.consultation} practiceName={primary.facility.name} city={primary.facility.city} />}
+          {reviews && <ReviewHeadline summary={reviews.summary} href="#ulasan" />}
           {primary && (
             <DoctorContact
               facilityId={primary.facility.id}
@@ -208,6 +214,8 @@ export default async function PractitionerPage({ params }: { params: Params }) {
           <p className="prose m-0 whitespace-pre-line">{p.about}</p>
         </section>
       )}
+
+      {primary && reviews && <ReviewsSection data={reviews} facilitySlug={primary.facility.slug} note={t.reviews.practiceNote(primary.facility.name)} />}
 
       {primary && otherTariffs.length > 0 && (
         <section aria-labelledby="tarif">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate } from './format';
+import { formatDate, formatDuration } from './format';
 
 describe('formatDate', () => {
   it('memakai zona Asia/Jakarta (UTC 17:30 sudah tanggal berikutnya di WIB)', () => {
@@ -7,5 +7,14 @@ describe('formatDate', () => {
   });
   it('nilai kosong tampil sebagai tanda pisah', () => {
     expect(formatDate(null)).not.toMatch(/\d/);
+  });
+});
+
+describe('formatDuration', () => {
+  it('menit:detik dua digit', () => {
+    expect(formatDuration(45)).toBe('0:45');
+    expect(formatDuration(90)).toBe('1:30');
+    expect(formatDuration(59.6)).toBe('1:00');
+    expect(formatDuration(-3)).toBe('0:00');
   });
 });

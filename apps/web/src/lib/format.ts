@@ -19,3 +19,9 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   if (!value) return '–';
   return dateTimeFmt.format(new Date(value));
 }
+
+/** Durasi video "m:ss" (mis. 45 → "0:45", 90 → "1:30"). */
+export function formatDuration(totalSec: number): string {
+  const s = Math.max(0, Math.round(totalSec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}

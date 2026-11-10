@@ -7,7 +7,9 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import { DoctorAvatar } from '@/components/doctor/doctor-avatar';
 import { DoctorBadges } from '@/components/doctor/doctor-badges';
+import { DoctorConsultation } from '@/components/doctor/doctor-consultation';
 import { DoctorContact } from '@/components/doctor/doctor-contact';
+import { DoctorVideo } from '@/components/doctor/doctor-video';
 import { JsonLd } from '@/components/json-ld';
 import { Reveal } from '@/components/motion/reveal';
 import { WeeklySchedule } from '@/components/profile/weekly-schedule';
@@ -64,6 +66,8 @@ export default async function PractitionerPage({ params }: { params: Params }) {
   const primaryPlace = primary?.locations.find((l) => l.isPrimary) ?? primary?.locations[0] ?? null;
   const cities = uniq(p.practices.flatMap((x) => (x.locations.length ? x.locations.map((l) => l.city) : [x.facility.city])));
   const withSchedule = p.practices.filter((x) => x.schedules.length > 0);
+  // Biaya konsultasi sudah tampil di atas; daftar tarif di bawah memuat layanan lainnya.
+  const otherTariffs = p.tariffs.filter((x) => x.id !== p.consultation?.id);
   const points: MapPoint[] = p.practices.flatMap((x) =>
     x.locations.map((l, i) => ({
       id: `${x.facility.slug}-${i}`,
@@ -87,21 +91,35 @@ export default async function PractitionerPage({ params }: { params: Params }) {
       />
       <JsonLd data={physicianLd(p)} />
 
-      <header className="mb-2 grid gap-6 rounded-card border border-line bg-white p-6 shadow-soft sm:grid-cols-[auto_1fr] sm:items-start sm:p-8">
-        <DoctorAvatar name={p.name} photoUrl={p.photo?.url ?? null} size="lg" />
-        <div className="grid min-w-0 gap-3">
-          <div>
-            <h1 className="mb-1">{p.name}</h1>
-            {p.specialty && <p className="m-0 text-lg font-medium text-ink-soft">{p.specialty}</p>}
+      {/* Di atas lipatan (evaluasi USP R4): siapa dokternya, video perkenalan, biaya konsultasi, cara menghubungi. */}
+      <header className="mb-2 grid gap-5 rounded-card border border-line bg-white p-5 shadow-soft sm:p-8 lg:grid-cols-2 lg:gap-x-8">
+        <div className="flex min-w-0 items-start gap-4 lg:col-start-1">
+          <DoctorAvatar name={p.name} photoUrl={p.photo?.url ?? null} size="md" className="sm:size-20" />
+          <div className="grid min-w-0 gap-2">
+            <div>
+              <h1 className="mb-1 text-[clamp(1.5rem,1.2rem+1.4vw,2.2rem)]">{p.name}</h1>
+              {p.specialty && <p className="m-0 text-lg font-medium text-ink-soft">{p.specialty}</p>}
+            </div>
+            <DoctorBadges verification={p.verification} strDate={p.strVerifiedAt ? formatDate(p.strVerifiedAt) : null} />
+            {p.strNo && <p className="m-0 text-sm text-muted">{`${t.practitioner.str}: ${p.strNo}`}</p>}
+            {cities.length > 0 && (
+              <p className="m-0 flex items-center gap-1.5 text-ink-soft">
+                <MapPin className="size-4 shrink-0 text-muted" aria-hidden="true" />
+                {cities.join(', ')}
+              </p>
+            )}
           </div>
-          <DoctorBadges verification={p.verification} strDate={p.strVerifiedAt ? formatDate(p.strVerifiedAt) : null} />
-          {p.strNo && <p className="m-0 text-sm text-muted">{`${t.practitioner.str}: ${p.strNo}`}</p>}
-          {cities.length > 0 && (
-            <p className="m-0 flex items-center gap-1.5 text-ink-soft">
-              <MapPin className="size-4 shrink-0 text-muted" aria-hidden="true" />
-              {cities.join(', ')}
-            </p>
-          )}
+        </div>
+        {p.video && (
+          <section aria-labelledby="video" className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            <h2 id="video" className="sr-only">
+              {t.doctors.video}
+            </h2>
+            <DoctorVideo video={p.video} name={p.name} posterUrl={p.photo?.url ?? null} />
+          </section>
+        )}
+        <div className="grid min-w-0 content-start gap-4 lg:col-start-1">
+          {primary && <DoctorConsultation tariff={p.consultation} practiceName={primary.facility.name} city={primary.facility.city} />}
           {primary && (
             <DoctorContact
               facilityId={primary.facility.id}
@@ -114,26 +132,6 @@ export default async function PractitionerPage({ params }: { params: Params }) {
           <ShareLinkButton label={t.doctors.share} copiedLabel={t.doctors.copied} className="m-0" />
         </div>
       </header>
-
-      {(p.about || p.video) && (
-        <div className={p.about && p.video ? 'grid gap-6 lg:grid-cols-2' : 'grid gap-6'}>
-          {p.about && (
-            <section aria-labelledby="tentang">
-              <h2 id="tentang">{t.doctors.about}</h2>
-              <p className="prose m-0 whitespace-pre-line">{p.about}</p>
-            </section>
-          )}
-          {p.video && (
-            <section aria-labelledby="video">
-              <h2 id="video">{t.doctors.video}</h2>
-              <figure className="m-0">
-                <video controls preload="none" src={p.video.url} className="aspect-video w-full rounded-2xl bg-ink" aria-label={p.video.caption ?? `${t.doctors.video} ${p.name}`} />
-                {p.video.caption && <figcaption className="mt-1 text-sm text-muted">{p.video.caption}</figcaption>}
-              </figure>
-            </section>
-          )}
-        </div>
-      )}
 
       <section aria-labelledby="jadwal">
         <h2 id="jadwal" className="mt-12">
@@ -202,15 +200,24 @@ export default async function PractitionerPage({ params }: { params: Params }) {
         </section>
       )}
 
-      {primary && p.tariffs.length > 0 && (
+      {p.about && (
+        <section aria-labelledby="tentang">
+          <h2 id="tentang" className="mt-12">
+            {t.doctors.about}
+          </h2>
+          <p className="prose m-0 whitespace-pre-line">{p.about}</p>
+        </section>
+      )}
+
+      {primary && otherTariffs.length > 0 && (
         <section aria-labelledby="tarif">
           <h2 id="tarif" className="mt-12">
-            {t.doctors.tariffs}
+            {p.consultation ? t.doctors.otherTariffs : t.doctors.tariffs}
           </h2>
           <p className="text-muted">{t.doctors.tariffsFrom(primary.facility.name)}</p>
           <DisclaimerBanner />
           <Reveal className="grid gap-4">
-            {p.tariffs.map((tariff) => (
+            {otherTariffs.map((tariff) => (
               <TariffCard key={tariff.id} tariff={tariff} facilityId={primary.facility.id} city={primary.facility.city} />
             ))}
           </Reveal>

@@ -80,7 +80,9 @@ export function portalRoutes(router: Router): void {
   defineRoute(router, base, {
     method: 'post',
     path: '/facilities/:id/media/presign',
-    summary: 'Signed URL unggah foto (≤5 MB, maks. 10) atau video (≤100 MB, ≤120 detik, maks. 1)',
+    summary:
+      'Signed URL unggah foto (≤5 MB, maks. 10) atau video (20–90 detik, ≤50 MB, maks. 1). Video wajib membawa persetujuan ' +
+      'orang yang tampil (`consent`); metode `dokumen` mendapat `consentUpload` untuk formulir bertanda tangan',
     tags,
     security,
     params: idParams,

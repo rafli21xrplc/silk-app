@@ -64,6 +64,13 @@
       "when": 1793918647224,
       "tag": "0008_fase4_partner_articles",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794277941574,
+      "tag": "0009_usp_media_consents",
+      "breakpoints": true
     }
   ]
 }

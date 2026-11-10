@@ -1,4 +1,4 @@
-import type { MediaKind, ReviewStatus, ScheduleKind } from '@silk/shared';
+import type { ConsentMethod, ConsentScope, MediaKind, ReviewStatus, ScheduleKind } from '@silk/shared';
 
 /** Bentuk respons portal Fase 2 (GET/PUT /v1/portal/facilities/:id). */
 export interface PortalLocation {
@@ -34,7 +34,18 @@ export interface PortalMedia {
   status: ReviewStatus;
   rejectionReason: string | null;
   url: string | null;
+  /** Persetujuan tertulis orang yang tampil di video (USP R6); null untuk foto dan video lama. */
+  consent: MediaConsentView | null;
   createdAt: string;
+}
+
+export interface MediaConsentView {
+  subjectName: string;
+  method: ConsentMethod;
+  scopes: ConsentScope[];
+  textVersion: string;
+  grantedAt: string;
+  document: { fileName: string | null; mime: string | null; url: string } | null;
 }
 
 export interface RevisionView {

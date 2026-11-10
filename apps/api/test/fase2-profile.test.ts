@@ -9,7 +9,9 @@ import { FACILITY_IDS, TARIFF_IDS } from '@silk/db/seed';
 import { PHOTO_MAX_BYTES, PHOTO_MAX_COUNT, VIDEO_MAX_BYTES } from '@silk/shared';
 import { db } from '../src/lib/db';
 import {
+  CONSENT_DOC,
   JPEG_BYTES,
+  PDF_BYTES,
   attachProof,
   createUser,
   getApp,
@@ -40,6 +42,8 @@ async function uploadMedia(u: TestUser, facilityId: string, body: Record<string,
   expect(presign.status, JSON.stringify(presign.body)).toBe(201);
   const put = await uploadTo(presign.body.data, bytes);
   expect(put.status).toBe(200);
+  // Evaluasi USP R6: video dari akun non-tenaga medis membawa formulir persetujuan.
+  if (presign.body.data.consentUpload) expect((await uploadTo(presign.body.data.consentUpload, PDF_BYTES)).status).toBe(200);
   return send(u, 'post', `/v1/portal/facilities/${facilityId}/media/${presign.body.data.mediaId}/confirm`);
 }
 
@@ -237,10 +241,12 @@ describe('Fase 2: profil layanan, jadwal, media, harga', () => {
       const url = `/v1/portal/facilities/${gayaProfile.id}/media/presign`;
       const bigPhoto = await send(gaya, 'post', url).send({ kind: 'foto', fileName: 'a.jpg', mime: 'image/jpeg', sizeBytes: PHOTO_MAX_BYTES + 1 });
       expect(bigPhoto.status).toBe(400);
-      const bigVideo = await send(gaya, 'post', url).send({ kind: 'video', fileName: 'a.mp4', mime: 'video/mp4', sizeBytes: VIDEO_MAX_BYTES + 1, durationSec: 30 });
+      const bigVideo = await send(gaya, 'post', url).send({ kind: 'video', fileName: 'a.mp4', mime: 'video/mp4', sizeBytes: VIDEO_MAX_BYTES + 1, durationSec: 30, consent: CONSENT_DOC });
       expect(bigVideo.status).toBe(400);
-      const longVideo = await send(gaya, 'post', url).send({ kind: 'video', fileName: 'a.mp4', mime: 'video/mp4', sizeBytes: 1000, durationSec: 121 });
+      const longVideo = await send(gaya, 'post', url).send({ kind: 'video', fileName: 'a.mp4', mime: 'video/mp4', sizeBytes: 1000, durationSec: 91, consent: CONSENT_DOC });
       expect(longVideo.status).toBe(400);
+      const shortVideo = await send(gaya, 'post', url).send({ kind: 'video', fileName: 'a.mp4', mime: 'video/mp4', sizeBytes: 1000, durationSec: 19, consent: CONSENT_DOC });
+      expect(shortVideo.status).toBe(400);
       const gif = await send(gaya, 'post', url).send({ kind: 'foto', fileName: 'a.gif', mime: 'image/gif', sizeBytes: 1000 });
       expect(gif.status).toBe(400);
     });
@@ -251,9 +257,9 @@ describe('Fase 2: profil layanan, jadwal, media, harga', () => {
       expect(res.body.error.code).toBe('MEDIA_INVALID');
     });
 
-    it('MP4 lebih dari 120 detik ditolak walau browser melaporkan lebih pendek', async () => {
-      const bytes = mp4Bytes(130);
-      const res = await uploadMedia(gaya, gayaProfile.id, { kind: 'video', fileName: 'panjang.mp4', mime: 'video/mp4', sizeBytes: bytes.length, durationSec: 60 }, bytes);
+    it('MP4 lebih dari 90 detik ditolak walau browser melaporkan lebih pendek', async () => {
+      const bytes = mp4Bytes(100);
+      const res = await uploadMedia(gaya, gayaProfile.id, { kind: 'video', fileName: 'panjang.mp4', mime: 'video/mp4', sizeBytes: bytes.length, durationSec: 60, consent: CONSENT_DOC }, bytes);
       expect(res.status).toBe(422);
       expect(res.body.error.code).toBe('MEDIA_INVALID');
     });
@@ -263,13 +269,13 @@ describe('Fase 2: profil layanan, jadwal, media, harga', () => {
       expect(photo.status, JSON.stringify(photo.body)).toBe(200);
       expect(photo.body.data.status).toBe('pending');
       const video = mp4Bytes(30);
-      const vid = await uploadMedia(gaya, gayaProfile.id, { kind: 'video', fileName: 'profil.mp4', mime: 'video/mp4', sizeBytes: video.length, durationSec: 30 }, video);
+      const vid = await uploadMedia(gaya, gayaProfile.id, { kind: 'video', fileName: 'profil.mp4', mime: 'video/mp4', sizeBytes: video.length, durationSec: 30, consent: CONSENT_DOC }, video);
       expect(vid.status, JSON.stringify(vid.body)).toBe(200);
       expect(vid.body.data.durationSec).toBe(30);
       expect((await publicDetail(gayaProfile.slug)).media).toHaveLength(0);
 
       // Video kedua melebihi batas satu video
-      const second = await send(gaya, 'post', `/v1/portal/facilities/${gayaProfile.id}/media/presign`).send({ kind: 'video', fileName: 'b.mp4', mime: 'video/mp4', sizeBytes: 100, durationSec: 5 });
+      const second = await send(gaya, 'post', `/v1/portal/facilities/${gayaProfile.id}/media/presign`).send({ kind: 'video', fileName: 'b.mp4', mime: 'video/mp4', sizeBytes: 100, durationSec: 30, consent: CONSENT_DOC });
       expect(second.status).toBe(409);
       expect(second.body.error.code).toBe('MEDIA_LIMIT_REACHED');
 

@@ -2,12 +2,16 @@
 
 import { ArrowLeft, ArrowRight, ImagePlus, Trash2, Video } from 'lucide-react';
 import { useState } from 'react';
-import { PHOTO_ALLOWED_MIME, PHOTO_MAX_COUNT, VIDEO_ALLOWED_MIME, type MediaKind } from '@silk/shared';
+import { PHOTO_ALLOWED_MIME, PHOTO_MAX_COUNT, VIDEO_ALLOWED_MIME, type MediaKind, type VideoConsentInput } from '@silk/shared';
 import { FormError } from '@/components/app-shell';
 import { api, errorMessage, uploadToSignedUrl } from '@/lib/client-api';
-import { mediaFileProblem } from '@/lib/profile';
+import { consentFromDraft, mediaFileProblem, type ConsentDraft } from '@/lib/profile';
 import type { PortalMedia } from '@/lib/portal-types';
 import { cn } from '@/lib/cn';
+import { useQuery } from '@/lib/query-cache';
+import { ME_STALE_MS } from '@/lib/use-me';
+import type { Me } from '@/lib/types';
+import { ConsentSummary, VideoConsentFields } from './video-consent-fields';
 import { t } from '@/messages/id';
 
 /** Durasi video dibaca dari metadata di browser; NaN bila tidak terbaca. */
@@ -25,6 +29,15 @@ function readDuration(file: File): Promise<number> {
     v.src = url;
   });
 }
+
+type PresignResult = {
+  mediaId: string;
+  uploadUrl: string;
+  headers: Record<string, string>;
+  consentUpload?: { uploadUrl: string; headers: Record<string, string> };
+};
+
+const emptyConsent = (method: ConsentDraft['method']): ConsentDraft => ({ method, subjectName: '', socialMedia: false, declaration: false, document: null });
 
 const STATUS_CLASS: Record<string, string> = {
   pending: 'badge-status',
@@ -53,9 +66,25 @@ export function MediaManager({
   const [busy, setBusy] = useState<MediaKind | 'order' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
+  // Pernyataan di akun hanya untuk dokter yang tampil sendiri; API menegakkan aturan yang sama (USP R6).
+  const { data: me } = useQuery<Me>('/me', { staleMs: ME_STALE_MS });
+  const selfAllowed = me?.user.role === 'tenaga_medis';
+  const [consent, setConsent] = useState<ConsentDraft>(emptyConsent('pernyataan_akun'));
+  const [consentDoc, setConsentDoc] = useState<File | null>(null);
+  // Default pernyataan di akun; akun selain tenaga medis selalu memakai formulir.
+  const draft: ConsentDraft = !selfAllowed && consent.method === 'pernyataan_akun' ? { ...consent, method: 'dokumen' } : consent;
 
   async function upload(kind: MediaKind, file: File) {
     setError(null);
+    let consentBody: { consent: VideoConsentInput } | null = null;
+    if (kind === 'video') {
+      const c = consentFromDraft(draft, selfAllowed);
+      if ('problem' in c) {
+        setError(t.profile.consent.problems[c.problem] ?? t.common.error);
+        return;
+      }
+      consentBody = c;
+    }
     const durationSec = kind === 'video' ? await readDuration(file) : null;
     const problem = mediaFileProblem(kind, file, durationSec);
     if (problem) {
@@ -64,17 +93,25 @@ export function MediaManager({
     }
     setBusy(kind);
     try {
-      const { data } = await api<{ mediaId: string; uploadUrl: string; headers: Record<string, string> }>('POST', `/portal/facilities/${facilityId}/media/presign`, {
+      const { data } = await api<PresignResult>('POST', `/portal/facilities/${facilityId}/media/presign`, {
         kind,
         fileName: file.name,
         mime: file.type,
         sizeBytes: file.size,
         caption: caption.trim() || null,
-        ...(kind === 'video' ? { durationSec } : {}),
+        ...(kind === 'video' ? { durationSec, ...consentBody } : {}),
       });
       await uploadToSignedUrl(data, file);
+      if (data.consentUpload) {
+        if (!consentDoc) throw new Error(t.profile.consent.problems.document);
+        await uploadToSignedUrl(data.consentUpload, consentDoc);
+      }
       await api('POST', `/portal/facilities/${facilityId}/media/${data.mediaId}/confirm`);
       setCaption('');
+      if (kind === 'video') {
+        setConsent(emptyConsent('pernyataan_akun'));
+        setConsentDoc(null);
+      }
       onChanged();
     } catch (err) {
       setError(errorMessage(err));
@@ -193,6 +230,8 @@ export function MediaManager({
                 {m.durationSec ? ` · ${t.moderation.duration(m.durationSec)}` : ''}
               </span>
               {m.rejectionReason && <span className="small text-danger">{m.rejectionReason}</span>}
+              {m.status !== 'rejected' && <ConsentSummary consent={m.consent} />}
+              {m.consent && <span className="small muted">{t.profile.consent.revokeNote}</span>}
               <button type="button" className="btn-link inline-flex items-center gap-1 justify-self-start" disabled={disabled} onClick={() => void remove(m)}>
                 <Trash2 className="size-4" aria-hidden="true" />
                 {t.profile.deleteMedia}
@@ -200,6 +239,9 @@ export function MediaManager({
             </div>
           </div>
         ))
+      )}
+      {!videos.some((v) => v.status !== 'rejected') && (
+        <VideoConsentFields draft={draft} onChange={setConsent} onFile={setConsentDoc} selfAllowed={selfAllowed} disabled={disabled || busy !== null} />
       )}
       {!videos.some((v) => v.status !== 'rejected') && (
         <label className={cn('btn inline-flex cursor-pointer items-center gap-1.5 justify-self-start', (disabled || busy) && 'pointer-events-none opacity-55')}>

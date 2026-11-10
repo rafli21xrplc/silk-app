@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PHOTO_MAX_BYTES, VIDEO_MAX_SECONDS } from '@silk/shared';
-import { canCreateProfile, describeProfileField, formatTimeRange, groupByWeekday, mediaFileProblem, parseCoord, tzShort, weekdayName, withProfileDefaults } from './profile';
+import { PHOTO_MAX_BYTES, VIDEO_MAX_SECONDS, VIDEO_MIN_SECONDS } from '@silk/shared';
+import { canCreateProfile, consentFromDraft, describeProfileField, formatTimeRange, groupByWeekday, mediaFileProblem, parseCoord, tzShort, weekdayName, withProfileDefaults, type ConsentDraft } from './profile';
 
 describe('jadwal', () => {
   it('urutan hari ISO: Senin = 1, Minggu = 7', () => {
@@ -36,9 +36,11 @@ describe('batas media', () => {
     expect(mediaFileProblem('foto', { type: 'image/gif', size: 10 })).toBe('type');
   });
 
-  it('video: durasi wajib terukur dan maksimal 120 detik', () => {
+  it('video: durasi wajib terukur, 20–90 detik (evaluasi USP R5)', () => {
     expect(mediaFileProblem('video', { type: 'video/mp4', size: 1000 }, VIDEO_MAX_SECONDS)).toBeNull();
+    expect(mediaFileProblem('video', { type: 'video/mp4', size: 1000 }, VIDEO_MIN_SECONDS)).toBeNull();
     expect(mediaFileProblem('video', { type: 'video/mp4', size: 1000 }, VIDEO_MAX_SECONDS + 1)).toBe('duration');
+    expect(mediaFileProblem('video', { type: 'video/mp4', size: 1000 }, VIDEO_MIN_SECONDS - 1)).toBe('duration');
     expect(mediaFileProblem('video', { type: 'video/mp4', size: 1000 }, Number.NaN)).toBe('duration');
     expect(mediaFileProblem('video', { type: 'video/quicktime', size: 1000 }, 10)).toBe('type');
   });
@@ -107,5 +109,36 @@ describe('withProfileDefaults', () => {
   it('tidak mengubah data yang sudah lengkap', () => {
     const f = { slug: 'k', locations: [{ isPrimary: true }], schedules: [{ kind: 'praktik' }], media: [{ id: 'm' }] };
     expect(withProfileDefaults(f)).toEqual(f);
+  });
+});
+
+describe('persetujuan video (evaluasi USP R6)', () => {
+  const self: ConsentDraft = { method: 'pernyataan_akun', subjectName: '  dr. Contoh Rahma  ', socialMedia: false, declaration: true, document: null };
+  const form = { name: 'persetujuan.pdf', type: 'application/pdf', size: 2000 };
+
+  it('pernyataan akun: nama dirapikan, cakupan profil web, opsional media sosial', () => {
+    expect(consentFromDraft(self, true)).toEqual({
+      consent: { method: 'pernyataan_akun', subjectName: 'dr. Contoh Rahma', scopes: ['profil_web'], declaration: true },
+    });
+    expect(consentFromDraft({ ...self, socialMedia: true }, true)).toMatchObject({ consent: { scopes: ['profil_web', 'media_sosial'] } });
+  });
+
+  it('pernyataan akun hanya untuk tenaga medis', () => {
+    expect(consentFromDraft(self, false)).toEqual({ problem: 'method' });
+  });
+
+  it('nama dan centang pernyataan wajib', () => {
+    expect(consentFromDraft({ ...self, subjectName: ' ab ' }, true)).toEqual({ problem: 'subject' });
+    expect(consentFromDraft({ ...self, declaration: false }, true)).toEqual({ problem: 'declaration' });
+  });
+
+  it('formulir: wajib ada, PDF/JPEG/PNG, maks. 5 MB', () => {
+    const doc: ConsentDraft = { ...self, method: 'dokumen' };
+    expect(consentFromDraft(doc, false)).toEqual({ problem: 'document' });
+    expect(consentFromDraft({ ...doc, document: { ...form, type: 'image/gif' } }, false)).toEqual({ problem: 'documentType' });
+    expect(consentFromDraft({ ...doc, document: { ...form, size: 5 * 1024 * 1024 + 1 } }, false)).toEqual({ problem: 'documentSize' });
+    expect(consentFromDraft({ ...doc, document: form }, false)).toMatchObject({
+      consent: { method: 'dokumen', document: { fileName: 'persetujuan.pdf', mime: 'application/pdf', sizeBytes: 2000 } },
+    });
   });
 });

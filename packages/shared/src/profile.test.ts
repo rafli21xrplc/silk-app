@@ -33,16 +33,37 @@ describe('jadwal', () => {
 });
 
 describe('batas media', () => {
-  it('foto maks 5 MB, video maks 100 MB dan 120 detik, MIME terbatas', () => {
+  const consent = { method: 'pernyataan_akun', subjectName: 'dr. Contoh Rahma', scopes: ['profil_web'], declaration: true };
+
+  it('foto maks 5 MB; video 20–90 detik dan maks 50 MB (evaluasi USP R5), MIME terbatas', () => {
     const MB = 1024 * 1024;
     expect(mediaPresignSchema.safeParse({ kind: 'foto', fileName: 'a.jpg', mime: 'image/jpeg', sizeBytes: 5 * MB }).success).toBe(true);
     expect(mediaPresignSchema.safeParse({ kind: 'foto', fileName: 'a.jpg', mime: 'image/jpeg', sizeBytes: 5 * MB + 1 }).success).toBe(false);
     expect(mediaPresignSchema.safeParse({ kind: 'foto', fileName: 'a.gif', mime: 'image/gif', sizeBytes: 10 }).success).toBe(false);
-    const video = { kind: 'video', fileName: 'v.mp4', mime: 'video/mp4', sizeBytes: 100 * MB, durationSec: 120 };
+    const video = { kind: 'video', fileName: 'v.mp4', mime: 'video/mp4', sizeBytes: 50 * MB, durationSec: 90, consent };
     expect(mediaPresignSchema.safeParse(video).success).toBe(true);
-    expect(mediaPresignSchema.safeParse({ ...video, sizeBytes: 100 * MB + 1 }).success).toBe(false);
-    expect(mediaPresignSchema.safeParse({ ...video, durationSec: 121 }).success).toBe(false);
+    expect(mediaPresignSchema.safeParse({ ...video, durationSec: 20 }).success).toBe(true);
+    expect(mediaPresignSchema.safeParse({ ...video, sizeBytes: 50 * MB + 1 }).success).toBe(false);
+    expect(mediaPresignSchema.safeParse({ ...video, durationSec: 91 }).success).toBe(false);
+    expect(mediaPresignSchema.safeParse({ ...video, durationSec: 19 }).success).toBe(false);
     expect(mediaPresignSchema.safeParse({ ...video, mime: 'video/quicktime' }).success).toBe(false);
+  });
+
+  it('video wajib membawa persetujuan orang yang tampil (evaluasi USP R6)', () => {
+    const video = { kind: 'video', fileName: 'v.mp4', mime: 'video/mp4', sizeBytes: 1000, durationSec: 45 };
+    expect(mediaPresignSchema.safeParse(video).success).toBe(false);
+    expect(mediaPresignSchema.safeParse({ ...video, consent: { ...consent, declaration: false } }).success).toBe(false);
+    expect(mediaPresignSchema.safeParse({ ...video, consent: { ...consent, scopes: ['media_sosial'] } }).success).toBe(false);
+    expect(mediaPresignSchema.safeParse({ ...video, consent: { ...consent, scopes: ['profil_web', 'profil_web'] } }).success).toBe(false);
+    expect(mediaPresignSchema.safeParse({ ...video, consent: { ...consent, scopes: ['profil_web', 'media_sosial'] } }).success).toBe(true);
+    expect(mediaPresignSchema.safeParse({ ...video, consent: { ...consent, subjectName: ' ' } }).success).toBe(false);
+    // Metode dokumen wajib menyertakan berkas formulir PDF/JPEG/PNG maks. 5 MB.
+    const doc = { ...consent, method: 'dokumen' };
+    expect(mediaPresignSchema.safeParse({ ...video, consent: doc }).success).toBe(false);
+    const form = { fileName: 'persetujuan.pdf', mime: 'application/pdf', sizeBytes: 2000 };
+    expect(mediaPresignSchema.safeParse({ ...video, consent: { ...doc, document: form } }).success).toBe(true);
+    expect(mediaPresignSchema.safeParse({ ...video, consent: { ...doc, document: { ...form, mime: 'image/gif' } } }).success).toBe(false);
+    expect(mediaPresignSchema.safeParse({ ...video, consent: { ...doc, document: { ...form, sizeBytes: 5 * 1024 * 1024 + 1 } } }).success).toBe(false);
   });
 });
 

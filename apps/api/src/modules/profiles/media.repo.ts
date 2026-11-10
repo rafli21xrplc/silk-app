@@ -1,6 +1,13 @@
-import { and, asc, eq, isNotNull, sql } from 'drizzle-orm';
-import { facilities, profileMedia, type DbOrTx } from '@silk/db';
-import type { MediaKind, ReviewStatus } from '@silk/shared';
+import { and, asc, eq, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
+import { facilities, mediaConsents, profileMedia, type DbOrTx } from '@silk/db';
+import type { ConsentMethod, ConsentScope, MediaKind, ReviewStatus } from '@silk/shared';
+
+/**
+ * Satu-satunya definisi "media boleh tampil karena persetujuan" (evaluasi USP R6): foto selalu, video hanya
+ * bila ada persetujuan aktif. `media` = ekspresi SQL id media, `kind` = ekspresi SQL jenisnya.
+ */
+export const consentAllowsPublic = (media: SQL, kind: SQL) =>
+  sql`(${kind} <> 'video' OR EXISTS (SELECT 1 FROM media_consents mc WHERE mc.media_id = ${media} AND mc.revoked_at IS NULL))`;
 
 /** Unggahan yang belum dikonfirmasi tetap dihitung selama signed URL-nya masih berlaku. */
 const UNCONFIRMED_GRACE = sql`interval '15 minutes'`;
@@ -139,8 +146,84 @@ export function publicMedia(db: DbOrTx, facilityId: string) {
       durationSec: profileMedia.durationSec,
     })
     .from(profileMedia)
-    .where(and(eq(profileMedia.facilityId, facilityId), eq(profileMedia.status, 'approved'), isNotNull(profileMedia.publicUrl)))
+    .where(
+      and(
+        eq(profileMedia.facilityId, facilityId),
+        eq(profileMedia.status, 'approved'),
+        isNotNull(profileMedia.publicUrl),
+        consentAllowsPublic(sql`${profileMedia.id}`, sql`${profileMedia.kind}`),
+      ),
+    )
     .orderBy(asc(profileMedia.kind), asc(profileMedia.sortOrder), asc(profileMedia.createdAt));
+}
+
+/* ---------- Persetujuan video (evaluasi USP R6) ---------- */
+
+export async function insertConsent(
+  db: DbOrTx,
+  v: {
+    mediaId: string;
+    facilityId: string;
+    subjectName: string;
+    method: ConsentMethod;
+    scopes: ConsentScope[];
+    textVersion: string;
+    document: { objectKey: string; fileName: string; mime: string; sizeBytes: number } | null;
+    grantedBy: string | null;
+  },
+) {
+  const [row] = await db
+    .insert(mediaConsents)
+    .values({
+      mediaId: v.mediaId,
+      facilityId: v.facilityId,
+      subjectName: v.subjectName,
+      method: v.method,
+      scopes: v.scopes,
+      textVersion: v.textVersion,
+      documentObjectKey: v.document?.objectKey ?? null,
+      documentFileName: v.document?.fileName ?? null,
+      documentMime: v.document?.mime ?? null,
+      documentSizeBytes: v.document?.sizeBytes ?? null,
+      grantedBy: v.grantedBy,
+    })
+    .returning();
+  return row!;
+}
+
+/** Persetujuan aktif untuk media (paling banyak satu, dijaga indeks unik parsial). */
+export async function activeConsent(db: DbOrTx, mediaId: string) {
+  const [row] = await db
+    .select()
+    .from(mediaConsents)
+    .where(and(eq(mediaConsents.mediaId, mediaId), isNull(mediaConsents.revokedAt)));
+  return row ?? null;
+}
+
+export async function activeConsentsFor(db: DbOrTx, mediaIds: string[]) {
+  if (mediaIds.length === 0) return [];
+  return db
+    .select()
+    .from(mediaConsents)
+    .where(and(inArray(mediaConsents.mediaId, mediaIds), isNull(mediaConsents.revokedAt)));
+}
+
+export async function confirmConsentDocument(db: DbOrTx, id: string, sizeBytes: number) {
+  await db.update(mediaConsents).set({ documentConfirmedAt: new Date(), documentSizeBytes: sizeBytes }).where(eq(mediaConsents.id, id));
+}
+
+/** Hanya untuk unggahan yang gagal diperiksa (belum pernah berlaku); pencabutan memakai `revokeConsent`. */
+export async function deleteConsentRow(db: DbOrTx, id: string) {
+  await db.delete(mediaConsents).where(eq(mediaConsents.id, id));
+}
+
+export async function revokeConsent(db: DbOrTx, mediaId: string, v: { revokedBy: string | null; reason: string }) {
+  const rows = await db
+    .update(mediaConsents)
+    .set({ revokedAt: new Date(), revokedBy: v.revokedBy, revokeReason: v.reason })
+    .where(and(eq(mediaConsents.mediaId, mediaId), isNull(mediaConsents.revokedAt)))
+    .returning({ id: mediaConsents.id });
+  return rows[0] ?? null;
 }
 
 export async function facilityStatus(db: DbOrTx, facilityId: string) {

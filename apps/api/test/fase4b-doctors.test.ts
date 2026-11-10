@@ -7,7 +7,7 @@ import { partners } from '@silk/db';
 import { FACILITY_IDS } from '@silk/db/seed';
 import { practitionerDetailSchema, practitionerListItemSchema } from '@silk/shared';
 import { db } from '../src/lib/db';
-import { JPEG_BYTES, createUser, getApp, mp4Bytes, resetDb, send, uploadTo, type TestUser } from './helpers';
+import { CONSENT_SELF, JPEG_BYTES, createUser, getApp, mp4Bytes, resetDb, send, uploadTo, type TestUser } from './helpers';
 
 /** `revalidate` asli tidak melakukan apa pun saat uji; di sini panggilannya direkam. */
 const revalidateCalls = vi.hoisted(() => [] as string[][]);
@@ -145,7 +145,7 @@ describe('Fase 4b: profil dan pencarian dokter', () => {
     // Foto dan video disetujui; foto kedua masih menunggu.
     photoId = await uploadMedia(medis, own.id, { kind: 'foto', fileName: 'wajah.jpg', mime: 'image/jpeg', sizeBytes: JPEG_BYTES.length, caption: 'dr. Uji' }, JPEG_BYTES);
     const video = mp4Bytes(40);
-    const videoId = await uploadMedia(medis, own.id, { kind: 'video', fileName: 'kenalan.mp4', mime: 'video/mp4', sizeBytes: video.length, durationSec: 40 }, video);
+    const videoId = await uploadMedia(medis, own.id, { kind: 'video', fileName: 'kenalan.mp4', mime: 'video/mp4', sizeBytes: video.length, durationSec: 40, consent: CONSENT_SELF }, video);
     for (const id of [photoId, videoId]) expect((await send(moderator, 'post', `/v1/admin/media/${id}/approve`).send({})).status).toBe(200);
     pendingPhotoId = await uploadMedia(medis, own.id, { kind: 'foto', fileName: 'baru.jpg', mime: 'image/jpeg', sizeBytes: JPEG_BYTES.length, caption: 'Belum ditinjau' }, JPEG_BYTES);
 

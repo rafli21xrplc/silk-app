@@ -187,10 +187,31 @@ export type TariffRequestKind = (typeof TARIFF_REQUEST_KINDS)[number];
 export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 export const PHOTO_ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const PHOTO_MAX_COUNT = 10;
-export const VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+/**
+ * Video perkenalan 30–60 detik (dokumen USP). Batas evaluasi USP R5: 20–90 detik, maks. 50 MB
+ * (cukup untuk 90 detik 720p H.264), MP4 atau WebM.
+ */
+export const VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 export const VIDEO_ALLOWED_MIME = ['video/mp4', 'video/webm'] as const;
-export const VIDEO_MAX_SECONDS = 120;
+export const VIDEO_MIN_SECONDS = 20;
+export const VIDEO_MAX_SECONDS = 90;
 export const VIDEO_MAX_COUNT = 1;
+
+/**
+ * Persetujuan tertulis orang yang tampil di video (evaluasi USP R6).
+ * - `pernyataan_akun`: orang yang tampil adalah pemilik akun tenaga medis yang mengunggah; persetujuan
+ *   diberikan lewat pernyataan elektronik di akunnya.
+ * - `dokumen`: formulir persetujuan bertanda tangan diunggah (wajib untuk akun selain tenaga medis).
+ */
+export const CONSENT_METHODS = ['pernyataan_akun', 'dokumen'] as const;
+export type ConsentMethod = (typeof CONSENT_METHODS)[number];
+/** Cakupan pemakaian; `profil_web` selalu wajib, `media_sosial` opsional (pilar konten "Kenalan sama dokter"). */
+export const CONSENT_SCOPES = ['profil_web', 'media_sosial'] as const;
+export type ConsentScope = (typeof CONSENT_SCOPES)[number];
+/** Versi teks pernyataan persetujuan video yang ditampilkan di portal. Naikkan bila teksnya berubah. */
+export const VIDEO_CONSENT_TEXT_VERSION = 'video-2026-11';
+export const CONSENT_DOC_ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png'] as const;
+export const CONSENT_DOC_MAX_BYTES = 5 * 1024 * 1024;
 export const PROFILE_MAX_LOCATIONS = 10;
 export const PROFILE_MAX_SCHEDULES = 70;
 

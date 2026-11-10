@@ -9,6 +9,7 @@ import {
 import type { FacilitySortOption, FacilityType, PractitionerSortOption, PriceType, ScheduleKind, VerificationLevel } from '@silk/shared';
 import { CONSULTATION_CATEGORY } from '@silk/shared';
 import { cityCondition, likeEscape } from '../../lib/sql';
+import { consentAllowsPublic } from '../profiles/media.repo';
 
 export interface FacilitySearchParams {
   q?: string;
@@ -562,7 +563,8 @@ export async function searchPractitioners(db: DbOrTx, p: PractitionerSearchParam
         WHERE pm.facility_id = pp.id AND pm.kind = 'foto' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
         ORDER BY pm.sort_order ASC, pm.created_at ASC LIMIT 1) AS photo_url,
       EXISTS (SELECT 1 FROM profile_media pm
-        WHERE pm.facility_id = pp.id AND pm.kind = 'video' AND pm.status = 'approved' AND pm.public_url IS NOT NULL) AS has_video,
+        WHERE pm.facility_id = pp.id AND pm.kind = 'video' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
+          AND ${consentAllowsPublic(sql`pm.id`, sql`pm.kind`)}) AS has_video,
       EXISTS (SELECT 1 FROM schedules s WHERE s.facility_id IN (${practiceIds})
         AND (s.practitioner_id = p.id OR (s.facility_id = pp.id AND s.practitioner_id IS NULL))) AS has_schedule,
       (SELECT array_agg(c.city ORDER BY c.city) FROM (

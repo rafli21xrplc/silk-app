@@ -159,6 +159,35 @@ export function mp4Bytes(seconds: number): Buffer {
   return Buffer.concat([box('ftyp', Buffer.from('isom\0\0\x02\0isomiso2mp41', 'latin1')), box('free', Buffer.alloc(64)), box('moov', box('mvhd', mvhd))]);
 }
 
+/* ---------- Persetujuan video (evaluasi USP R6) ---------- */
+
+/** Dokter tampil sendiri dan mengunggah dari akun tenaga medisnya. */
+export const CONSENT_SELF = { method: 'pernyataan_akun', subjectName: 'dr. Uji Tampil', scopes: ['profil_web'], declaration: true } as const;
+/** Formulir bertanda tangan (wajib untuk akun selain tenaga medis); unggah `PDF_BYTES` ke `consentUpload`. */
+export const CONSENT_DOC = {
+  method: 'dokumen',
+  subjectName: 'Pelatih Uji Tampil',
+  scopes: ['profil_web', 'media_sosial'],
+  declaration: true,
+  document: { fileName: 'persetujuan.pdf', mime: 'application/pdf', sizeBytes: PDF_BYTES.length },
+} as const;
+
+/**
+ * Presign → PUT berkas (dan formulir persetujuan bila ada `consentUpload`) → konfirmasi. Mengembalikan respons
+ * konfirmasi tanpa assert agar uji penolakan bisa memakainya.
+ */
+export async function uploadMediaWithConsent(u: TestUser, facilityId: string, body: Record<string, unknown>, bytes: Buffer, consentBytes: Buffer = PDF_BYTES) {
+  const presign = await send(u, 'post', `/v1/portal/facilities/${facilityId}/media/presign`).send(body);
+  if (presign.status !== 201) return presign;
+  const put = await uploadTo(presign.body.data, bytes);
+  if (put.status !== 200) throw new Error(`unggah media gagal: ${put.status}`);
+  if (presign.body.data.consentUpload) {
+    const doc = await uploadTo(presign.body.data.consentUpload, consentBytes);
+    if (doc.status !== 200) throw new Error(`unggah formulir persetujuan gagal: ${doc.status}`);
+  }
+  return send(u, 'post', `/v1/portal/facilities/${facilityId}/media/${presign.body.data.mediaId}/confirm`);
+}
+
 /** Unggah dan konfirmasi satu dokumen bukti PDF untuk permintaan harga. */
 export async function attachProof(u: TestUser, requestId: string) {
   const presign = await send(u, 'post', `/v1/portal/tariff-requests/${requestId}/documents/presign`).send({

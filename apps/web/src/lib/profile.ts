@@ -1,10 +1,16 @@
 import {
+  CONSENT_DOC_ALLOWED_MIME,
+  CONSENT_DOC_MAX_BYTES,
   PHOTO_ALLOWED_MIME,
   PHOTO_MAX_BYTES,
   VIDEO_ALLOWED_MIME,
   VIDEO_MAX_BYTES,
   VIDEO_MAX_SECONDS,
+  VIDEO_MIN_SECONDS,
+  type ConsentMethod,
+  type ConsentScope,
   type MediaKind,
+  type VideoConsentInput,
   type ScheduleKind,
 } from '@silk/shared';
 import type { Me } from './types';
@@ -49,10 +55,49 @@ export function mediaFileProblem(kind: MediaKind, file: { type: string; size: nu
   const allowed: readonly string[] = kind === 'foto' ? PHOTO_ALLOWED_MIME : VIDEO_ALLOWED_MIME;
   if (!allowed.includes(file.type)) return 'type';
   if (file.size > (kind === 'foto' ? PHOTO_MAX_BYTES : VIDEO_MAX_BYTES)) return 'size';
-  if (kind === 'video' && (durationSec === null || durationSec === undefined || !Number.isFinite(durationSec) || durationSec > VIDEO_MAX_SECONDS)) {
+  if (
+    kind === 'video' &&
+    (durationSec === null || durationSec === undefined || !Number.isFinite(durationSec) || durationSec > VIDEO_MAX_SECONDS || durationSec < VIDEO_MIN_SECONDS)
+  ) {
     return 'duration';
   }
   return null;
+}
+
+/** Isian persetujuan video di portal (evaluasi USP R6). */
+export interface ConsentDraft {
+  method: ConsentMethod;
+  subjectName: string;
+  socialMedia: boolean;
+  declaration: boolean;
+  document: { name: string; type: string; size: number } | null;
+}
+
+export type ConsentProblem = 'subject' | 'declaration' | 'document' | 'documentType' | 'documentSize' | 'method';
+
+/**
+ * Bentuk `consent` untuk presign video, atau masalah pertama yang harus diperbaiki. Server memeriksa ulang
+ * semuanya; pernyataan di akun hanya sah untuk akun tenaga medis (`selfAllowed`).
+ */
+export function consentFromDraft(d: ConsentDraft, selfAllowed: boolean): { consent: VideoConsentInput } | { problem: ConsentProblem } {
+  if (d.method === 'pernyataan_akun' && !selfAllowed) return { problem: 'method' };
+  const subjectName = d.subjectName.trim();
+  if (subjectName.length < 3) return { problem: 'subject' };
+  if (!d.declaration) return { problem: 'declaration' };
+  const scopes: ConsentScope[] = d.socialMedia ? ['profil_web', 'media_sosial'] : ['profil_web'];
+  if (d.method === 'pernyataan_akun') return { consent: { method: 'pernyataan_akun', subjectName, scopes, declaration: true } };
+  if (!d.document) return { problem: 'document' };
+  if (!(CONSENT_DOC_ALLOWED_MIME as readonly string[]).includes(d.document.type)) return { problem: 'documentType' };
+  if (d.document.size > CONSENT_DOC_MAX_BYTES) return { problem: 'documentSize' };
+  return {
+    consent: {
+      method: 'dokumen',
+      subjectName,
+      scopes,
+      declaration: true,
+      document: { fileName: d.document.name, mime: d.document.type as (typeof CONSENT_DOC_ALLOWED_MIME)[number], sizeBytes: d.document.size },
+    },
+  };
 }
 
 /** Mitra terverifikasi boleh membuat profil; non-faskes hanya satu profil (K2). */

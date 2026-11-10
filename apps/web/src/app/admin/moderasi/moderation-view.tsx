@@ -6,6 +6,7 @@ import { Inbox } from 'lucide-react';
 import { useState } from 'react';
 import { ARTICLE_STATUSES, formatPrice, REVIEW_STATUSES, type AdminArticleListItem, type PriceType } from '@silk/shared';
 import { FormError } from '@/components/app-shell';
+import { ConsentSummary } from '@/components/portal/video-consent-fields';
 import { buttonVariants } from '@/components/ui/button';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -13,6 +14,7 @@ import { LoadingTable } from '@/components/ui/skeleton';
 import { api, errorMessage } from '@/lib/client-api';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
+import type { MediaConsentView } from '@/lib/portal-types';
 import { queryCache } from '@/lib/query-cache';
 import { t } from '@/messages/id';
 import { AdminShell, StatusFilter, useAdminList } from '../admin-shell';
@@ -216,6 +218,7 @@ interface MediaRow {
   status: string;
   rejectionReason: string | null;
   url: string | null;
+  consent: MediaConsentView | null;
   createdAt: string;
   facilityName: string;
 }
@@ -263,6 +266,7 @@ function Media() {
                   {m.durationSec ? ` · ${t.moderation.duration(Math.round(m.durationSec))}` : ''}
                 </p>
                 {m.caption && <p className="small m-0">{m.caption}</p>}
+                {m.kind === 'video' && <ConsentSummary consent={m.consent} />}
                 <p className="small muted m-0">{formatDateTime(m.createdAt)}</p>
                 {m.rejectionReason && (
                   <p className="small m-0">
@@ -271,7 +275,12 @@ function Media() {
                 )}
                 {m.status === 'pending' && (
                   <>
-                    <button type="button" className="btn-primary justify-self-start" disabled={working === m.id} onClick={() => void decide(m.id, 'approve')}>
+                    <button
+                      type="button"
+                      className="btn-primary justify-self-start"
+                      disabled={working === m.id || (m.kind === 'video' && !m.consent)}
+                      onClick={() => void decide(m.id, 'approve')}
+                    >
                       {t.admin.approve}
                     </button>
                     <RejectForm compact busy={working === m.id} onReject={(reason) => void decide(m.id, 'reject', { reason })} />

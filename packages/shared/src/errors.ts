@@ -35,6 +35,9 @@ export const ERROR_CODES = {
   CLAIM_DOCUMENT_REQUIRED: 422,
   MEDIA_INVALID: 422,
   TARIFF_REQUEST_DOCUMENT_REQUIRED: 422,
+  /** Evaluasi USP R6: video tanpa persetujuan sah tidak bisa disetujui; metode pernyataan hanya untuk dokter sendiri. */
+  MEDIA_CONSENT_REQUIRED: 422,
+  CONSENT_METHOD_NOT_ALLOWED: 422,
   TURNSTILE_FAILED: 422,
   RATE_LIMITED: 429,
   INTERNAL: 500,

@@ -33,6 +33,7 @@ import {
   geographyPoint,
   inet,
   mediaKind,
+  consentMethod,
   partnerStatus,
   partnerType,
   priceType,
@@ -632,6 +633,53 @@ export const profileMedia = pgTable(
     index('profile_media_queue_idx').on(t.status, t.createdAt).where(sql`${t.confirmedAt} IS NOT NULL`),
     check('profile_media_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
     check('profile_media_public_url', sql`${t.status} = 'approved' OR ${t.publicUrl} IS NULL`),
+  ],
+);
+
+/**
+ * Persetujuan tertulis orang yang tampil di video profil (evaluasi USP R6). Video hanya bisa disetujui
+ * moderator dan hanya tampil publik bila ada persetujuan aktif. Menghapus video = mencabut persetujuan;
+ * barisnya tetap ada (media_id menjadi NULL) sebagai jejak kapan persetujuan berlaku.
+ * Formulir bertanda tangan (metode `dokumen`) disimpan privat di penyimpanan; hanya pemilik profil
+ * dan moderator yang bisa membukanya lewat signed URL berumur pendek.
+ */
+export const mediaConsents = pgTable(
+  'media_consents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    mediaId: uuid('media_id').references(() => profileMedia.id, { onDelete: 'set null' }),
+    facilityId: uuid('facility_id')
+      .notNull()
+      .references(() => facilities.id, { onDelete: 'cascade' }),
+    subjectName: text('subject_name').notNull(),
+    method: consentMethod('method').notNull(),
+    /** `profil_web` (wajib) dan opsional `media_sosial`. */
+    scopes: text('scopes').array().notNull(),
+    textVersion: text('text_version').notNull(),
+    documentObjectKey: text('document_object_key').unique(),
+    documentFileName: text('document_file_name'),
+    documentMime: text('document_mime'),
+    documentSizeBytes: integer('document_size_bytes'),
+    /** Terisi setelah API memeriksa ukuran dan magic bytes formulir. */
+    documentConfirmedAt: timestamp('document_confirmed_at', { withTimezone: true }),
+    grantedBy: uuid('granted_by').references(() => user.id, { onDelete: 'set null' }),
+    grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    revokedBy: uuid('revoked_by').references(() => user.id, { onDelete: 'set null' }),
+    revokeReason: text('revoke_reason'),
+  },
+  (t) => [
+    uniqueIndex('media_consents_active_media').on(t.mediaId).where(sql`${t.revokedAt} IS NULL AND ${t.mediaId} IS NOT NULL`),
+    index('media_consents_facility_idx').on(t.facilityId),
+    check(
+      'media_consents_scopes',
+      sql`cardinality(${t.scopes}) >= 1 AND ${t.scopes} <@ ARRAY['profil_web','media_sosial']::text[] AND 'profil_web' = ANY(${t.scopes})`,
+    ),
+    check(
+      'media_consents_document',
+      sql`(${t.method} = 'dokumen') = (${t.documentObjectKey} IS NOT NULL)`,
+    ),
+    check('media_consents_revoked', sql`${t.revokedAt} IS NULL OR ${t.revokeReason} IS NOT NULL`),
   ],
 );
 

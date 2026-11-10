@@ -527,7 +527,39 @@ export const t = {
     noSchedule: 'Tutup',
     endBeforeStart: 'Jam selesai harus setelah jam mulai',
     media: 'Foto dan video',
-    mediaHelp: 'Foto JPEG/PNG/WebP maks. 5 MB (maks. 10). Satu video MP4/WebM maks. 100 MB dan 2 menit. Media tampil setelah disetujui moderator.',
+    mediaHelp:
+      'Foto JPEG/PNG/WebP maks. 5 MB (maks. 10). Satu video perkenalan MP4/WebM 20–90 detik, maks. 50 MB, dengan persetujuan tertulis dari orang yang tampil. Media tampil setelah disetujui moderator.',
+    /** Evaluasi USP R6: persetujuan tertulis orang yang tampil di video (teks versi `video-2026-11`). */
+    consent: {
+      title: 'Persetujuan orang yang tampil di video',
+      intro: 'Video hanya bisa tayang bila orang yang tampil menyetujuinya secara tertulis. Isi bagian ini sebelum memilih berkas video.',
+      methodLabel: 'Siapa yang tampil di video?',
+      methodSelf: 'Saya sendiri (dokter pemilik akun ini)',
+      methodDoc: 'Orang lain, dengan formulir persetujuan bertanda tangan',
+      subject: 'Nama orang yang tampil di video',
+      socialMedia: 'Juga boleh dipakai di media sosial resmi SILK',
+      document: 'Formulir persetujuan bertanda tangan (PDF, JPEG, atau PNG, maks. 5 MB)',
+      documentHelp:
+        'Formulir memuat nama orang yang tampil, pernyataan setuju videonya ditampilkan di SILK (dan media sosial SILK bila dipilih), tanggal, dan tanda tangan.',
+      declarationSelf:
+        'Saya adalah orang yang tampil di video ini dan menyetujui video ini ditampilkan di profil saya di SILK. Pernyataan medis di video berasal dari saya, bukan dari SILK. Saya dapat mencabut persetujuan kapan saja dengan menghapus video.',
+      declarationDoc:
+        'Formulir yang saya unggah ditandatangani oleh orang yang tampil di video, dan isinya benar. Persetujuan dapat dicabut kapan saja dengan menghapus video.',
+      problems: {
+        method: 'Pernyataan di akun hanya untuk dokter yang tampil sendiri. Pilih formulir persetujuan.',
+        subject: 'Isi nama orang yang tampil di video.',
+        declaration: 'Centang pernyataan persetujuan.',
+        document: 'Unggah formulir persetujuan bertanda tangan.',
+        documentType: 'Formulir persetujuan harus PDF, JPEG, atau PNG.',
+        documentSize: 'Ukuran formulir persetujuan maksimal 5 MB.',
+      } as Record<string, string>,
+      summary: 'Persetujuan',
+      via: { pernyataan_akun: 'pernyataan di akun', dokumen: 'formulir bertanda tangan' } as Record<string, string>,
+      scopes: { profil_web: 'profil SILK', media_sosial: 'media sosial SILK' } as Record<string, string>,
+      openDocument: 'Lihat formulir',
+      revokeNote: 'Menghapus video juga mencabut persetujuan.',
+      missing: 'Belum ada persetujuan tertulis. Video ini tidak bisa disetujui.',
+    },
     photos: 'Foto',
     video: 'Video',
     addPhoto: 'Unggah foto',
@@ -542,7 +574,7 @@ export const t = {
     mediaProblem: {
       type: 'Format berkas tidak didukung.',
       size: 'Ukuran berkas melebihi batas.',
-      duration: 'Durasi video tidak terbaca atau lebih dari 2 menit.',
+      duration: 'Durasi video tidak terbaca, kurang dari 20 detik, atau lebih dari 90 detik.',
     } as Record<string, string>,
     noPhotos: 'Belum ada foto.',
     noVideo: 'Belum ada video.',

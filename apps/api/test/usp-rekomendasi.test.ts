@@ -4,11 +4,12 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { partners } from '@silk/db';
 import { practitionerDetailSchema, practitionerListItemSchema } from '@silk/shared';
 import { db } from '../src/lib/db';
-import { createUser, getApp, resetDb, send, type TestUser } from './helpers';
+import { CONSENT_DOC, CONSENT_SELF, JPEG_BYTES, createUser, getApp, mp4Bytes, resetDb, send, uploadMediaWithConsent, uploadTo, type TestUser } from './helpers';
 
 /**
  * Rekomendasi evaluasi USP (docs/evaluasi/usp-evaluasi-2026-11-10.md).
  * R3: biaya konsultasi dokter dari tarif kategori `konsultasi` di profil praktik utama.
+ * R5: batas video 20–90 detik dan 50 MB. R6: persetujuan tertulis orang yang tampil di video.
  */
 
 const api = () => request(getApp());
@@ -129,5 +130,147 @@ describe('Evaluasi USP R3: biaya konsultasi dokter', () => {
     `);
     expect((await detail(withConsult.slug)).consultation?.price.type).toBe('tanya');
     expect((await listItem(withConsult.slug)).consultation?.price.type).toBe('tanya');
+  });
+});
+
+describe('Evaluasi USP R5 dan R6: batas video dan persetujuan tertulis', () => {
+  let moderator: TestUser;
+  let doc: { user: TestUser; facilityId: string; slug: string };
+  let gaya: TestUser;
+  let gayaFacility: string;
+
+  const video = (seconds: number, consent: unknown) => {
+    const bytes = mp4Bytes(seconds);
+    return { body: { kind: 'video', fileName: 'kenalan.mp4', mime: 'video/mp4', sizeBytes: bytes.length, durationSec: seconds, consent }, bytes };
+  };
+  const consentRows = (facilityId: string) =>
+    db().execute<{ media_id: string | null; method: string; revoked_at: Date | null; revoke_reason: string | null; document_confirmed_at: Date | null }>(
+      sql`SELECT media_id, method, revoked_at, revoke_reason, document_confirmed_at FROM media_consents WHERE facility_id = ${facilityId} ORDER BY granted_at`,
+    );
+
+  beforeAll(async () => {
+    await resetDb();
+    moderator = await createUser({ role: 'moderator', mfa: true });
+    doc = await doctorWithPractice('dr. Uji Video Persetujuan', moderator);
+    gaya = await createUser({ partner: { type: 'gaya_hidup' } });
+    const created = await send(gaya, 'post', '/v1/portal/profiles').send({
+      name: 'Studio Uji Persetujuan',
+      description: 'Studio kebugaran untuk uji persetujuan video pada evaluasi USP SILK.',
+      locations: [LOC],
+      schedules: [{ kind: 'operasional', weekday: 2, start: '07:00', end: '11:00' }],
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    gayaFacility = created.body.data.id;
+  });
+
+  it('R5: video di bawah 20 detik atau di atas 90 detik ditolak saat presign', async () => {
+    const url = `/v1/portal/facilities/${doc.facilityId}/media/presign`;
+    expect((await send(doc.user, 'post', url).send(video(19, CONSENT_SELF).body)).status).toBe(400);
+    expect((await send(doc.user, 'post', url).send(video(91, CONSENT_SELF).body)).status).toBe(400);
+  });
+
+  it('R5: MP4 lebih pendek dari 20 detik ditolak saat konfirmasi walau browser melaporkan lebih panjang', async () => {
+    const bytes = mp4Bytes(10);
+    const res = await uploadMediaWithConsent(doc.user, doc.facilityId, { ...video(30, CONSENT_SELF).body, sizeBytes: bytes.length }, bytes);
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('MEDIA_INVALID');
+    // Unggahan gagal: media dan persetujuannya dibuang, bukan dicabut.
+    expect((await consentRows(doc.facilityId)).rows).toHaveLength(0);
+  });
+
+  it('R6: video tanpa persetujuan ditolak 400', async () => {
+    const { consent: _c, ...body } = video(40, CONSENT_SELF).body;
+    expect((await send(doc.user, 'post', `/v1/portal/facilities/${doc.facilityId}/media/presign`).send(body)).status).toBe(400);
+  });
+
+  it('R6: pernyataan di akun hanya untuk tenaga medis; akun lain wajib formulir', async () => {
+    const res = await send(gaya, 'post', `/v1/portal/facilities/${gayaFacility}/media/presign`).send(video(40, CONSENT_SELF).body);
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('CONSENT_METHOD_NOT_ALLOWED');
+  });
+
+  it('R6: formulir tidak diunggah atau bukan PDF/JPEG/PNG → konfirmasi 422', async () => {
+    const { body, bytes } = video(40, CONSENT_DOC);
+    // Tanpa formulir.
+    const presign = await send(gaya, 'post', `/v1/portal/facilities/${gayaFacility}/media/presign`).send(body);
+    expect(presign.status, JSON.stringify(presign.body)).toBe(201);
+    expect(presign.body.data.consentUpload).toBeTruthy();
+    await uploadTo(presign.body.data, bytes);
+    const confirm = await send(gaya, 'post', `/v1/portal/facilities/${gayaFacility}/media/${presign.body.data.mediaId}/confirm`);
+    expect(confirm.status).toBe(422);
+    // Formulir berisi JPEG padahal dinyatakan PDF.
+    const fake = await uploadMediaWithConsent(gaya, gayaFacility, body, bytes, JPEG_BYTES);
+    expect(fake.status).toBe(422);
+    expect((await consentRows(gayaFacility)).rows).toHaveLength(0);
+  });
+
+  it('R6: formulir sah → pemilik dan moderator melihat ringkasan persetujuan; video tampil setelah disetujui', async () => {
+    const { body, bytes } = video(45, CONSENT_DOC);
+    const res = await uploadMediaWithConsent(gaya, gayaFacility, body, bytes);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.data.consent).toMatchObject({ subjectName: 'Pelatih Uji Tampil', method: 'dokumen', scopes: ['profil_web', 'media_sosial'] });
+    expect(res.body.data.consent.document.url).toBeTruthy();
+
+    const queue = await moderator.agent.get('/v1/admin/media');
+    const item = (queue.body.data as { id: string; consent: { method: string } | null }[]).find((m) => m.id === res.body.data.id);
+    expect(item?.consent?.method).toBe('dokumen');
+    expect((await send(moderator, 'post', `/v1/admin/media/${res.body.data.id}/approve`).send({})).status).toBe(200);
+    const rows = (await consentRows(gayaFacility)).rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.document_confirmed_at).not.toBeNull();
+  });
+
+  it('R6: dokter dengan pernyataan di akun → video tampil di profil dan kartu', async () => {
+    const { body, bytes } = video(40, CONSENT_SELF);
+    const res = await uploadMediaWithConsent(doc.user, doc.facilityId, body, bytes);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.data.consent).toMatchObject({ method: 'pernyataan_akun', document: null });
+    expect((await send(moderator, 'post', `/v1/admin/media/${res.body.data.id}/approve`).send({})).status).toBe(200);
+    expect((await detail(doc.slug)).video).toMatchObject({ durationSec: 40 });
+    expect((await listItem(doc.slug)).hasVideo).toBe(true);
+  });
+
+  it('R6: video lama tanpa persetujuan tidak bisa disetujui dan tidak tampil publik', async () => {
+    const legacy = await db().execute<{ id: string }>(sql`
+      INSERT INTO profile_media (facility_id, kind, object_key, file_name, mime, size_bytes, duration_sec, status, confirmed_at)
+      VALUES (${gayaFacility}, 'video', ${`profiles/${gayaFacility}/lama.mp4`}, 'lama.mp4', 'video/mp4', 1000, 40, 'pending', now())
+      RETURNING id
+    `);
+    const id = legacy.rows[0]!.id;
+    const res = await send(moderator, 'post', `/v1/admin/media/${id}/approve`).send({});
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('MEDIA_CONSENT_REQUIRED');
+
+    // Data lama yang sudah terlanjur disetujui tanpa persetujuan: disaring dari publik.
+    await db().execute(sql`UPDATE profile_media SET status = 'approved', public_url = 'https://contoh.test/lama.mp4' WHERE id = ${id}`);
+    const pub = await api().get(`/v1/facilities/${(await db().execute<{ slug: string }>(sql`SELECT slug FROM facilities WHERE id = ${gayaFacility}`)).rows[0]!.slug}`);
+    const urls = (pub.body.data.media as { url: string }[]).map((m) => m.url);
+    expect(urls).not.toContain('https://contoh.test/lama.mp4');
+    await db().execute(sql`DELETE FROM profile_media WHERE id = ${id}`);
+  });
+
+  it('R6: menghapus video mencabut persetujuan (jejak tetap) dan video hilang dari publik', async () => {
+    const before = (await detail(doc.slug)).video;
+    expect(before).not.toBeNull();
+    const own = await doc.user.agent.get(`/v1/portal/facilities/${doc.facilityId}`);
+    const vid = (own.body.data.media as { id: string; kind: string; consent: unknown }[]).find((m) => m.kind === 'video')!;
+    expect(vid.consent).toMatchObject({ method: 'pernyataan_akun' });
+    expect((await send(doc.user, 'delete', `/v1/portal/facilities/${doc.facilityId}/media/${vid.id}`)).status).toBe(200);
+
+    const rows = (await consentRows(doc.facilityId)).rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ media_id: null, revoke_reason: 'Video dihapus oleh pengelola profil' });
+    expect(rows[0]!.revoked_at).not.toBeNull();
+    const audit = await db().execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM audit_logs WHERE action = 'media.consent.revoke'`);
+    expect(audit.rows[0]!.n).toBe(1);
+
+    expect((await detail(doc.slug)).video).toBeNull();
+    expect((await listItem(doc.slug)).hasVideo).toBe(false);
+  });
+
+  it('R6: setiap pemberian persetujuan tercatat di audit log', async () => {
+    const r = await db().execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM audit_logs WHERE action = 'media.consent.grant'`);
+    // Dua persetujuan berlaku (formulir studio, pernyataan dokter); unggahan gagal juga sempat tercatat saat presign.
+    expect(r.rows[0]!.n).toBeGreaterThanOrEqual(2);
   });
 });

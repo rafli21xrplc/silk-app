@@ -11,6 +11,10 @@ import {
   VIDEO_ALLOWED_MIME,
   VIDEO_MAX_BYTES,
   VIDEO_MAX_SECONDS,
+  VIDEO_MIN_SECONDS,
+  CONSENT_DOC_ALLOWED_MIME,
+  CONSENT_DOC_MAX_BYTES,
+  CONSENT_SCOPES,
 } from '../constants';
 import { cursorSchema, limitSchema, uuidSchema } from './common';
 
@@ -83,6 +87,32 @@ export type ProfileCreateInput = z.infer<typeof profileCreateSchema>;
 const fileName = z.string().trim().min(1).max(200);
 const caption = optionalText(200);
 
+/** Persetujuan orang yang tampil di video (evaluasi USP R6). Pernyataan wajib dicentang. */
+const consentBase = {
+  subjectName: z.string().trim().min(3, 'Isi nama orang yang tampil di video').max(120),
+  scopes: z
+    .array(z.enum(CONSENT_SCOPES))
+    .min(1)
+    .max(CONSENT_SCOPES.length)
+    .refine((s) => s.includes('profil_web'), 'Persetujuan tampil di profil SILK wajib')
+    .refine((s) => new Set(s).size === s.length, 'Cakupan tidak boleh berulang'),
+  declaration: z.literal(true, { message: 'Centang pernyataan persetujuan' }),
+};
+
+export const videoConsentSchema = z.discriminatedUnion('method', [
+  z.object({ method: z.literal('pernyataan_akun'), ...consentBase }),
+  z.object({
+    method: z.literal('dokumen'),
+    ...consentBase,
+    document: z.object({
+      fileName,
+      mime: z.enum(CONSENT_DOC_ALLOWED_MIME, { message: 'Formulir persetujuan harus PDF, JPEG, atau PNG' }),
+      sizeBytes: z.number().int().positive().max(CONSENT_DOC_MAX_BYTES, 'Ukuran formulir persetujuan maksimal 5 MB'),
+    }),
+  }),
+]);
+export type VideoConsentInput = z.infer<typeof videoConsentSchema>;
+
 export const mediaPresignSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('foto'),
@@ -96,9 +126,13 @@ export const mediaPresignSchema = z.discriminatedUnion('kind', [
     fileName,
     caption,
     mime: z.enum(VIDEO_ALLOWED_MIME, { message: 'Video harus MP4 atau WebM' }),
-    sizeBytes: z.number().int().positive().max(VIDEO_MAX_BYTES, 'Ukuran video maksimal 100 MB'),
+    sizeBytes: z.number().int().positive().max(VIDEO_MAX_BYTES, 'Ukuran video maksimal 50 MB'),
     /** Diukur browser sebelum unggah; MP4 dicek ulang di server. */
-    durationSec: z.number().positive().max(VIDEO_MAX_SECONDS, `Durasi video maksimal ${VIDEO_MAX_SECONDS} detik`),
+    durationSec: z
+      .number()
+      .min(VIDEO_MIN_SECONDS, `Durasi video minimal ${VIDEO_MIN_SECONDS} detik`)
+      .max(VIDEO_MAX_SECONDS, `Durasi video maksimal ${VIDEO_MAX_SECONDS} detik`),
+    consent: videoConsentSchema,
   }),
 ]);
 export type MediaPresignInput = z.infer<typeof mediaPresignSchema>;

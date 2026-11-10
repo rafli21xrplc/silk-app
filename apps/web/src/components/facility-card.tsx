@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, MapPin, Navigation, Star } from 'lucide-react';
 import type { FacilityListItem } from '@/lib/types';
 import { t } from '@/messages/id';
+import { EstimateBadge } from './estimate-badge';
 import { PriceDisplay } from './price-display';
 import { TrustBadge } from './trust-badge';
 
@@ -59,7 +60,10 @@ export function FacilityCard({ facility }: { facility: FacilityListItem }) {
                   <PriceDisplay price={facility.price} />
                 </span>
               ) : (
-                <PriceDisplay price={facility.price} />
+                <span className="flex flex-wrap items-center gap-2">
+                  <PriceDisplay price={facility.price} />
+                  <EstimateBadge price={facility.price} />
+                </span>
               )}
               <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700" aria-hidden="true">
                 {t.facility.detail} <ArrowRight className="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" />

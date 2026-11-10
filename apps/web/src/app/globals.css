@@ -408,6 +408,10 @@
   .badge-stale {
     @apply border-warn-line bg-warn-soft text-warn;
   }
+  /* Label "Perkiraan" di samping harga (USP P1). Netral: bukan peringatan, bukan lencana mutu. */
+  .badge-estimate {
+    @apply border-line bg-white text-ink-soft;
+  }
   .kv {
     @apply m-0 grid grid-cols-[max-content_1fr] gap-x-5 gap-y-2;
   }

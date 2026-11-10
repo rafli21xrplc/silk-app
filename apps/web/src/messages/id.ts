@@ -5,9 +5,9 @@
 export const t = {
   site: {
     name: 'SILK',
-    tagline: 'Bandingkan tarif layanan kesehatan dengan data yang bisa diperiksa',
+    tagline: 'Tahu biayanya, kenal dokternya, sebelum datang',
     description:
-      'SILK menampilkan tarif laboratorium dan medical check-up di Malang lengkap dengan tanggal berlaku, sumber, dan tingkat verifikasi.',
+      'SILK menampilkan perkiraan biaya layanan kesehatan dan profil dokter di Malang, lengkap dengan tanggal berlaku, sumber, dan tingkat verifikasi.',
   },
   nav: {
     search: 'Cari faskes',
@@ -32,7 +32,7 @@ export const t = {
     terms: 'Syarat penggunaan',
     methodology: 'Metodologi data',
     note: 'Urutan hasil tidak pernah dipengaruhi pembayaran.',
-    blurb: 'Informasi tarif laboratorium dan medical check-up di Malang, lengkap dengan tanggal berlaku, sumber, dan status verifikasi.',
+    blurb: 'Perkiraan biaya layanan kesehatan dan profil dokter di Malang, lengkap dengan tanggal berlaku, sumber, dan status verifikasi.',
     explore: 'Jelajahi',
     trust: 'Tentang data',
     label: 'Navigasi footer',
@@ -98,9 +98,9 @@ export const t = {
     mapOpen: 'Buka profil',
   },
   home: {
-    heroTitle: 'Tahu biayanya sebelum berangkat',
+    heroTitle: 'Tahu biayanya, kenal dokternya, sebelum datang',
     heroBody:
-      'Bandingkan tarif laboratorium dan medical check-up di Kota dan Kabupaten Malang. Setiap angka menyertakan tanggal berlaku, sumber, dan status verifikasi.',
+      'Bandingkan perkiraan biaya laboratorium, medical check-up, rawat inap, dan konsultasi dokter di Kota dan Kabupaten Malang, lalu kenali dokternya lewat profil dan video. Setiap angka menyertakan tanggal berlaku, sumber, dan status verifikasi.',
     popular: 'Layanan populer',
     cities: 'Wilayah',
     eyebrow: 'Kota dan Kabupaten Malang',
@@ -135,13 +135,13 @@ export const t = {
   verification: {
     publik_belum_diverifikasi: 'Belum diverifikasi',
     dari_dokumen_publik: 'Dari dokumen publik',
-    diisi_faskes: 'Diisi faskes',
+    diisi_faskes: 'Diisi mitra',
     diverifikasi_admin: 'Diverifikasi tim SILK',
   } as Record<string, string>,
   sourceKind: {
     perda: 'Peraturan daerah',
     pmk: 'Peraturan Menteri Kesehatan',
-    faskes: 'Faskes',
+    faskes: 'Mitra',
     admin: 'Tim SILK',
     lainnya: 'Sumber lain',
   } as Record<string, string>,
@@ -149,6 +149,9 @@ export const t = {
     ask: 'Tanyakan ke faskes',
     from: 'Mulai',
     package: 'Paket',
+    estimate: 'Perkiraan',
+    estimateHelp:
+      'Angka ini perkiraan dari sumber yang tercantum, bukan tagihan. Biaya akhir bisa berbeda sesuai pemeriksaan dan tindakan. Konfirmasikan ke tempat layanan sebelum datang.',
   },
   trust: {
     effectiveFrom: 'Berlaku sejak',
@@ -759,7 +762,7 @@ export const t = {
   trustHelp: {
     publik_belum_diverifikasi: 'Tarif berasal dari sumber publik dan belum diperiksa ulang oleh faskes atau tim SILK.',
     dari_dokumen_publik: 'Diimpor tim SILK dari dokumen resmi seperti peraturan daerah atau Peraturan Menteri Kesehatan.',
-    diisi_faskes: 'Diisi langsung oleh pengelola faskes lewat portal SILK.',
+    diisi_faskes: 'Diisi langsung oleh mitra (faskes, dokter, atau penyedia layanan) lewat portal SILK, lalu ditinjau tim SILK.',
     diverifikasi_admin: 'Dicek langsung oleh tim SILK terhadap sumbernya.',
   } as Record<string, string>,
   account: {

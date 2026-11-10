@@ -3,6 +3,7 @@ import { Check, Minus } from 'lucide-react';
 import type { CompareResponse } from '@/lib/types';
 import { formatDate } from '@/lib/format';
 import { t } from '@/messages/id';
+import { EstimateBadge } from './estimate-badge';
 import { PriceDisplay } from './price-display';
 import { InfoPopover } from './ui/info-popover';
 
@@ -38,11 +39,20 @@ export function ComparisonTable({ data }: { data: CompareResponse }) {
                 <div className="text-sm font-normal text-muted">{r.facility.city}</div>
               </th>
               <td className="min-w-[200px]">
-                <PriceDisplay price={r.price} />
+                <span className="flex flex-wrap items-center gap-2">
+                  <PriceDisplay price={r.price} />
+                  <EstimateBadge price={r.price} />
+                </span>
                 <div className="mt-1 text-[0.82rem] leading-relaxed text-muted">
                   {t.trust.effectiveFrom} {formatDate(r.effectiveFrom)}
                   <br />
                   {r.verifiedAt ? `${t.trust.verifiedAt} ${formatDate(r.verifiedAt)}` : t.trust.notVerified}
+                  {r.source && (
+                    <>
+                      <br />
+                      {`${t.trust.source}: ${r.source.title} (${t.sourceKind[r.source.kind] ?? r.source.kind})`}
+                    </>
+                  )}
                   {r.stale && (
                     <>
                       {' '}

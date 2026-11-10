@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Check, Minus, Scale } from 'lucide-react';
+import { EstimateBadge } from '@/components/estimate-badge';
 import { PriceDisplay } from '@/components/price-display';
 import { ReportDataDialog } from '@/components/report-data-dialog';
 import { TariffHistoryDrawer } from '@/components/tariff-history-drawer';
@@ -22,7 +23,10 @@ export function TariffCard({ tariff, facilityId, city }: { tariff: PublicTariff;
             {tariff.package ? `${tariff.package.name} (${tariff.service.name})` : tariff.service.name}
           </h3>
         </div>
-        <PriceDisplay price={tariff.price} size="lg" />
+        <div className="flex flex-col items-end gap-1">
+          <PriceDisplay price={tariff.price} size="lg" />
+          <EstimateBadge price={tariff.price} />
+        </div>
       </div>
       <TrustBadge trust={tariff.trust} />
       {tariff.package && (

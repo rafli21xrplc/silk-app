@@ -2,12 +2,13 @@ import type {
   FacilityDetail,
   FacilityListItem,
   FacilitySearchQuery,
+  PractitionerConsultation,
   PractitionerDetail,
   PractitionerListItem,
   PractitionerSearchQuery,
   PractitionerSpecialty,
 } from '@silk/shared';
-import { PRACTITIONER_ARTICLE_LIMIT, RATING_MIN_COUNT } from '@silk/shared';
+import { PRACTITIONER_ARTICLE_LIMIT, RATING_MIN_COUNT, pickConsultation } from '@silk/shared';
 import { db } from '../../lib/db';
 import { featureEnabled } from '../../lib/env';
 import { AppError, notFound } from '../../lib/errors';
@@ -189,6 +190,7 @@ export async function getPractitioner(slug: string, now = new Date()): Promise<P
       };
     }),
     tariffs,
+    consultation: pickConsultation(tariffs),
     articles,
     // Fase 6 mengisi rating di balik flag reviews_enabled.
     rating: null,
@@ -196,7 +198,26 @@ export async function getPractitioner(slug: string, now = new Date()): Promise<P
 }
 
 /** Daftar dan pencarian dokter (Fase 4b). Urutan netral: relevansi, jarak, atau nama. */
-export async function searchPractitioners(q: PractitionerSearchQuery): Promise<{ items: PractitionerListItem[]; nextCursor: string | null }> {
+/** Bentuk publik biaya konsultasi dari JSON subquery repo (harga M2 dan konteks kepercayaan M4). */
+function consultationOf(c: repo.ConsultationJson | null, now: Date): PractitionerConsultation | null {
+  if (!c) return null;
+  const v = {
+    priceType: c.price_type,
+    priceMin: c.price_min === null ? null : Number(c.price_min),
+    priceMax: c.price_max === null ? null : Number(c.price_max),
+    effectiveFrom: c.effective_from,
+    effectiveTo: c.effective_to,
+    verifiedAt: c.verified_at ? new Date(c.verified_at) : null,
+    verification: c.verification,
+    sourceKind: c.source_kind,
+    sourceTitle: c.source_title,
+    sourceUrl: c.source_url,
+    sourceDocumentDate: c.source_document_date,
+  };
+  return { serviceName: c.service_name, price: toPrice(v), trust: toTrust(v, now) };
+}
+
+export async function searchPractitioners(q: PractitionerSearchQuery, now = new Date()): Promise<{ items: PractitionerListItem[]; nextCursor: string | null }> {
   const offset = decodeOffsetCursor(q.cursor);
   const rows = await repo.searchPractitioners(db(), {
     q: q.q,
@@ -223,6 +244,7 @@ export async function searchPractitioners(q: PractitionerSearchQuery): Promise<{
       distanceM: r.distance_m === null ? null : Math.round(Number(r.distance_m)),
       hasVideo: r.has_video,
       hasSchedule: r.has_schedule,
+      consultation: consultationOf(r.consultation, now),
     })),
     nextCursor: page.nextCursor,
   };

@@ -153,6 +153,12 @@ export type Weekday = (typeof WEEKDAYS)[number];
 export const DEFAULT_TIMEZONE = 'Asia/Jakarta';
 export const TIMEZONES = ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'] as const;
 
+/**
+ * Slug kategori biaya konsultasi dokter (evaluasi USP R3). Tarif kategori ini di profil praktik utama
+ * tampil sebagai "Biaya konsultasi" di kartu dan profil dokter.
+ */
+export const CONSULTATION_CATEGORY = 'konsultasi';
+
 export const MEDIA_KINDS = ['foto', 'video'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 

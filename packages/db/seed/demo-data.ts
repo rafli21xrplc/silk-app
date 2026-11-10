@@ -271,8 +271,125 @@ const PRACTITIONERS: DemoPractitioner[] = [
       { facilitySlug: 'puskesmas-contoh-blimbing', schedules: [{ weekday: 6, start: '07:30', end: '12:00', note: null }] },
     ],
   },
+  // Evaluasi USP (R3, R7): tiga dokter contoh tambahan dengan profil praktik sendiri (lihat USP_PRACTICES).
+  {
+    id: '',
+    slug: 'dr-contoh-sari-wulandari-sp-og',
+    name: 'dr. Contoh Sari Wulandari, Sp.OG',
+    specialty: 'Kebidanan dan kandungan',
+    strNo: 'STR-CONTOH-0103',
+    strVerifiedAt: '2026-10-08T02:00:00.000Z',
+    practices: [
+      {
+        facilitySlug: 'praktik-dr-contoh-sari-wulandari-sp-og',
+        schedules: [
+          { weekday: 1, start: '17:00', end: '20:00', note: null },
+          { weekday: 4, start: '17:00', end: '20:00', note: null },
+        ],
+      },
+      { facilitySlug: 'rs-contoh-sukun', schedules: [{ weekday: 2, start: '08:00', end: '12:00', note: 'Poli kandungan' }] },
+    ],
+  },
+  {
+    id: '',
+    slug: 'dr-contoh-arif-nugroho-sp-pd',
+    name: 'dr. Contoh Arif Nugroho, Sp.PD',
+    specialty: 'Penyakit dalam',
+    strNo: 'STR-CONTOH-0104',
+    strVerifiedAt: '2026-10-15T02:00:00.000Z',
+    practices: [
+      {
+        facilitySlug: 'praktik-dr-contoh-arif-nugroho-sp-pd',
+        schedules: [
+          { weekday: 2, start: '16:00', end: '20:00', note: null },
+          { weekday: 5, start: '16:00', end: '20:00', note: null },
+        ],
+      },
+      { facilitySlug: 'rs-contoh-kepanjen', schedules: [{ weekday: 3, start: '09:00', end: '13:00', note: 'Poli penyakit dalam' }] },
+    ],
+  },
+  {
+    id: '',
+    slug: 'drg-contoh-dewi-lestari',
+    name: 'drg. Contoh Dewi Lestari',
+    specialty: 'Dokter gigi',
+    strNo: 'STR-CONTOH-0105',
+    strVerifiedAt: null,
+    practices: [
+      {
+        facilitySlug: 'praktik-drg-contoh-dewi-lestari',
+        schedules: [1, 3, 5].map((weekday) => ({ weekday, start: '15:00', end: '20:00', note: null })),
+      },
+    ],
+  },
   // Prefiks `d0`: `dc` sudah dipakai praktisi data uji (seed/data.ts).
 ].map((p, i) => ({ ...p, id: uuid('d0', i + 1) }));
+
+/**
+ * Evaluasi USP: profil praktik dokter contoh tambahan. Dibangun terpisah dari FACILITY_ROWS (ID `f1`, PRNG sendiri)
+ * agar ID dan harga tarif demo yang sudah ada di DB tidak bergeser.
+ */
+const USP_PRACTICES: { name: string; regionSlug: RegionSlug; district: string; lat: number; lng: number; verification: VerificationLevel; description: string }[] = [
+  {
+    name: 'Praktik dr. Contoh Sari Wulandari, Sp.OG',
+    regionSlug: 'kota-malang',
+    district: 'Klojen',
+    lat: -7.976,
+    lng: 112.624,
+    verification: 'diisi_faskes',
+    description:
+      'Praktik dokter spesialis kebidanan dan kandungan (fiktif, data demo SILK). Melayani pemeriksaan kehamilan, ' +
+      'konsultasi program hamil, dan pemeriksaan kesehatan reproduksi. Bawa buku KIA bila sedang hamil.',
+  },
+  {
+    name: 'Praktik dr. Contoh Arif Nugroho, Sp.PD',
+    regionSlug: 'kabupaten-malang',
+    district: 'Kepanjen',
+    lat: -8.131,
+    lng: 112.573,
+    verification: 'diisi_faskes',
+    description:
+      'Praktik dokter spesialis penyakit dalam (fiktif, data demo SILK). Melayani konsultasi keluhan dewasa seperti ' +
+      'gula darah, tekanan darah, dan pencernaan. Bawa hasil laboratorium terakhir bila ada.',
+  },
+  {
+    name: 'Praktik drg. Contoh Dewi Lestari',
+    regionSlug: 'kabupaten-malang',
+    district: 'Singosari',
+    lat: -7.896,
+    lng: 112.661,
+    verification: 'diisi_faskes',
+    description:
+      'Praktik dokter gigi (fiktif, data demo SILK). Melayani pemeriksaan gigi rutin, pembersihan karang gigi, ' +
+      'dan konsultasi perawatan gigi anak dan dewasa.',
+  },
+];
+
+/** Layanan konsultasi utama tiap profil praktik dokter demo (evaluasi USP R3). */
+const PRACTICE_CONSULTATION: Record<string, string> = {
+  'praktik-dr-contoh-rahma-putri-sp-a': 'konsultasi-dokter-spesialis',
+  'praktik-dr-contoh-sari-wulandari-sp-og': 'konsultasi-dokter-spesialis',
+  'praktik-dr-contoh-arif-nugroho-sp-pd': 'konsultasi-dokter-spesialis',
+  'praktik-drg-contoh-dewi-lestari': 'konsultasi-dokter-gigi',
+};
+
+/** Layanan konsultasi dan rawat inap per jenis faskes lain (evaluasi USP R3, R9). */
+const USP_MENU: Partial<Record<FacilityType, string[]>> = {
+  klinik: ['konsultasi-dokter-umum'],
+  puskesmas: ['konsultasi-dokter-umum'],
+  rumah_sakit: ['konsultasi-dokter-umum', 'konsultasi-dokter-spesialis', 'rawat-inap-kelas-3', 'rawat-inap-kelas-2', 'rawat-inap-kelas-1', 'rawat-inap-vip'],
+};
+
+/** Harga dasar konsultasi dan kamar per malam (fiktif). */
+const USP_BASE_PRICE: Record<string, number> = {
+  'konsultasi-dokter-umum': 75_000,
+  'konsultasi-dokter-spesialis': 150_000,
+  'konsultasi-dokter-gigi': 100_000,
+  'rawat-inap-kelas-3': 200_000,
+  'rawat-inap-kelas-2': 350_000,
+  'rawat-inap-kelas-1': 550_000,
+  'rawat-inap-vip': 950_000,
+};
 
 const BRANCHES: DemoBranch[] = [
   {
@@ -430,5 +547,70 @@ export function buildDemoData(): DemoData {
     }
   }
 
+  addUspData(facilities, tariffs);
   return { facilities, packages, tariffs, practitioners: PRACTITIONERS, branches: BRANCHES };
+}
+
+/**
+ * Evaluasi USP (R3, R9): profil praktik dokter contoh tambahan, tarif konsultasi, dan tarif rawat inap.
+ * PRNG dan ruang ID sendiri (`f1` faskes, `d1` tarif) sehingga data demo lama tetap identik.
+ */
+function addUspData(facilities: DemoFacility[], tariffs: DemoTariff[]): void {
+  const rand = mulberry32(20261110);
+  const between = (min: number, max: number) => min + rand() * (max - min);
+  const int = (min: number, max: number) => Math.floor(between(min, max + 1));
+
+  USP_PRACTICES.forEach((row, i) => {
+    facilities.push({
+      id: uuid('f1', i + 1),
+      slug: slugify(row.name),
+      name: row.name,
+      type: 'praktik_dokter',
+      description: row.description,
+      address: `Jl. Contoh ${row.district} No. ${int(1, 120)}, ${row.district}`,
+      regionSlug: row.regionSlug,
+      lat: row.lat,
+      lng: row.lng,
+      phone: `0341-0${String(200 + i + 1).padStart(5, '0')}`,
+      hours: HOURS.praktik_dokter,
+      verification: row.verification,
+      status: 'terbit',
+    });
+  });
+
+  let n = 0;
+  for (const f of facilities) {
+    const own = PRACTICE_CONSULTATION[f.slug];
+    const menu = own ? [own] : f.type === 'praktik_dokter' ? [] : (USP_MENU[f.type] ?? []);
+    if (!menu.length) continue;
+    const [fMin, fMax] = PRICE_FACTOR[f.type];
+    const factor = between(fMin, fMax);
+    for (const serviceSlug of menu) {
+      const base = USP_BASE_PRICE[serviceSlug];
+      if (base === undefined) throw new Error(`Harga dasar ${serviceSlug} belum ada`);
+      const price = roundPrice(base * factor * between(0.92, 1.08));
+      // Kamar rawat inap kadang berupa rentang (beda gedung/ruang dalam satu kelas).
+      const range = serviceSlug.startsWith('rawat-inap') && rand() < 0.3;
+      const effectiveFrom = addDays(ANCHOR, -int(5, 120));
+      tariffs.push({
+        id: uuid('d1', ++n),
+        facilityId: f.id,
+        serviceSlug,
+        packageId: null,
+        status: 'terbit',
+        versions: [
+          {
+            priceType: range ? 'rentang' : 'tetap',
+            priceMin: price,
+            priceMax: range ? roundPrice(price * between(1.15, 1.4)) : null,
+            effectiveFrom,
+            createdAt: at9Wib(addDays(effectiveFrom, -int(3, 20))),
+            verifiedAt: at9Wib(addDays(effectiveFrom, int(0, 10))),
+            verification: f.verification,
+            sourceIndex: f.verification === 'diisi_faskes' || f.verification === 'diverifikasi_admin' ? 1 : 0,
+          },
+        ],
+      });
+    }
+  }
 }

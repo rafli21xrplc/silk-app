@@ -16,6 +16,9 @@ export const CATEGORIES = [
   // Fase 2 (F-02): kategori baru lewat taksonomi, bukan hardcode di kode.
   { slug: 'gaya-hidup-sehat', name: 'Gaya hidup sehat' },
   { slug: 'rumah-duka', name: 'Rumah duka' },
+  // Evaluasi USP (R3, R9): biaya konsultasi dokter dan rawat inap ("Tahu biayanya, kenal dokternya").
+  { slug: 'konsultasi', name: 'Konsultasi dokter' },
+  { slug: 'rawat-inap', name: 'Rawat inap' },
 ] as const;
 
 export const SERVICES: {
@@ -40,6 +43,13 @@ export const SERVICES: {
   { slug: 'pemulasaraan-jenazah', category: 'rumah-duka', name: 'Pemulasaraan jenazah', description: 'Perawatan jenazah sebelum persemayaman atau pemakaman.', aliases: ['memandikan jenazah', 'perawatan jenazah'] },
   { slug: 'sewa-ruang-persemayaman', category: 'rumah-duka', name: 'Sewa ruang persemayaman', description: 'Ruang persemayaman jenazah per hari.', aliases: ['ruang duka', 'persemayaman'] },
   { slug: 'mobil-jenazah', category: 'rumah-duka', name: 'Mobil jenazah', description: 'Layanan antar jenazah.', aliases: ['ambulans jenazah', 'kereta jenazah'] },
+  { slug: 'konsultasi-dokter-umum', category: 'konsultasi', name: 'Konsultasi dokter umum', description: 'Biaya satu kali konsultasi dengan dokter umum, di luar obat dan tindakan.', aliases: ['periksa dokter', 'konsultasi dokter', 'dokter umum', 'berobat'] },
+  { slug: 'konsultasi-dokter-spesialis', category: 'konsultasi', name: 'Konsultasi dokter spesialis', description: 'Biaya satu kali konsultasi dengan dokter spesialis, di luar obat, tindakan, dan pemeriksaan penunjang.', aliases: ['dokter spesialis', 'konsultasi spesialis', 'poli spesialis'] },
+  { slug: 'konsultasi-dokter-gigi', category: 'konsultasi', name: 'Konsultasi dokter gigi', description: 'Biaya satu kali konsultasi dengan dokter gigi, di luar tindakan seperti tambal atau cabut gigi.', aliases: ['periksa gigi', 'dokter gigi', 'drg'] },
+  { slug: 'rawat-inap-kelas-3', category: 'rawat-inap', name: 'Kamar rawat inap kelas 3 (per malam)', description: 'Biaya kamar per malam. Obat, tindakan, pemeriksaan penunjang, dan visite dokter biasanya ditagih terpisah.', aliases: ['rawat inap', 'opname', 'kamar kelas 3', 'bangsal'] },
+  { slug: 'rawat-inap-kelas-2', category: 'rawat-inap', name: 'Kamar rawat inap kelas 2 (per malam)', description: 'Biaya kamar per malam. Obat, tindakan, pemeriksaan penunjang, dan visite dokter biasanya ditagih terpisah.', aliases: ['rawat inap', 'opname', 'kamar kelas 2'] },
+  { slug: 'rawat-inap-kelas-1', category: 'rawat-inap', name: 'Kamar rawat inap kelas 1 (per malam)', description: 'Biaya kamar per malam. Obat, tindakan, pemeriksaan penunjang, dan visite dokter biasanya ditagih terpisah.', aliases: ['rawat inap', 'opname', 'kamar kelas 1'] },
+  { slug: 'rawat-inap-vip', category: 'rawat-inap', name: 'Kamar rawat inap VIP (per malam)', description: 'Biaya kamar per malam. Obat, tindakan, pemeriksaan penunjang, dan visite dokter biasanya ditagih terpisah.', aliases: ['rawat inap', 'opname', 'kamar vip'] },
 ];
 
 export const CONTENT_RULES: { pattern: string; kind: 'kata' | 'regex'; level: 'blokir' | 'tinjau' }[] = [

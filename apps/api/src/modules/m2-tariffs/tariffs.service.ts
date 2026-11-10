@@ -50,7 +50,7 @@ export async function publicTariffsForFacility(facilityId: string, now = new Dat
   return rows.map((r) => ({
     id: r.tariffId,
     versionNo: r.versionNo,
-    service: { slug: r.serviceSlug, name: r.serviceName, category: r.categoryName },
+    service: { slug: r.serviceSlug, name: r.serviceName, category: r.categoryName, categorySlug: r.categorySlug },
     package:
       r.packageId && r.packageName
         ? {

@@ -50,6 +50,7 @@ export function listPublishedTariffs(db: DbOrTx, f: PublishedTariffFilter) {
       serviceSlug: services.slug,
       serviceName: services.name,
       categoryName: serviceCategories.name,
+      categorySlug: serviceCategories.slug,
       packageName: packages.name,
       packageNotes: packages.notes,
     })

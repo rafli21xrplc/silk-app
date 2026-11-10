@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { ArrowRight, CalendarDays, MapPin, Navigation, PlayCircle } from 'lucide-react';
 import type { PractitionerListItem } from '@/lib/types';
+import { formatDate } from '@/lib/format';
 import { t } from '@/messages/id';
+import { EstimateBadge } from '../estimate-badge';
+import { PriceDisplay } from '../price-display';
 import { DoctorAvatar } from './doctor-avatar';
 import { DoctorBadges } from './doctor-badges';
 
@@ -57,6 +60,17 @@ export function DoctorCard({ doctor }: { doctor: PractitionerListItem }) {
           )}
         </p>
       </div>
+      {/* Evaluasi USP R3: biaya konsultasi di kartu, dengan label perkiraan dan tanggal berlaku. */}
+      {doctor.consultation && (
+        <div className="grid gap-1 rounded-2xl bg-surface/80 px-4 py-3" data-consultation>
+          <span className="text-[0.8rem] font-semibold text-muted">{doctor.consultation.serviceName}</span>
+          <span className="flex flex-wrap items-center gap-2">
+            <PriceDisplay price={doctor.consultation.price} />
+            <EstimateBadge price={doctor.consultation.price} />
+          </span>
+          <span className="text-[0.8rem] text-muted">{`${t.trust.effectiveFrom} ${formatDate(doctor.consultation.trust.effectiveFrom)}`}</span>
+        </div>
+      )}
       <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-primary-700" aria-hidden="true">
         {t.doctors.viewProfile} <ArrowRight className="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" />
       </span>

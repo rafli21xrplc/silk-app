@@ -8,6 +8,7 @@ export * from './permissions';
 export * from './flags';
 export * from './media';
 export * from './article';
+export * from './consultation';
 export * from './schemas/common';
 export * from './schemas/public';
 export * from './schemas/portal';

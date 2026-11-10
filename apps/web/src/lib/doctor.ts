@@ -19,6 +19,7 @@ type DoctorDetailLike = {
   video?: unknown;
   practices?: unknown[];
   tariffs?: unknown[];
+  consultation?: unknown;
   articles?: unknown[];
 };
 
@@ -36,6 +37,7 @@ export function withDoctorDefaults<T extends DoctorDetailLike>(p: T): T & Requir
     video: p.video ?? null,
     practices: p.practices ?? [],
     tariffs: p.tariffs ?? [],
+    consultation: p.consultation ?? null,
     articles: p.articles ?? [],
   } as T & Required<Pick<T, keyof DoctorDetailLike>>;
 }

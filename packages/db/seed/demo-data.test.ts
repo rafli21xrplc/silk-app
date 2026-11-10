@@ -12,14 +12,46 @@ describe('data demo seed', () => {
     expect(buildDemoData()).toEqual(demo);
   });
 
-  it('tarif 20 faskes awal tetap di ruang ID `de`; faskes tambahan memakai `df`', () => {
+  it('tarif 20 faskes awal tetap di ruang ID `de`; faskes tambahan memakai `df`; tambahan USP memakai `d1`', () => {
     const base = new Set(demo.facilities.slice(0, 20).map((f) => f.id));
-    for (const t of demo.tariffs) expect(t.id.startsWith(base.has(t.facilityId) ? 'de' : 'df')).toBe(true);
+    const usp = new Set(['konsultasi', 'rawat-inap']);
+    const category = new Map(SERVICES.map((s) => [s.slug, s.category as string]));
+    for (const t of demo.tariffs) {
+      const expected = usp.has(category.get(t.serviceSlug) ?? '') ? 'd1' : base.has(t.facilityId) ? 'de' : 'df';
+      expect(t.id.startsWith(expected), `${t.serviceSlug} ${t.id}`).toBe(true);
+    }
+    // Profil praktik dokter tambahan memakai ID `f1`, terpisah dari FACILITY_ROWS.
+    expect(demo.facilities.slice(21).every((f) => f.id.startsWith('f1'))).toBe(true);
+  });
+
+  it('data demo lama tidak bergeser oleh tambahan USP', () => {
+    // Tarif `de`/`df` dibangun sebelum tambahan USP dengan PRNG sendiri; cuplikan ini harus stabil.
+    const old = demo.tariffs.filter((t) => !t.id.startsWith('d1'));
+    expect(old.length).toBeGreaterThanOrEqual(150);
+    expect(demo.facilities.slice(0, 21).map((f) => f.id.slice(0, 2))).toEqual(Array(21).fill('fd'));
   });
 
   it('cukup banyak untuk mengisi halaman publik', () => {
-    expect(demo.facilities.length).toBe(21);
+    expect(demo.facilities.length).toBe(24);
     expect(demo.tariffs.length).toBeGreaterThanOrEqual(150);
+  });
+
+  it('evaluasi USP: setiap dokter demo dengan profil praktik punya biaya konsultasi, RS punya rawat inap', () => {
+    const consultationOf = (facilityId: string) =>
+      demo.tariffs.filter((t) => t.facilityId === facilityId && t.serviceSlug.startsWith('konsultasi-')).map((t) => t.serviceSlug);
+    const practices = demo.facilities.filter((f) => f.type === 'praktik_dokter' && f.slug.startsWith('praktik-dr'));
+    expect(practices.length).toBeGreaterThanOrEqual(4);
+    for (const f of practices) expect(consultationOf(f.id).length, f.slug).toBe(1);
+    const drg = demo.facilities.find((f) => f.slug === 'praktik-drg-contoh-dewi-lestari')!;
+    expect(consultationOf(drg.id)).toEqual(['konsultasi-dokter-gigi']);
+    for (const rs of demo.facilities.filter((f) => f.type === 'rumah_sakit')) {
+      const slugs = demo.tariffs.filter((t) => t.facilityId === rs.id).map((t) => t.serviceSlug);
+      expect(slugs).toEqual(expect.arrayContaining(['rawat-inap-kelas-3', 'rawat-inap-kelas-2', 'rawat-inap-kelas-1', 'rawat-inap-vip']));
+    }
+    // Dokter demo dengan profil praktik sendiri: 3 sampai 5 (target demo day).
+    const withOwnPractice = demo.practitioners.filter((p) => p.practices.some((x) => practices.some((f) => f.slug === x.facilitySlug)));
+    expect(withOwnPractice.length).toBeGreaterThanOrEqual(3);
+    expect(withOwnPractice.length).toBeLessThanOrEqual(5);
   });
 
   it('ID valid dan unik, tidak bertabrakan dengan data uji', () => {
@@ -120,6 +152,7 @@ describe('data demo seed', () => {
       ...demo.facilities.flatMap((f) => [f.name, f.description, f.address]),
       ...demo.packages.flatMap((p) => [p.name, p.notes, ...p.components.map((c) => c.label)]),
       ...DEMO_SERVICES.flatMap((s) => [s.name, s.description, ...s.aliases]),
+      ...SERVICES.flatMap((s) => [s.name, s.description, ...s.aliases]),
     ];
     for (const text of fields) expect(checkContent({ text }, rules).violations).toEqual([]);
   });

@@ -127,7 +127,8 @@ export const componentSchema = z.object({ label: z.string(), included: z.boolean
 export const publicTariffSchema = z.object({
   id: uuidSchema,
   versionNo: z.number().int(),
-  service: z.object({ slug: z.string(), name: z.string(), category: z.string() }),
+  /** `categorySlug` aditif (evaluasi USP R3): penanda kategori tanpa bergantung pada nama tampilan. */
+  service: z.object({ slug: z.string(), name: z.string(), category: z.string(), categorySlug: z.string() }),
   package: z.object({ name: z.string(), notes: z.string().nullable(), components: z.array(componentSchema) }).nullable(),
   price: priceSchema,
   trust: trustSchema,
@@ -238,6 +239,11 @@ export const practitionerDetailSchema = z.object({
   ),
   /** Tarif terbit profil praktik utama (VIEW published_tariffs). */
   tariffs: z.array(publicTariffSchema),
+  /**
+   * Evaluasi USP R3 (aditif): biaya konsultasi = tarif terbit kategori `konsultasi` di profil praktik utama.
+   * Tarif berangka didahulukan atas tarif "tanya"; `null` bila tidak ada.
+   */
+  consultation: publicTariffSchema.nullable(),
   articles: z.array(publicArticleSummarySchema),
   /** Fase 6: rating dokter; `null` selama flag reviews_enabled mati. */
   rating: z.object({ avg: z.number(), count: z.number().int() }).nullable(),
@@ -270,6 +276,9 @@ export const practitionerSearchQuerySchema = z
   });
 export type PractitionerSearchQuery = z.infer<typeof practitionerSearchQuerySchema>;
 
+export const practitionerConsultationSchema = z.object({ serviceName: z.string(), price: priceSchema, trust: trustSchema });
+export type PractitionerConsultation = z.infer<typeof practitionerConsultationSchema>;
+
 export const practitionerListItemSchema = z.object({
   slug: z.string(),
   name: z.string(),
@@ -285,6 +294,8 @@ export const practitionerListItemSchema = z.object({
   distanceM: z.number().nullable(),
   hasVideo: z.boolean(),
   hasSchedule: z.boolean(),
+  /** Evaluasi USP R3 (aditif): biaya konsultasi di profil praktik utama, dari VIEW published_tariffs. */
+  consultation: practitionerConsultationSchema.nullable(),
 });
 export type PractitionerListItem = z.infer<typeof practitionerListItemSchema>;
 

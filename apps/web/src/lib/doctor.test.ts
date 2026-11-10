@@ -20,10 +20,12 @@ describe('withDoctorDefaults', () => {
     expect(p.verification).toEqual({ str: true, partner: false });
     expect(p.photo).toBeNull();
     expect(p.contact).toBeNull();
+    // Evaluasi USP R3: respons sebelum biaya konsultasi ditambahkan.
+    expect(p.consultation).toBeNull();
   });
 
   it('tidak mengubah respons baru', () => {
-    const fresh = { slug: 'dr-b', strVerifiedAt: null, verification: { str: false, partner: true }, practices: [1], tariffs: [], articles: [], photo: null, about: 'x', contact: null, video: null };
+    const fresh = { slug: 'dr-b', strVerifiedAt: null, verification: { str: false, partner: true }, practices: [1], tariffs: [], consultation: null, articles: [], photo: null, about: 'x', contact: null, video: null };
     expect(withDoctorDefaults(fresh)).toEqual(fresh);
   });
 });

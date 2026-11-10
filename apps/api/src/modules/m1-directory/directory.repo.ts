@@ -7,6 +7,7 @@ import {
   type DbOrTx,
 } from '@silk/db';
 import type { FacilitySortOption, FacilityType, PractitionerSortOption, PriceType, ScheduleKind, VerificationLevel } from '@silk/shared';
+import { CONSULTATION_CATEGORY } from '@silk/shared';
 import { cityCondition, likeEscape } from '../../lib/sql';
 
 export interface FacilitySearchParams {
@@ -466,8 +467,42 @@ export type PractitionerSearchRow = {
   distance_m: number | null;
   has_video: boolean;
   has_schedule: boolean;
+  consultation: ConsultationJson | null;
   score: number;
 };
+
+/** Tarif konsultasi profil praktik utama dalam bentuk JSON (tanggal sebagai teks). */
+export type ConsultationJson = {
+  service_name: string;
+  price_type: PriceType;
+  price_min: number | null;
+  price_max: number | null;
+  effective_from: string;
+  effective_to: string | null;
+  verified_at: string | null;
+  verification: VerificationLevel;
+  source_kind: string | null;
+  source_title: string | null;
+  source_url: string | null;
+  source_document_date: string | null;
+};
+
+/**
+ * Biaya konsultasi (evaluasi USP R3): tarif terbit kategori konsultasi di profil praktik utama `pp`.
+ * Membaca VIEW published_tariffs (satu-satunya definisi tarif terbit). Tarif berangka didahulukan.
+ */
+const CONSULTATION_JSON = sql`(SELECT json_build_object(
+    'service_name', cs.name, 'price_type', ct.price_type, 'price_min', ct.price_min, 'price_max', ct.price_max,
+    'effective_from', ct.effective_from, 'effective_to', ct.effective_to, 'verified_at', ct.verified_at,
+    'verification', ct.verification, 'source_kind', cd.kind, 'source_title', cd.title, 'source_url', cd.url,
+    'source_document_date', cd.document_date)
+  FROM published_tariffs ct
+  JOIN services cs ON cs.id = ct.service_id
+  JOIN service_categories cc ON cc.id = cs.category_id AND cc.slug = ${CONSULTATION_CATEGORY}
+  LEFT JOIN data_sources cd ON cd.id = ct.source_id
+  WHERE ct.facility_id = pp.id
+  ORDER BY (ct.price_type = 'tanya') ASC, cs.name ASC, ct.tariff_id ASC
+  LIMIT 1)`;
 
 /**
  * Daftar dan pencarian dokter (F-03, Fase 4b). Lokasi dokter = lokasi semua tempat praktiknya yang terbit.
@@ -541,6 +576,7 @@ export async function searchPractitioners(db: DbOrTx, p: PractitionerSearchParam
         ORDER BY (xf.id = pp.id) DESC NULLS LAST, xf.name ASC, xf.id ASC LIMIT 2
       ) x) AS practices,
       (SELECT count(*)::int FROM (${practiceIds}) n) AS practice_count,
+      ${CONSULTATION_JSON} AS consultation,
       ${distance} AS distance_m,
       ${score} AS score
     FROM practitioners p ${PRIMARY_PRACTICE}

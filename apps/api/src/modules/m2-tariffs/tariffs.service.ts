@@ -15,6 +15,7 @@ export async function listServices(q: ServicesQuery) {
     name: r.name,
     description: r.description,
     category: { slug: r.categorySlug, name: r.categoryName },
+    aliases: r.aliases ?? [],
   }));
   return { items, nextCursor: page.nextCursor };
 }

@@ -15,7 +15,7 @@ import { apiGet } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { MAP_STYLE_URL } from '@/lib/config';
 import { featureEnabled } from '@/lib/flags';
-import { apiQuery, normalizeSearch, RADIUS_OPTIONS_M, searchHref } from '@/lib/search-params';
+import { apiQuery, normalizeSearch, RADIUS_OPTIONS_M, resolveServiceQuery, searchHref } from '@/lib/search-params';
 import type { FacilityListItem, ServiceCategory, ServiceListItem } from '@/lib/types';
 import { t } from '@/messages/id';
 
@@ -42,8 +42,18 @@ export async function generateMetadata({ searchParams }: { searchParams: SP }): 
 export default async function SearchPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const ratings = featureEnabled('reviews_enabled');
-  const s = normalizeSearch(sp, { ratings });
+  const raw = normalizeSearch(sp, { ratings });
   const view = one(sp.view) === 'peta' ? 'peta' : null;
+  const textMode = one(sp.teks) === '1';
+  const [services, categories] = await Promise.all([
+    apiGet<ServiceListItem[]>('/services?limit=100', { tags: ['services'] }).then((r) => r.data).catch(() => [] as ServiceListItem[]),
+    apiGet<ServiceCategory[]>('/service-categories', { tags: ['services'] }).then((r) => r.data).catch(() => [] as ServiceCategory[]),
+  ]);
+  // USP "tahu biayanya": kata kunci yang persis nama/alias layanan dicari sebagai layanan itu, sehingga
+  // setiap kartu langsung menampilkan perkiraan harganya. `teks=1` mematikan pemetaan ini.
+  const matched = raw.q && !raw.service && !raw.category && !textMode ? resolveServiceQuery(raw.q, services) : null;
+  const s = matched ? { ...raw, q: undefined, service: matched.slug } : raw;
+  const typed = raw.q ?? '';
   const q = s.q ?? '';
   const city = s.city ?? '';
   const hasPoint = !!s.lat;
@@ -51,11 +61,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
   const priceSort = s.sort === 'price_asc' || s.sort === 'price_desc';
   const mapOn = !!MAP_STYLE_URL;
 
-  const [results, services, categories] = await Promise.all([
-    apiGet<FacilityListItem[]>(`/facilities?${apiQuery(s)}`, { tags: ['facilities'], revalidate: 60 }).catch(() => null),
-    apiGet<ServiceListItem[]>('/services?limit=100', { tags: ['services'] }).then((r) => r.data).catch(() => [] as ServiceListItem[]),
-    apiGet<ServiceCategory[]>('/service-categories', { tags: ['services'] }).then((r) => r.data).catch(() => [] as ServiceCategory[]),
-  ]);
+  const results = await apiGet<FacilityListItem[]>(`/facilities?${apiQuery(s)}`, { tags: ['facilities'], revalidate: 60 }).catch(() => null);
   const items = results?.data ?? [];
   const unpricedCount = results?.meta?.unpricedCount ?? 0;
   const nextCursor = results?.meta?.nextCursor;
@@ -70,14 +76,24 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
   const center = hasPoint ? { lat: Number(s.lat), lng: Number(s.lng) } : null;
   // Pemisah kelompok saat urut harga: faskes tanpa angka harga selalu di belakang (opsi A rencana fase 3).
   const firstUnpriced = priceSort ? items.findIndex((f) => !f.priceAvailable) : -1;
-  const viewPatch = view ? { view } : {};
+  const viewPatch = { ...(view ? { view } : {}), ...(textMode ? { teks: '1' } : {}) };
+  const heading = matched ? t.search.priceFor(matched.name) : typed ? t.search.resultsFor(typed) : t.search.results;
 
   return (
     <div className="container">
-      <h1 className="mb-1">{q ? t.search.resultsFor(q) : t.search.results}</h1>
-      <SearchBar q={q} city={city} />
+      <h1 className="mb-1">{heading}</h1>
+      <SearchBar q={typed} city={city} />
+      {matched && (
+        <p className="-mt-2 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-card border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-ink-soft" data-matched-service={matched.slug}>
+          <Info className="size-4 shrink-0 text-primary-700" aria-hidden="true" />
+          {t.search.matchedService(matched.name)}
+          <Link href={`/cari?${new URLSearchParams({ q: typed, teks: '1', ...(city ? { city } : {}) }).toString()}`} className="font-semibold">
+            {t.search.searchAsText(typed)}
+          </Link>
+        </p>
+      )}
       <p className="-mt-2 mb-4 text-sm">
-        <Link href={q ? `/dokter?q=${encodeURIComponent(q)}` : '/dokter'} className="inline-flex items-center gap-1.5 font-semibold" title={t.doctors.findDoctorHint}>
+        <Link href={typed ? `/dokter?q=${encodeURIComponent(typed)}` : '/dokter'} className="inline-flex items-center gap-1.5 font-semibold" title={t.doctors.findDoctorHint}>
           <Stethoscope className="size-4" aria-hidden="true" />
           {t.doctors.findDoctor}
           <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -93,6 +109,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
           </>
         )}
         {view && <input type="hidden" name="view" value={view} />}
+        {textMode && <input type="hidden" name="teks" value="1" />}
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 inline-flex items-center gap-1.5 text-sm font-semibold text-muted">
             <SlidersHorizontal className="size-4" aria-hidden="true" />

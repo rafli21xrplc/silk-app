@@ -312,6 +312,8 @@ export const serviceListItemSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   category: z.object({ slug: z.string(), name: z.string() }),
+  /** Nama lain (mis. "hb", "gdp"); aditif, dipakai web untuk memetakan kata kunci ke layanan. */
+  aliases: z.array(z.string()),
 });
 export type ServiceListItem = z.infer<typeof serviceListItemSchema>;
 

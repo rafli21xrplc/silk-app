@@ -79,3 +79,33 @@ export function searchHref(s: Partial<Record<string, string>>, patch: Partial<Re
   const qs = p.toString();
   return qs ? `${path}?${qs}` : path;
 }
+
+/** Huruf kecil, tanpa diakritik dan tanda baca, spasi tunggal. */
+export function normalizeTerm(v: string): string {
+  return v
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+interface ServiceLike {
+  slug: string;
+  name: string;
+  aliases?: readonly string[];
+}
+
+/**
+ * USP "tahu biayanya": kata kunci yang persis nama, slug, alias, atau nama tanpa keterangan dalam kurung
+ * satu layanan dipetakan ke layanan itu, sehingga hasil pencarian langsung menampilkan harganya.
+ * Bila lebih dari satu layanan cocok, tidak ada pemetaan (pengguna memilih sendiri).
+ */
+export function resolveServiceQuery<T extends ServiceLike>(q: string, services: readonly T[]): T | null {
+  const term = normalizeTerm(q);
+  if (term.length < 2) return null;
+  const keys = (s: T) =>
+    [s.name, s.name.replace(/\(.*?\)/g, ''), s.slug, ...(s.aliases ?? [])].map(normalizeTerm).filter(Boolean);
+  const hits = services.filter((s) => keys(s).includes(term));
+  return hits.length === 1 ? hits[0]! : null;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiQuery, normalizeSearch, parseRupiahInput, searchHref } from './search-params';
+import { apiQuery, normalizeSearch, parseRupiahInput, resolveServiceQuery, searchHref } from './search-params';
 
 describe('parseRupiahInput', () => {
   it('membuang pemisah ribuan dan teks', () => {
@@ -50,5 +50,28 @@ describe('apiQuery dan searchHref', () => {
   it('searchHref membuang kursor, menerapkan patch, null menghapus', () => {
     expect(searchHref({ q: 'lab', cursor: 'abc', priceMin: '1' }, { priceMin: null, view: 'peta' })).toBe('/cari?q=lab&view=peta');
     expect(searchHref({})).toBe('/cari');
+  });
+});
+
+describe('resolveServiceQuery (USP: kata kunci layanan langsung menampilkan harga)', () => {
+  const services = [
+    { slug: 'hemoglobin', name: 'Hemoglobin', aliases: ['hb', 'cek hb'] },
+    { slug: 'gula-darah-puasa', name: 'Gula darah puasa', aliases: ['gdp'] },
+    { slug: 'fungsi-ginjal', name: 'Fungsi ginjal (ureum/kreatinin)', aliases: [] },
+    { slug: 'kolesterol-total', name: 'Kolesterol total', aliases: ['kolesterol'] },
+    { slug: 'kolesterol-ldl', name: 'Kolesterol LDL', aliases: ['kolesterol'] },
+  ];
+  it('nama, alias, slug, dan nama tanpa kurung; tanpa beda huruf besar dan tanda baca', () => {
+    expect(resolveServiceQuery('Hemoglobin', services)?.slug).toBe('hemoglobin');
+    expect(resolveServiceQuery('  cek HB ', services)?.slug).toBe('hemoglobin');
+    expect(resolveServiceQuery('GDP', services)?.slug).toBe('gula-darah-puasa');
+    expect(resolveServiceQuery('gula-darah-puasa', services)?.slug).toBe('gula-darah-puasa');
+    expect(resolveServiceQuery('fungsi ginjal', services)?.slug).toBe('fungsi-ginjal');
+  });
+  it('tidak memetakan kata kunci sebagian, nama faskes, atau yang ambigu', () => {
+    expect(resolveServiceQuery('hemo', services)).toBeNull();
+    expect(resolveServiceQuery('Klinik Contoh Bunulrejo', services)).toBeNull();
+    expect(resolveServiceQuery('kolesterol', services)).toBeNull();
+    expect(resolveServiceQuery('h', services)).toBeNull();
   });
 });

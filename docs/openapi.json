@@ -2838,6 +2838,12 @@
                               "slug",
                               "name"
                             ]
+                          },
+                          "aliases": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         },
                         "required": [
@@ -2845,7 +2851,8 @@
                           "slug",
                           "name",
                           "description",
-                          "category"
+                          "category",
+                          "aliases"
                         ]
                       }
                     },

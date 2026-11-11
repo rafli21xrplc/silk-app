@@ -15,6 +15,8 @@ describe('M2 Katalog layanan dan tarif', () => {
     expect(all.body.data.length).toBe(SERVICES.length);
     const byAlias = await api().get('/v1/services').query({ q: 'gdp' });
     expect(byAlias.body.data[0].slug).toBe('gula-darah-puasa');
+    // Alias ikut dikirim agar web bisa memetakan kata kunci ke layanan (USP: harga langsung tampil).
+    expect(byAlias.body.data[0].aliases).toContain('gdp');
   });
 
   it('ringkasan harga per kota', async () => {

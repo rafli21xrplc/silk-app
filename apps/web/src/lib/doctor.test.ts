@@ -1,12 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { doctorInitials, withDoctorDefaults } from './doctor';
+import { AVATAR_TONES, avatarTone, doctorInitials, withDoctorDefaults } from './doctor';
 
 describe('doctorInitials', () => {
   it('membuang gelar depan dan belakang', () => {
-    expect(doctorInitials('dr. Contoh Rahma Putri, Sp.A')).toBe('CR');
+    expect(doctorInitials('dr. Rahma Putri, Sp.A')).toBe('RP');
     expect(doctorInitials('Prof. dr. Budi')).toBe('B');
     expect(doctorInitials('drg. Sari Ayu')).toBe('SA');
     expect(doctorInitials('Bidan Wati')).toBe('BW');
+  });
+
+  it('melewati penanda data contoh agar avatar demo tidak semuanya berawalan "C"', () => {
+    expect(doctorInitials('dr. Contoh Rahma Putri, Sp.A')).toBe('RP');
+    expect(doctorInitials('drg. Contoh Satu')).toBe('S');
+    expect(doctorInitials('Klinik Contoh Sawojajar')).toBe('KS');
+  });
+
+  it('nama yang hanya berisi gelar tetap menghasilkan inisial', () => {
+    expect(doctorInitials('dr.')).toBe('D');
+    expect(doctorInitials('dr. (Ahmad) Yani')).toBe('AY');
+  });
+});
+
+describe('avatarTone', () => {
+  it('stabil untuk nama yang sama dan memakai palet tema', () => {
+    expect(avatarTone('dr. Rahma')).toBe(avatarTone('dr. Rahma'));
+    expect(AVATAR_TONES).toContain(avatarTone('dr. Rahma'));
+  });
+
+  it('nama demo berawalan sama ("dr. Contoh …") tetap tersebar ke beberapa warna', () => {
+    const demo = ['dr. Contoh Arif Nugroho, Sp.PD', 'dr. Contoh Bima Pratama', 'dr. Contoh Dua, Sp.PK', 'dr. Contoh Rahma Putri, Sp.A', 'dr. Contoh Sari Wulandari, Sp.OG', 'dr. Contoh Satu', 'drg. Contoh Dewi Lestari'];
+    expect(new Set(demo.map(avatarTone)).size).toBeGreaterThanOrEqual(4);
+  });
+
+  it('nama berbeda tersebar ke beberapa warna', () => {
+    const names = ['dr. Andi', 'dr. Budi', 'dr. Citra', 'dr. Dewi', 'dr. Eka', 'dr. Fajar', 'dr. Gita', 'dr. Hadi'];
+    expect(new Set(names.map(avatarTone)).size).toBeGreaterThanOrEqual(3);
   });
 });
 

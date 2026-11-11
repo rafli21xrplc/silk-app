@@ -195,7 +195,7 @@ Pemilik mendelegasikan keputusan ("jalankan sesuai referensi terbaik"). Jawaban 
 
 | # | Status | Commit | Yang dikerjakan / catatan |
 | --- | --- | --- | --- |
-| R1 | **Ditunda (langkah manual Anda)** | – | Butuh DB uji: branch Neon khusus uji, atau Postgres lokal dengan PostGIS (belum terpasang di mesin ini). Uji integrasi mengosongkan DB, jadi tidak dijalankan ke DB yang ada di `.env` |
+| R1 | **Selesai (lokal), 11 Nov** | `817b8c7` | Postgres 17 + PostGIS lokal di port terpisah, bukan DB di `.env`. 255/255 uji integrasi hijau setelah perbaikan (lihat 11.1). Untuk CI tetap disarankan branch Neon khusus uji |
 | R2 | Selesai | `4181d0a` | Label "Perkiraan" + penjelasan di kartu tarif, kartu hasil, dan tabel banding; sumber di tabel banding; "Diisi mitra"; tagline, deskripsi situs, dan hero memuat kalimat USP. Uji M17 untuk seluruh teks pesan |
 | R3 | Selesai | `9bb2b46` | Kategori `konsultasi` (umum, spesialis, gigi). Biaya konsultasi di kartu dan header profil dokter, dari VIEW `published_tariffs` (field aditif `consultation`). Tiga dokter contoh tambahan dengan profil praktik dan tarif konsultasi |
 | R4 | Selesai | `9d07a72` | Video (ketuk-untuk-putar, poster tanpa unduh video) dan biaya konsultasi di atas lipatan, juga di ponsel; tarif lain tanpa duplikasi konsultasi |
@@ -261,3 +261,72 @@ Silakan koreksi.
 - **Migrasi:** jalankan `corepack pnpm db:migrate` ke DB dev/demo saja (0009, 0010), lalu `corepack pnpm db:seed:demo`.
 - **Video demo:** rekam 3–5 video sesuai `docs/demo-video.md`, kumpulkan formulir, lalu jalankan `corepack pnpm --filter @silk/api demo-videos -- --moderator <email>`.
 - **Lingkungan demo:** `FEATURE_FLAGS=reviews_enabled` untuk API dan web. Produksi tetap kosong.
+
+## 11. Uji menyeluruh dan pengembangan lanjutan (11 November 2026)
+
+Permintaan: "lakukan test case, apakah semua sistem sudah sesuai dan solid; kembangkan lebih baik dan detail; fokus pada USP".
+
+### 11.1 Hasil uji
+
+Uji integrasi API dijalankan untuk pertama kalinya. Lingkungannya Postgres 17 + PostGIS 3.7 lokal di port 54329, klaster sekali pakai di luar repo, bukan database di `.env`.
+
+| Lapisan | Hasil |
+| --- | --- |
+| Typecheck dan lint (4 paket) | Bersih |
+| Unit `shared` | 183/183 |
+| Unit `db` | 20/20 |
+| Unit `web` | 300/300 |
+| Integrasi `api` (17 berkas) | **255/255** (awalnya 0 berkas bisa jalan, lalu 240/255) |
+| Seed demo ke DB uji | Lolos; 24 ulasan contoh, 0 ulasan contoh di `facility_ratings`, 20 tarif konsultasi, 12 tarif rawat inap |
+
+Temuan dan perbaikan (`817b8c7`):
+
+1. **Perangkat uji tidak pernah bisa jalan.** `globalSetup` menimpa `DATABASE_URL` dengan URL uji. Worker mewarisi nilai itu, lalu guard keamanan menolak semua berkas uji karena URL uji "sama dengan dev". URL dev asli kini disimpan, dan guard tetap menolak DB yang sama.
+2. **Uji statis "urutan tanpa pembayaran" selalu gagal.** Regex `orders?` cocok dengan kata kunci SQL `ORDER BY`. Kata kunci itu kini dibuang dulu sebelum diperiksa; maksud ujinya tetap sama.
+3. **Uji yang tertinggal dari kode:**
+   - `sourceTitle` wajib di tarif;
+   - kolom audit `at`;
+   - CHECK alasan penolakan mitra;
+   - kunci `articles` di ringkasan admin;
+   - jumlah layanan mengikuti seed.
+4. **Uji R6 sendiri:** formulir palsu kini dideklarasikan dengan ukuran yang benar, dan profil diterbitkan sebelum penyaringan publik diperiksa.
+5. **Bug di kode baru (panel kesiapan):** agregat tanpa baris terbaca "tanya". Tertangkap uji integrasi dan diperbaiki sebelum commit.
+
+Tidak ada bug yang ditemukan di logika produk R2–R9. Semua kegagalan berasal dari perangkat uji atau uji yang usang.
+
+### 11.2 Pengembangan lanjutan berfokus USP
+
+| # | Commit | Yang ditambahkan | Pilar |
+| --- | --- | --- | --- |
+| U1 | `10e1ccc` | `/dokter`: chip **"Biaya konsultasi tercantum"** dan **"Ada video perkenalan"**, serta urutan **"Biaya konsultasi naik"** (tanpa biaya di akhir). API `fee=1`, `video=1`, `sort=fee_asc` memakai aturan SQL yang sama dengan kartu dan profil, termasuk persetujuan video aktif. Intro halaman memuat kalimat USP | P1, P2 |
+| U2 | `0fbcc35` | Portal mitra: **panel "Kesiapan profil di mata pasien"** dengan tiga pilar sesuai kalimat USP (Tahu biayanya · Kenal dokternya/tempatnya · Sebelum datang), progres, petunjuk per butir, dan tautan ke tempat mengisi. Dinilai API dengan aturan halaman publik, misalnya video tanpa persetujuan aktif dilaporkan "tidak tampil" | P1, P2, sisi suplai |
+
+Keduanya aditif: dua parameter query opsional, satu nilai sort, dan satu rute portal baca-saja. Tidak ada tabel baru, izin baru, atau dependensi baru. Urutan tetap netral: biaya adalah data publik, bukan data pembayaran atau langganan.
+
+### 11.3 Skor ulang
+
+| Dimensi | 10.2 | Sekarang | Alasan |
+| --- | --- | --- | --- |
+| A. Detail | 4 | 4 | Tetap; profil dokter masih tanpa pendidikan/pengalaman (Tahap B) |
+| B. Jelas | 4 | 4 | Tetap; mitra kini juga melihat alasan butir belum terpenuhi |
+| C. Compact | 2 | 2 | Belum ada fitur yang dikeluarkan |
+| D. Memudahkan | 3 | **4** | Pasien bisa menyaring dokter yang biayanya diketahui dan punya video. Mitra tahu persis apa yang kurang, tanpa menebak alasan profilnya terlihat kosong |
+| E. Integritas USP | 3 | **4** | Uji integrasi hijau, termasuk persetujuan video, data contoh di luar rating, dan regresi urutan netral |
+
+### 11.4 Sisa langkah manual
+
+- Video tim (R7). Filter "Ada video perkenalan" di data demo masih kosong sampai video diimpor.
+- Migrasi 0009 dan 0010 ke DB dev/demo, lalu `db:seed:demo`.
+- `FEATURE_FLAGS=reviews_enabled` hanya di lingkungan demo.
+- Uji integrasi di CI dengan branch Neon khusus uji (Fase 12).
+
+Menjalankan uji integrasi lokal (DB sekali pakai, bukan DB di `.env`):
+
+```sh
+brew install postgresql@17 postgis
+initdb -D <folder-sementara> -U silk --auth=trust
+pg_ctl -D <folder-sementara> -o "-p 54329" start
+createdb -h localhost -p 54329 -U silk silk_test
+TEST_DATABASE_URL=postgres://silk@localhost:54329/silk_test corepack pnpm --filter @silk/api test
+```
+

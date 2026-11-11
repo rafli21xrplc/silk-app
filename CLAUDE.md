@@ -47,6 +47,8 @@ Mengubah skema tabel yang sudah terbit, menambah dependensi besar, mengubah kont
   penyimpanan lokal di tmpdir dengan signed URL palsu, email ke log/outbox uji, Turnstile dilewati.
 - Uji integrasi API (`apps/api/test`) MENGOSONGKAN dan mengisi ulang database yang dipakai
   (`TEST_DATABASE_URL`, atau `DATABASE_URL` bila tidak diisi). Arahkan hanya ke branch Neon khusus uji.
+- Uji integrasi lokal: Postgres 17 + PostGIS (`brew install postgresql@17 postgis`) di port terpisah, mis.
+  `TEST_DATABASE_URL=postgres://silk@localhost:54329/silk_test` (langkah lengkap: docs/evaluasi/usp-evaluasi-2026-11-10.md §11.4).
 - Bila skema diubah lalu `pnpm db:generate`, periksa SQL: drizzle-kit menulis `"geography(Point, 4326)"`
   dengan tanda kutip; hapus kutipnya.
 - Dokumen OpenAPI: `corepack pnpm --filter @silk/api openapi` → docs/openapi.json.

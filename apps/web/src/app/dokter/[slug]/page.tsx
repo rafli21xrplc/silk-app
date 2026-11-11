@@ -6,6 +6,7 @@ import { ArticleCard } from '@/components/article/article-card';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import { DoctorAvatar } from '@/components/doctor/doctor-avatar';
+import { cn } from '@/lib/cn';
 import { DoctorBadges } from '@/components/doctor/doctor-badges';
 import { DoctorConsultation } from '@/components/doctor/doctor-consultation';
 import { ReviewHeadline } from '@/components/reviews/review-parts';
@@ -123,7 +124,8 @@ export default async function PractitionerPage({ params }: { params: Params }) {
             <DoctorVideo video={p.video} name={p.name} posterUrl={p.photo?.url ?? null} />
           </section>
         )}
-        <div className="grid min-w-0 content-start gap-4 lg:col-start-1">
+        {/* Tanpa video (evaluasi UI/UX A3): biaya dan kontak pindah ke kolom kanan, bukan kolom kosong. */}
+        <div className={cn('grid min-w-0 content-start gap-4', p.video ? 'lg:col-start-1' : 'lg:col-start-2 lg:row-start-1')} data-header-actions>
           {primary && <DoctorConsultation tariff={p.consultation} practiceName={primary.facility.name} city={primary.facility.city} />}
           {reviews && <ReviewHeadline summary={reviews.summary} href="#ulasan" />}
           {primary && (

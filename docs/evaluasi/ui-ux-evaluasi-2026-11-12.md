@@ -166,6 +166,24 @@ Skor 1–5: 5 = siap demo, 3 = berfungsi tetapi terasa kosong atau berat, 1 = me
 14. "Data contoh" cukup sebagai lencana, bukan juga sebagai nama (D1).
 15. Halaman Tentang: cara kerja dalam 3 langkah bergambar, tim, dan kontak (A9).
 
+### Status P0 (12 November 2026)
+
+Keenam butir P0 sudah diterapkan, satu commit per butir. Gerbang lengkap lulus: typecheck dan lint bersih;
+uji shared 183, db 20, web 319, integrasi API 257.
+
+| # | Temuan | Status | Commit | Catatan |
+|---|---|---|---|---|
+| 1 | A1 | Selesai | `632c92f` | `q` yang persis nama, slug, atau alias satu layanan diperlakukan sebagai `service`. Pemberitahuan di atas hasil memberi tautan "Cari … sebagai nama faskes" (`teks=1`) |
+| 2 | A2, C6 | Selesai | `85291eb` | Kolom aditif `consultationFeeMin`, `practitionerCount`, `hasVideo` di `FacilityListItem` (OpenAPI diperbarui). Kartu menampilkan "8 tarif tercantum · Konsultasi mulai Rp85.000 · 1 dokter · Ada video perkenalan". "Tanya" tidak dihitung sebagai angka. Video mengikuti aturan persetujuan R6. Rating sudah tampil sebagai chip bila `reviews_enabled` |
+| 3 | A3 | Selesai | `9350327` | Tanpa video, kolom biaya, ulasan, dan kontak pindah ke kanan, sejajar identitas (opsi pertama) |
+| 4 | A4 | Selesai | `c8563f8` | Kotak bergaris "Biaya konsultasi belum dicantumkan · Tanyakan ke tempat praktik sebelum datang." |
+| 5 | B4 | Sebagian | `c1133ae` | Inisial tanpa gelar dan "Contoh"; warna stabil per nama (FNV-1a, palet tema). **Foto dokter (B1) menunggu rekaman video tim**: frame diunggah sebagai foto profil lewat portal atau impor, dengan persetujuan yang sama |
+| 6 | C1, B2, B5 | Selesai | `76c2d19` | Hero menampilkan kartu dokter dan rentang harga dari data nyata (layar ≥ 1280 px). Bagian baru "Perkiraan biaya populer" dan "Kenali dokternya" (3 dokter berbiaya, urut nama). Baris kartu kepercayaan ganda dihapus. Ubin dibuka dengan lab, konsultasi, MCU, rawat inap; rumah duka tidak tampil. Ikon rawat inap, gaya hidup, gigi, dan rumah duka diperbaiki (sebagian dari P1 #9) |
+
+Sisa yang belum: foto nyata (B1, menunggu tim), urutan kategori di `/layanan` (P1 #9), dan butir P1/P2 lainnya.
+Di lokal, data lama dari cache ISR (D3) sempat menampilkan "RpNaN" di kartu `/cari` karena respons
+lama belum punya kolom baru. `facilityHighlights()` kini melewati kolom yang tidak ada, sehingga hal ini juga aman saat rilis.
+
 ## 5. Dampak yang diharapkan
 
 P0 saja (± 2–3 hari kerja) menutup kedua keluhan pemilik di halaman yang dilihat saat demo:

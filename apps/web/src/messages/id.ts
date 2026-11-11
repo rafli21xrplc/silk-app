@@ -245,6 +245,8 @@ export const t = {
     consultationShort: 'Konsultasi',
     consultationFrom: (name: string) => `Dari profil ${name}. Obat, tindakan, dan pemeriksaan penunjang biasanya ditagih terpisah.`,
     noConsultation: 'Biaya konsultasi belum dicantumkan. Tanyakan ke tempat praktik.',
+    noConsultationShort: 'Biaya konsultasi belum dicantumkan',
+    noConsultationHint: 'Tanyakan ke tempat praktik sebelum datang.',
     compareConsultation: 'Bandingkan biaya konsultasi',
     otherTariffs: 'Layanan lain dan tarif',
     schedule: 'Jadwal praktik',

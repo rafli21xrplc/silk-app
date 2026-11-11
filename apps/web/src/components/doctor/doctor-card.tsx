@@ -61,7 +61,7 @@ export function DoctorCard({ doctor }: { doctor: PractitionerListItem }) {
         </p>
       </div>
       {/* Evaluasi USP R3: biaya konsultasi di kartu, dengan label perkiraan dan tanggal berlaku. */}
-      {doctor.consultation && (
+      {doctor.consultation ? (
         <div className="grid gap-1 rounded-2xl bg-surface/80 px-4 py-3" data-consultation>
           <span className="text-[0.8rem] font-semibold text-muted">{doctor.consultation.serviceName}</span>
           <span className="flex flex-wrap items-center gap-2">
@@ -69,6 +69,13 @@ export function DoctorCard({ doctor }: { doctor: PractitionerListItem }) {
             <EstimateBadge price={doctor.consultation.price} />
           </span>
           <span className="text-[0.8rem] text-muted">{`${t.trust.effectiveFrom} ${formatDate(doctor.consultation.trust.effectiveFrom)}`}</span>
+        </div>
+      ) : (
+        // Evaluasi UI/UX A4: tanpa biaya, kartu tetap punya bagian biaya agar tinggi kartu seimbang dan
+        // pasien tahu informasinya belum ada (bukan terlewat).
+        <div className="grid gap-0.5 rounded-2xl border border-dashed border-line-strong px-4 py-3" data-consultation-missing>
+          <span className="text-sm font-semibold text-ink-soft">{t.doctors.noConsultationShort}</span>
+          <span className="text-[0.8rem] text-muted">{t.doctors.noConsultationHint}</span>
         </div>
       )}
       <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-primary-700" aria-hidden="true">

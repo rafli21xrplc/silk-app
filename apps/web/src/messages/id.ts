@@ -199,7 +199,7 @@ export const t = {
   /** Fase 4b: halaman dan pencarian dokter. Lolos filter konten M17 (tanpa "terbaik"/"termurah"). */
   doctors: {
     title: 'Cari dokter',
-    intro: 'Profil dokter dan tenaga medis: tempat praktik, jadwal, dan layanan. Urutan hasil tidak dipengaruhi pembayaran.',
+    intro: 'Tahu biayanya, kenal dokternya, sebelum datang: biaya konsultasi, video perkenalan, tempat praktik, dan jadwal. Urutan hasil tidak dipengaruhi pembayaran.',
     searchLabel: 'Nama dokter atau spesialisasi',
     searchPlaceholder: 'Mis. anak, penyakit dalam, nama dokter',
     resultsFor: (q: string) => `Dokter untuk "${q}"`,
@@ -207,7 +207,16 @@ export const t = {
     allSpecialties: 'Semua spesialisasi',
     specialtyCount: (name: string, n: number) => `${name} (${n})`,
     none: 'Tidak ada dokter yang cocok. Coba kata lain atau hapus filter.',
-    sortOptions: { default: 'Bawaan', relevance: 'Paling relevan', name: 'Nama (A–Z)', distance: 'Jarak terdekat' } as Record<string, string>,
+    sortOptions: {
+      default: 'Bawaan',
+      relevance: 'Paling relevan',
+      name: 'Nama (A–Z)',
+      distance: 'Jarak terdekat',
+      fee_asc: 'Biaya konsultasi naik',
+    } as Record<string, string>,
+    filterVideo: 'Ada video perkenalan',
+    filterFee: 'Biaya konsultasi tercantum',
+    feeSortNote: 'Diurutkan menurut perkiraan biaya konsultasi di tempat praktik utama. Dokter tanpa biaya tercantum ada di akhir.',
     strVerified: 'STR terverifikasi',
     strVerifiedOn: (date: string) => `STR terverifikasi ${date}`,
     strHelp: 'Nomor Surat Tanda Registrasi sudah dicocokkan tim SILK.',

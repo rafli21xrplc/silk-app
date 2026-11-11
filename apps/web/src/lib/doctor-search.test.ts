@@ -34,4 +34,11 @@ describe('normalizeDoctorSearch (Fase 4b)', () => {
     expect(doctorHref({ q: 'anak' }, { specialty: 'Anak' })).toBe('/dokter?q=anak&specialty=Anak');
     expect(doctorHref({}, {})).toBe('/dokter');
   });
+
+  it('filter USP video dan biaya hanya bernilai 1; urut biaya konsultasi tanpa syarat', () => {
+    expect(normalizeDoctorSearch({ video: '1', fee: '1', sort: 'fee_asc' })).toEqual({ video: '1', fee: '1', sort: 'fee_asc' });
+    expect(normalizeDoctorSearch({ video: 'true', fee: '0' })).toEqual({});
+    expect(doctorApiQuery({ fee: '1', sort: 'fee_asc' }).toString()).toBe('fee=1&sort=fee_asc&limit=20');
+    expect(doctorHref({ video: '1' }, { video: null })).toBe('/dokter');
+  });
 });

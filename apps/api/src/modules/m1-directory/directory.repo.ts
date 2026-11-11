@@ -451,6 +451,10 @@ export interface PractitionerSearchParams {
   lng?: number;
   radius?: number;
   sort?: PractitionerSortOption;
+  /** Hanya dokter dengan video perkenalan yang boleh tampil publik. */
+  video?: boolean;
+  /** Hanya dokter dengan biaya konsultasi berangka (bukan "tanya"). */
+  fee?: boolean;
   limit: number;
   offset: number;
 }
@@ -505,6 +509,18 @@ const CONSULTATION_JSON = sql`(SELECT json_build_object(
   ORDER BY (ct.price_type = 'tanya') ASC, cs.name ASC, ct.tariff_id ASC
   LIMIT 1)`;
 
+/** Batas bawah biaya konsultasi berangka di profil praktik utama (untuk filter `fee` dan urutan `fee_asc`). */
+const CONSULTATION_FEE_MIN = sql`(SELECT min(ct.price_min)
+  FROM published_tariffs ct
+  JOIN services cs ON cs.id = ct.service_id
+  JOIN service_categories cc ON cc.id = cs.category_id AND cc.slug = ${CONSULTATION_CATEGORY}
+  WHERE ct.facility_id = pp.id AND ct.price_type <> 'tanya' AND ct.price_min IS NOT NULL)`;
+
+/** Video perkenalan profil utama yang boleh tampil publik (disetujui dan persetujuan aktif, evaluasi R6). */
+const HAS_PUBLIC_VIDEO = sql`EXISTS (SELECT 1 FROM profile_media pm
+  WHERE pm.facility_id = pp.id AND pm.kind = 'video' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
+    AND ${consentAllowsPublic(sql`pm.id`, sql`pm.kind`)})`;
+
 /**
  * Daftar dan pencarian dokter (F-03, Fase 4b). Lokasi dokter = lokasi semua tempat praktiknya yang terbit.
  * Urutan: relevansi (ada `q`), jarak (ada titik), atau nama; pemecah seri `slug`.
@@ -522,6 +538,8 @@ export async function searchPractitioners(db: DbOrTx, p: PractitionerSearchParam
       OR ${p.q} <% coalesce(p.specialty, ''))`);
   }
   if (p.specialty) where.push(sql`lower(btrim(p.specialty)) = lower(btrim(${p.specialty}))`);
+  if (p.video) where.push(HAS_PUBLIC_VIDEO);
+  if (p.fee) where.push(sql`${CONSULTATION_FEE_MIN} IS NOT NULL`);
   if (p.city) {
     where.push(sql`(EXISTS (
         SELECT 1 FROM facilities f LEFT JOIN regions r ON r.id = f.region_id
@@ -553,6 +571,8 @@ export async function searchPractitioners(db: DbOrTx, p: PractitionerSearchParam
   let orderBy: SQL;
   if (p.sort === 'name') orderBy = byName;
   else if (p.sort === 'distance') orderBy = sql`distance_m ASC NULLS LAST, ${byName}`;
+  // Biaya tidak tercantum selalu di akhir; seri dipecah nama (urutan netral, prinsip 1).
+  else if (p.sort === 'fee_asc') orderBy = sql`fee_min ASC NULLS LAST, ${byName}`;
   else if (p.q) orderBy = point ? sql`score DESC, distance_m ASC NULLS LAST, ${byName}` : sql`score DESC, ${byName}`;
   else orderBy = point ? sql`distance_m ASC NULLS LAST, ${byName}` : byName;
 
@@ -562,9 +582,7 @@ export async function searchPractitioners(db: DbOrTx, p: PractitionerSearchParam
       (SELECT pm.public_url FROM profile_media pm
         WHERE pm.facility_id = pp.id AND pm.kind = 'foto' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
         ORDER BY pm.sort_order ASC, pm.created_at ASC LIMIT 1) AS photo_url,
-      EXISTS (SELECT 1 FROM profile_media pm
-        WHERE pm.facility_id = pp.id AND pm.kind = 'video' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
-          AND ${consentAllowsPublic(sql`pm.id`, sql`pm.kind`)}) AS has_video,
+      ${HAS_PUBLIC_VIDEO} AS has_video,
       EXISTS (SELECT 1 FROM schedules s WHERE s.facility_id IN (${practiceIds})
         AND (s.practitioner_id = p.id OR (s.facility_id = pp.id AND s.practitioner_id IS NULL))) AS has_schedule,
       (SELECT array_agg(c.city ORDER BY c.city) FROM (
@@ -579,6 +597,7 @@ export async function searchPractitioners(db: DbOrTx, p: PractitionerSearchParam
       ) x) AS practices,
       (SELECT count(*)::int FROM (${practiceIds}) n) AS practice_count,
       ${CONSULTATION_JSON} AS consultation,
+      ${CONSULTATION_FEE_MIN} AS fee_min,
       ${distance} AS distance_m,
       ${score} AS score
     FROM practitioners p ${PRIMARY_PRACTICE}

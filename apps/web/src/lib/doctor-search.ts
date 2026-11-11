@@ -1,7 +1,7 @@
 import { RADIUS_OPTIONS_M, searchHref } from './search-params';
 
 /** Kunci query `/dokter` yang diteruskan ke `GET /v1/practitioners` (Fase 4b). */
-const KEYS = ['q', 'specialty', 'city', 'lat', 'lng', 'radius', 'sort', 'cursor'] as const;
+const KEYS = ['q', 'specialty', 'city', 'lat', 'lng', 'radius', 'video', 'fee', 'sort', 'cursor'] as const;
 export type DoctorSearchKey = (typeof KEYS)[number];
 export type DoctorSearchState = Partial<Record<DoctorSearchKey, string>>;
 
@@ -10,7 +10,8 @@ const isCoord = (v: string, limit: number) => v !== '' && Number.isFinite(Number
 
 /**
  * Normalkan query `/dokter` agar API tidak menolaknya (400): radius dan urut jarak hanya bila ada titik,
- * urut relevansi hanya bila ada kata kunci, radius hanya dari pilihan yang tersedia. Nilai lain dibuang.
+ * urut relevansi hanya bila ada kata kunci, radius hanya dari pilihan yang tersedia. Filter USP `video` dan `fee`
+ * hanya bernilai `1`. Nilai lain dibuang.
  */
 export function normalizeDoctorSearch(raw: Record<string, string | string[] | undefined>): DoctorSearchState {
   const s: DoctorSearchState = {};
@@ -25,7 +26,8 @@ export function normalizeDoctorSearch(raw: Record<string, string | string[] | un
     delete s.radius;
   }
   if (s.radius && !(RADIUS_OPTIONS_M as readonly number[]).includes(Number(s.radius))) delete s.radius;
-  const sortOk = s.sort === 'name' || (s.sort === 'distance' && hasPoint) || (s.sort === 'relevance' && !!s.q);
+  for (const k of ['video', 'fee'] as const) if (s[k] !== '1') delete s[k];
+  const sortOk = s.sort === 'name' || s.sort === 'fee_asc' || (s.sort === 'distance' && hasPoint) || (s.sort === 'relevance' && !!s.q);
   if (!sortOk) delete s.sort;
   return s;
 }

@@ -469,3 +469,64 @@ describe('Evaluasi USP R8: ulasan pengalaman (Fase 6 ramping, flag reviews_enabl
     expect(r.rows.map((x) => x.action)).toEqual(['review.approve', 'review.create', 'review.delete', 'review.reject', 'review.update']);
   });
 });
+
+describe('USP lanjutan: filter video dan biaya serta urutan biaya konsultasi di pencarian dokter', () => {
+  let a: { user: TestUser; facilityId: string; slug: string };
+  let b: { facilityId: string; slug: string };
+  let c: { facilityId: string; slug: string };
+  let d: { facilityId: string; slug: string };
+
+  const slugs = async (query: Record<string, string>) => {
+    const res = await api()
+      .get('/v1/practitioners')
+      .query({ city: CITY, limit: 50, ...query });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    return (res.body.data as { slug: string }[]).map((x) => x.slug);
+  };
+
+  beforeAll(async () => {
+    await resetDb();
+    await db().execute(sql`INSERT INTO data_sources (kind, title) VALUES ('faskes', 'Papan tarif uji USP')`);
+    const moderator = await createUser({ role: 'moderator', mfa: true });
+    a = await doctorWithPractice('dr. Uji Biaya Video', moderator);
+    await addTariff(a.facilityId, 'konsultasi-dokter-spesialis', 175_000);
+    const bytes = mp4Bytes(40);
+    const vid = await uploadMediaWithConsent(
+      a.user,
+      a.facilityId,
+      { kind: 'video', fileName: 'kenalan.mp4', mime: 'video/mp4', sizeBytes: bytes.length, durationSec: 40, consent: CONSENT_SELF },
+      bytes,
+    );
+    expect(vid.status, JSON.stringify(vid.body)).toBe(200);
+    expect((await send(moderator, 'post', `/v1/admin/media/${vid.body.data.id}/approve`).send({})).status).toBe(200);
+
+    b = await doctorWithPractice('dr. Uji Biaya Saja', moderator);
+    await addTariff(b.facilityId, 'konsultasi-dokter-umum', 100_000);
+    c = await doctorWithPractice('dr. Uji Biaya Tanya', moderator);
+    await addTariff(c.facilityId, 'konsultasi-dokter-umum', null, 'tanya');
+    d = await doctorWithPractice('dr. Uji Biaya Tanpa', moderator);
+  });
+
+  it('fee=1: hanya dokter dengan biaya konsultasi berangka ("tanya" dan tanpa tarif tidak ikut)', async () => {
+    expect((await slugs({ fee: '1' })).sort()).toEqual([a.slug, b.slug].sort());
+  });
+
+  it('video=1: hanya dokter dengan video perkenalan yang boleh tampil publik', async () => {
+    expect(await slugs({ video: '1' })).toEqual([a.slug]);
+    expect(await slugs({ video: '1', fee: '1' })).toEqual([a.slug]);
+  });
+
+  it('sort=fee_asc: biaya naik, yang tanpa biaya berangka di akhir menurut nama', async () => {
+    expect(await slugs({ sort: 'fee_asc' })).toEqual([b.slug, a.slug, d.slug, c.slug]);
+  });
+
+  it('video yang persetujuannya dicabut tidak lagi lolos filter video', async () => {
+    await db().execute(sql`UPDATE media_consents SET revoked_at = now(), revoke_reason = 'uji' WHERE facility_id = ${a.facilityId}`);
+    expect(await slugs({ video: '1' })).toEqual([]);
+  });
+
+  it('nilai filter tidak sah ditolak 400', async () => {
+    const res = await api().get('/v1/practitioners').query({ video: 'mungkin' });
+    expect(res.status).toBe(400);
+  });
+});

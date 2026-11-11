@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, ArrowUpDown, MapPin, Navigation, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, ArrowUpDown, Info, MapPin, Navigation, PlayCircle, Search, SearchX, SlidersHorizontal, Wallet, X } from 'lucide-react';
+import { AutoSubmitCheckbox } from '@/components/auto-submit-checkbox';
 import { DoctorCard } from '@/components/doctor/doctor-card';
 import { Reveal } from '@/components/motion/reveal';
 import { NearMeButton } from '@/components/search/near-me-button';
@@ -35,7 +36,8 @@ export async function generateMetadata({ searchParams }: { searchParams: SP }): 
 
 /**
  * Daftar dan pencarian dokter (Fase 4b, SSR dinamis). Formulir GET biasa, filter bekerja tanpa JavaScript.
- * Urutan hanya relevansi, jarak, atau nama; tidak pernah pembayaran atau langganan.
+ * Urutan hanya relevansi, jarak, nama, atau biaya konsultasi; tidak pernah pembayaran atau langganan.
+ * Filter USP: "Ada video perkenalan" (kenal dokternya) dan "Biaya konsultasi tercantum" (tahu biayanya).
  */
 export default async function DoctorsPage({ searchParams }: { searchParams: SP }) {
   const s = normalizeDoctorSearch(await searchParams);
@@ -102,6 +104,14 @@ export default async function DoctorsPage({ searchParams }: { searchParams: SP }
             Filter
           </span>
           <Select variant="chip" name="specialty" defaultValue={s.specialty ?? ''} label={t.doctors.specialty} autoSubmit searchable options={specialtyOptions} />
+          <AutoSubmitCheckbox name="fee" value="1" defaultChecked={s.fee === '1'}>
+            <Wallet className="size-4 text-primary-600" aria-hidden="true" />
+            {t.doctors.filterFee}
+          </AutoSubmitCheckbox>
+          <AutoSubmitCheckbox name="video" value="1" defaultChecked={s.video === '1'}>
+            <PlayCircle className="size-4 text-primary-600" aria-hidden="true" />
+            {t.doctors.filterVideo}
+          </AutoSubmitCheckbox>
           {hasPoint && (
             <Select
               variant="chip"
@@ -125,6 +135,7 @@ export default async function DoctorsPage({ searchParams }: { searchParams: SP }
               ...(s.q ? [{ value: 'relevance', label: t.doctors.sortOptions.relevance ?? '' }] : []),
               ...(hasPoint ? [{ value: 'distance', label: t.doctors.sortOptions.distance ?? '' }] : []),
               { value: 'name', label: t.doctors.sortOptions.name ?? '' },
+              { value: 'fee_asc', label: t.doctors.sortOptions.fee_asc ?? '' },
             ]}
           />
           {hasPoint ? (
@@ -149,6 +160,13 @@ export default async function DoctorsPage({ searchParams }: { searchParams: SP }
           </button>
         </noscript>
       </form>
+
+      {s.sort === 'fee_asc' && (
+        <p className="-mt-2 mb-4 flex items-start gap-1.5 text-sm text-muted">
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {t.doctors.feeSortNote}
+        </p>
+      )}
 
       {results === null ? (
         <p className="error rounded-card border border-danger/20 bg-danger-soft p-5" role="alert">

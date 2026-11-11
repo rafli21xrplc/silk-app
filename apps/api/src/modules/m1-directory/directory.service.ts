@@ -227,6 +227,8 @@ export async function searchPractitioners(q: PractitionerSearchQuery, now = new 
     lng: q.lng,
     radius: q.radius,
     sort: q.sort,
+    video: q.video,
+    fee: q.fee,
     limit: q.limit,
     offset,
   });

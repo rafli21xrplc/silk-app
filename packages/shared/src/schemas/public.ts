@@ -260,6 +260,10 @@ export const practitionerSearchQuerySchema = z
     lng: lngSchema.optional(),
     radius: z.coerce.number().int().min(100).max(50_000).optional(),
     sort: z.enum(PRACTITIONER_SORT_OPTIONS).optional(),
+    /** USP "kenal dokternya": hanya dokter dengan video perkenalan yang tampil (disetujui + persetujuan aktif). */
+    video: booleanQuerySchema.optional(),
+    /** USP "tahu biayanya": hanya dokter yang biaya konsultasinya tercantum berupa angka. */
+    fee: booleanQuerySchema.optional(),
     limit: limitSchema,
     cursor: cursorSchema,
   })

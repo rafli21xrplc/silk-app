@@ -125,8 +125,11 @@ export type SortOption = (typeof SORT_OPTIONS)[number];
 export const FACILITY_SORT_OPTIONS = [...SORT_OPTIONS, 'rating'] as const;
 export type FacilitySortOption = (typeof FACILITY_SORT_OPTIONS)[number];
 
-/** Fase 4b: urutan daftar dokter. Netral: relevansi, nama, jarak. Tidak pernah pembayaran atau langganan. */
-export const PRACTITIONER_SORT_OPTIONS = ['relevance', 'name', 'distance'] as const;
+/**
+ * Fase 4b: urutan daftar dokter. Netral: relevansi, nama, jarak, atau biaya konsultasi naik (USP "tahu biayanya").
+ * Tidak pernah pembayaran atau langganan.
+ */
+export const PRACTITIONER_SORT_OPTIONS = ['relevance', 'name', 'distance', 'fee_asc'] as const;
 export type PractitionerSortOption = (typeof PRACTITIONER_SORT_OPTIONS)[number];
 /** Jumlah artikel dokter yang ditampilkan di halaman profilnya. */
 export const PRACTITIONER_ARTICLE_LIMIT = 6;

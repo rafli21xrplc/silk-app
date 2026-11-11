@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DOCUMENT_ALLOWED_MIME, DOCUMENT_MAX_BYTES, CSV_MAX_BYTES } from '../constants';
+import { READINESS_ITEMS, READINESS_PILLARS } from '../readiness';
 import { checkPriceFields } from '../price';
 import { isoDateSchema, priceTypeSchema, rupiahSchema, uuidSchema } from './common';
 import { locationsSchema, profileFieldsSchema, schedulesSchema, tariffSourceFields } from './profile';
@@ -114,4 +115,15 @@ export const importRequestSchema = z.object({
   /** Fase 2 (K4): impor portal menjadi satu permintaan harga; sumber ringkas untuk moderator. */
   sourceTitle: tariffSourceFields.sourceTitle.optional(),
   sourceUrl: tariffSourceFields.sourceUrl,
+});
+
+/** Kesiapan profil terhadap USP (GET /portal/facilities/:id/readiness). Lihat `profileReadiness`. */
+export const profileReadinessSchema = z.object({
+  published: z.boolean(),
+  checks: z.array(
+    z.object({ item: z.enum(READINESS_ITEMS), pillar: z.enum(READINESS_PILLARS), done: z.boolean(), state: z.string(), optional: z.boolean() }),
+  ),
+  done: z.number().int(),
+  total: z.number().int(),
+  pillars: z.object({ biaya: z.boolean(), kenal: z.boolean(), kunjungan: z.boolean() }),
 });

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { FormError } from '@/components/app-shell';
 import { fromDraft, LocationsEditor, toDraft, type LocationDraft } from '@/components/portal/locations-editor';
 import { MediaManager } from '@/components/portal/media-manager';
+import { ReadinessPanel } from '@/components/portal/readiness-panel';
 import { ScheduleEditor, type ScheduleDraft } from '@/components/portal/schedule-editor';
 import { LoadingForm } from '@/components/ui/skeleton';
 import { api, errorMessage } from '@/lib/client-api';
@@ -71,6 +72,12 @@ function ProfileEditor({ facilityId }: { facilityId: string }) {
   return (
     <div className="stack">
       <StatusPanel profile={profile} onChanged={refetch} />
+      {/* USP: apa yang masih kurang agar pasien tahu biayanya, kenal dokternya, sebelum datang. */}
+      <ReadinessPanel
+        facilityId={facilityId}
+        facilityType={profile.type}
+        version={`${profile.updatedAt}|${profile.status}|${profile.media.map((m) => `${m.id}:${m.status}`).join(',')}`}
+      />
       {/* key: formulir dimuat ulang dari server setelah data berubah (simpan, ajukan, revisi diputus). */}
       <ProfileForm
         key={`${profile.updatedAt}-${profile.pendingRevision?.id ?? ''}`}
@@ -197,8 +204,8 @@ function ProfileForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="stack card">
-      <h2>{t.profile.basics}</h2>
+    <form onSubmit={onSubmit} className="stack card" aria-labelledby="profil-dasar">
+      <h2 id="profil-dasar">{t.profile.basics}</h2>
       {notice && (
         <p className="success" role="status">
           {notice}

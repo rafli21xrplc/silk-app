@@ -9,6 +9,7 @@ import {
   mediaOrderSchema,
   mediaPresignSchema,
   profileCreateSchema,
+  profileReadinessSchema,
   tariffActiveSchema,
   tariffCreateSchema,
   tariffUpdateSchema,
@@ -52,6 +53,17 @@ export function portalRoutes(router: Router): void {
     params: idParams,
     middleware: [requireFacilityAccess()],
     handler: profiles.get,
+  });
+  defineRoute(router, base, {
+    method: 'get',
+    path: '/facilities/:id/readiness',
+    summary: 'Kesiapan profil terhadap USP: biaya, kenal dokter/tempat, info kunjungan (aturan sama dengan halaman publik)',
+    tags,
+    security,
+    params: idParams,
+    response: profileReadinessSchema,
+    middleware: [requireFacilityAccess()],
+    handler: profiles.readiness,
   });
   defineRoute(router, base, {
     method: 'put',

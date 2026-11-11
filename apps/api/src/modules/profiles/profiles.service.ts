@@ -1,4 +1,5 @@
 import {
+  profileReadiness,
   profileTypeForPartner,
   revisionPayloadSchema,
   type FacilityUpdateInput,
@@ -194,6 +195,14 @@ export async function getProfile(ctx: ActorContext, facilityId: string) {
     pendingRevision: pending ? revisionView(pending) : null,
     lastRevision: lastDecided ? revisionView(lastDecided) : null,
   };
+}
+
+/** Kesiapan profil terhadap USP "tahu biayanya, kenal dokternya, sebelum datang" (hanya untuk anggota profil). */
+export async function getReadiness(ctx: ActorContext, facilityId: string) {
+  await assertMember(ctx, facilityId);
+  const facts = await repo.readinessFacts(db(), facilityId);
+  if (!facts) throw notFound('FACILITY_NOT_FOUND', 'Profil');
+  return profileReadiness(facts);
 }
 
 function revisionView(r: Awaited<ReturnType<typeof repo.pendingRevision>> & object) {

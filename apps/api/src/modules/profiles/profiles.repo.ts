@@ -11,7 +11,19 @@ import {
   user,
   type DbOrTx,
 } from '@silk/db';
-import type { EntityStatus, FacilityType, LocationInput, ReviewStatus, ScheduleInput } from '@silk/shared';
+import {
+  CONSULTATION_CATEGORY,
+  type ConsultationReadiness,
+  type EntityStatus,
+  type FacilityType,
+  type LocationInput,
+  type MediaReadiness,
+  type ReadinessFacts,
+  type ReviewStatus,
+  type ScheduleInput,
+  type VideoReadiness,
+} from '@silk/shared';
+import { consentAllowsPublic } from './media.repo';
 
 /* ---------- Mitra ---------- */
 
@@ -373,4 +385,69 @@ export function revisionQueue(db: DbOrTx, f: { status: ReviewStatus; limit: numb
     .orderBy(asc(profileRevisions.createdAt), asc(profileRevisions.id))
     .limit(f.limit + 1)
     .offset(f.offset);
+}
+
+/* ---------- Kesiapan USP ---------- */
+
+/**
+ * Fakta kesiapan profil, memakai aturan yang sama dengan halaman publik: tarif dari VIEW `published_tariffs`,
+ * media disetujui ber-URL publik, video hanya bila persetujuannya aktif. Satu query.
+ */
+export async function readinessFacts(db: DbOrTx, facilityId: string): Promise<ReadinessFacts | null> {
+  const mediaState = (kind: 'foto' | 'video') => sql`CASE
+    WHEN EXISTS (SELECT 1 FROM profile_media pm WHERE pm.facility_id = f.id AND pm.kind = ${kind}::media_kind
+      AND pm.status = 'approved' AND pm.public_url IS NOT NULL AND ${consentAllowsPublic(sql`pm.id`, sql`pm.kind`)}) THEN 'publik'
+    WHEN EXISTS (SELECT 1 FROM profile_media pm WHERE pm.facility_id = f.id AND pm.kind = ${kind}::media_kind
+      AND pm.status = 'approved') THEN 'tanpa_persetujuan'
+    WHEN EXISTS (SELECT 1 FROM profile_media pm WHERE pm.facility_id = f.id AND pm.kind = ${kind}::media_kind
+      AND pm.status = 'pending' AND pm.confirmed_at IS NOT NULL) THEN 'menunggu'
+    ELSE 'tidak_ada' END`;
+  const r = await db.execute<{
+    type: FacilityType;
+    status: EntityStatus;
+    photo: MediaReadiness | 'tanpa_persetujuan';
+    video: VideoReadiness;
+    consultation: ConsultationReadiness;
+    priced_tariffs: number;
+    practitioners: number;
+    has_schedule: boolean;
+    has_location: boolean;
+    has_contact: boolean;
+    has_description: boolean;
+  }>(sql`
+    SELECT f.type, f.status,
+      ${mediaState('foto')} AS photo,
+      ${mediaState('video')} AS video,
+      COALESCE((
+        SELECT CASE WHEN count(*) = 0 THEN NULL WHEN bool_or(pt.price_type <> 'tanya') THEN 'angka' ELSE 'tanya' END
+        FROM published_tariffs pt
+        JOIN services s ON s.id = pt.service_id
+        JOIN service_categories c ON c.id = s.category_id AND c.slug = ${CONSULTATION_CATEGORY}
+        WHERE pt.facility_id = f.id
+      ), 'tidak_ada') AS consultation,
+      (SELECT count(*)::int FROM published_tariffs pt WHERE pt.facility_id = f.id AND pt.price_type <> 'tanya') AS priced_tariffs,
+      (SELECT count(*)::int FROM facility_practitioners fp JOIN practitioners p ON p.id = fp.practitioner_id
+        WHERE fp.facility_id = f.id AND p.status = 'terbit') AS practitioners,
+      EXISTS (SELECT 1 FROM schedules sc WHERE sc.facility_id = f.id) AS has_schedule,
+      (f.location IS NOT NULL OR EXISTS (SELECT 1 FROM profile_locations pl WHERE pl.facility_id = f.id)) AS has_location,
+      (nullif(btrim(f.phone), '') IS NOT NULL OR nullif(btrim(f.website), '') IS NOT NULL) AS has_contact,
+      (length(btrim(coalesce(f.description, ''))) >= 20) AS has_description
+    FROM facilities f WHERE f.id = ${facilityId}
+  `);
+  const row = r.rows[0];
+  if (!row) return null;
+  return {
+    type: row.type,
+    status: row.status,
+    // Foto tidak butuh persetujuan; "tanpa_persetujuan" hanya mungkin untuk video.
+    photo: row.photo === 'tanpa_persetujuan' ? 'publik' : row.photo,
+    video: row.video,
+    consultation: row.consultation,
+    pricedTariffs: row.priced_tariffs,
+    practitioners: row.practitioners,
+    hasSchedule: row.has_schedule,
+    hasLocation: row.has_location,
+    hasContact: row.has_contact,
+    hasDescription: row.has_description,
+  };
 }

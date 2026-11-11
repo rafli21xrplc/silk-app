@@ -28,6 +28,10 @@ export async function get(i: IdParams, req: Request): Promise<HandlerResult> {
   return { data: await service.getProfile(actorFrom(req), i.params.id) };
 }
 
+export async function readiness(i: IdParams, req: Request): Promise<HandlerResult> {
+  return { data: await service.getReadiness(actorFrom(req), i.params.id) };
+}
+
 export async function update(i: IdParams & { body: z.output<typeof facilityUpdateSchema> }, req: Request): Promise<HandlerResult> {
   return { data: await service.updateProfile(actorFrom(req), i.params.id, i.body) };
 }

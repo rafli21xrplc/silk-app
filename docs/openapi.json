@@ -1324,11 +1324,54 @@
               "enum": [
                 "relevance",
                 "name",
-                "distance"
+                "distance",
+                "fee_asc"
               ]
             },
             "required": false,
             "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "0",
+                    "1",
+                    "true",
+                    "false"
+                  ]
+                }
+              ]
+            },
+            "required": false,
+            "name": "video",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "0",
+                    "1",
+                    "true",
+                    "false"
+                  ]
+                }
+              ]
+            },
+            "required": false,
+            "name": "fee",
             "in": "query"
           },
           {
@@ -6691,6 +6734,183 @@
         "responses": {
           "200": {
             "description": "Sukses"
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/portal/facilities/{id}/readiness": {
+      "get": {
+        "summary": "Kesiapan profil terhadap USP: biaya, kenal dokter/tempat, info kunjungan (aturan sama dengan halaman publik)",
+        "tags": [
+          "Portal mitra"
+        ],
+        "description": "Keamanan: session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "published": {
+                          "type": "boolean"
+                        },
+                        "checks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "item": {
+                                "type": "string",
+                                "enum": [
+                                  "biaya_konsultasi",
+                                  "tarif",
+                                  "foto",
+                                  "video",
+                                  "dokter_terdaftar",
+                                  "jadwal",
+                                  "lokasi",
+                                  "kontak",
+                                  "deskripsi"
+                                ]
+                              },
+                              "pillar": {
+                                "type": "string",
+                                "enum": [
+                                  "biaya",
+                                  "kenal",
+                                  "kunjungan"
+                                ]
+                              },
+                              "done": {
+                                "type": "boolean"
+                              },
+                              "state": {
+                                "type": "string"
+                              },
+                              "optional": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "item",
+                              "pillar",
+                              "done",
+                              "state",
+                              "optional"
+                            ]
+                          }
+                        },
+                        "done": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "pillars": {
+                          "type": "object",
+                          "properties": {
+                            "biaya": {
+                              "type": "boolean"
+                            },
+                            "kenal": {
+                              "type": "boolean"
+                            },
+                            "kunjungan": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "biaya",
+                            "kenal",
+                            "kunjungan"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "published",
+                        "checks",
+                        "done",
+                        "total",
+                        "pillars"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
           },
           "400": {
             "description": "Validasi gagal",

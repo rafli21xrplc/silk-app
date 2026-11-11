@@ -2,7 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { partners } from '@silk/db';
-import { practitionerDetailSchema, practitionerListItemSchema } from '@silk/shared';
+import { practitionerDetailSchema, practitionerListItemSchema, profileReadinessSchema } from '@silk/shared';
 import { db } from '../src/lib/db';
 import { resetEnvCacheForTests } from '../src/lib/env';
 import { importDemoVideo } from '../src/modules/profiles/media-import.service';
@@ -528,5 +528,64 @@ describe('USP lanjutan: filter video dan biaya serta urutan biaya konsultasi di 
   it('nilai filter tidak sah ditolak 400', async () => {
     const res = await api().get('/v1/practitioners').query({ video: 'mungkin' });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('USP lanjutan: kesiapan profil di portal (GET /portal/facilities/:id/readiness)', () => {
+  let moderator: TestUser;
+  let doc: { user: TestUser; facilityId: string; slug: string };
+  const readiness = async (user: TestUser, facilityId: string) => {
+    const res = await user.agent.get(`/v1/portal/facilities/${facilityId}/readiness`);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    return profileReadinessSchema.parse(res.body.data);
+  };
+  const state = (r: { checks: { item: string; state: string; done: boolean }[] }, item: string) => r.checks.find((c) => c.item === item);
+
+  beforeAll(async () => {
+    await resetDb();
+    await db().execute(sql`INSERT INTO data_sources (kind, title) VALUES ('faskes', 'Papan tarif uji USP')`);
+    moderator = await createUser({ role: 'moderator', mfa: true });
+    doc = await doctorWithPractice('dr. Uji Kesiapan', moderator);
+  });
+
+  it('praktik dokter baru: biaya dan video belum, info kunjungan dari formulir pembuatan sudah', async () => {
+    const r = await readiness(doc.user, doc.facilityId);
+    expect(r.published).toBe(true);
+    expect(state(r, 'biaya_konsultasi')).toMatchObject({ done: false, state: 'tidak_ada' });
+    expect(state(r, 'video')).toMatchObject({ done: false, state: 'tidak_ada' });
+    expect(state(r, 'jadwal')?.done).toBe(true);
+    expect(state(r, 'lokasi')?.done).toBe(true);
+    expect(r.pillars).toMatchObject({ biaya: false, kenal: false });
+  });
+
+  it('biaya "tanya" belum cukup; biaya berangka memenuhi pilar biaya (sama dengan halaman publik)', async () => {
+    await addTariff(doc.facilityId, 'konsultasi-dokter-umum', null, 'tanya');
+    expect(state(await readiness(doc.user, doc.facilityId), 'biaya_konsultasi')?.state).toBe('tanya');
+    await addTariff(doc.facilityId, 'konsultasi-dokter-spesialis', 150_000);
+    const r = await readiness(doc.user, doc.facilityId);
+    expect(state(r, 'biaya_konsultasi')).toMatchObject({ done: true, state: 'angka' });
+    expect(r.pillars.biaya).toBe(true);
+  });
+
+  it('video: menunggu moderasi → publik setelah disetujui → tanpa_persetujuan bila persetujuan dicabut', async () => {
+    const bytes = mp4Bytes(30);
+    const vid = await uploadMediaWithConsent(
+      doc.user,
+      doc.facilityId,
+      { kind: 'video', fileName: 'kenalan.mp4', mime: 'video/mp4', sizeBytes: bytes.length, durationSec: 30, consent: CONSENT_SELF },
+      bytes,
+    );
+    expect(vid.status, JSON.stringify(vid.body)).toBe(200);
+    expect(state(await readiness(doc.user, doc.facilityId), 'video')?.state).toBe('menunggu');
+    expect((await send(moderator, 'post', `/v1/admin/media/${vid.body.data.id}/approve`).send({})).status).toBe(200);
+    expect(state(await readiness(doc.user, doc.facilityId), 'video')).toMatchObject({ done: true, state: 'publik' });
+    await db().execute(sql`UPDATE media_consents SET revoked_at = now(), revoke_reason = 'uji' WHERE facility_id = ${doc.facilityId}`);
+    expect(state(await readiness(doc.user, doc.facilityId), 'video')).toMatchObject({ done: false, state: 'tanpa_persetujuan' });
+  });
+
+  it('hanya anggota profil yang boleh melihat kesiapan', async () => {
+    const other = await createUser({ partner: { type: 'tenaga_medis' } });
+    expect((await other.agent.get(`/v1/portal/facilities/${doc.facilityId}/readiness`)).status).toBe(403);
+    expect((await api().get(`/v1/portal/facilities/${doc.facilityId}/readiness`)).status).toBe(401);
   });
 });

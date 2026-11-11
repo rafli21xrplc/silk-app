@@ -202,8 +202,9 @@ describe('Evaluasi USP R5 dan R6: batas video dan persetujuan tertulis', () => {
     await uploadTo(presign.body.data, bytes);
     const confirm = await send(gaya, 'post', `/v1/portal/facilities/${gayaFacility}/media/${presign.body.data.mediaId}/confirm`);
     expect(confirm.status).toBe(422);
-    // Formulir berisi JPEG padahal dinyatakan PDF.
-    const fake = await uploadMediaWithConsent(gaya, gayaFacility, body, bytes, JPEG_BYTES);
+    // Formulir berisi JPEG padahal dinyatakan PDF (ukuran sesuai, jadi yang ditolak adalah isinya).
+    const fakeBody = { ...body, consent: { ...CONSENT_DOC, document: { ...CONSENT_DOC.document, sizeBytes: JPEG_BYTES.length } } };
+    const fake = await uploadMediaWithConsent(gaya, gayaFacility, fakeBody, bytes, JPEG_BYTES);
     expect(fake.status).toBe(422);
     expect((await consentRows(gayaFacility)).rows).toHaveLength(0);
   });
@@ -247,9 +248,13 @@ describe('Evaluasi USP R5 dan R6: batas video dan persetujuan tertulis', () => {
 
     // Data lama yang sudah terlanjur disetujui tanpa persetujuan: disaring dari publik.
     await db().execute(sql`UPDATE profile_media SET status = 'approved', public_url = 'https://contoh.test/lama.mp4' WHERE id = ${id}`);
+    expect((await send(moderator, 'patch', `/v1/admin/facilities/${gayaFacility}`).send({ status: 'terbit' })).status).toBe(200);
     const pub = await api().get(`/v1/facilities/${(await db().execute<{ slug: string }>(sql`SELECT slug FROM facilities WHERE id = ${gayaFacility}`)).rows[0]!.slug}`);
+    expect(pub.status, JSON.stringify(pub.body)).toBe(200);
     const urls = (pub.body.data.media as { url: string }[]).map((m) => m.url);
     expect(urls).not.toContain('https://contoh.test/lama.mp4');
+    // Video sah (dengan formulir) tetap tampil: penyaringan hanya membuang yang tanpa persetujuan.
+    expect(urls.length).toBeGreaterThan(0);
     await db().execute(sql`DELETE FROM profile_media WHERE id = ${id}`);
   });
 

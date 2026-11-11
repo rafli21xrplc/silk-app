@@ -7,7 +7,7 @@ import { facilityListItemSchema, RATING_MIN_COUNT } from '@silk/shared';
 import { db } from '../src/lib/db';
 import { resetEnvCacheForTests } from '../src/lib/env';
 import { buildSearchQuery, type FacilitySearchParams } from '../src/modules/m1-directory/directory.repo';
-import { createUser, getApp, resetDb } from './helpers';
+import { createUser, getApp, resetDb, withoutSqlOrder } from './helpers';
 
 const api = () => request(getApp());
 type Item = { id: string; slug: string; name: string; distanceM: number | null; price: { min: number | null } | null; [k: string]: unknown };
@@ -294,7 +294,8 @@ describe('Fase 3: pencarian dan filter (F-03)', () => {
 
     it('SQL pencarian tidak menyebut langganan atau pembayaran', () => {
       const source = readFileSync(fileURLToPath(new URL('../src/modules/m1-directory/directory.repo.ts', import.meta.url)), 'utf8');
-      expect(source).not.toMatch(/\b(subscriptions?|payments?|plans?|orders?)\b/i);
+      // Kata kunci SQL `ORDER BY` dan variabel `orderBy` bukan data pesanan; buang dulu sebelum diperiksa.
+      expect(withoutSqlOrder(source)).not.toMatch(/\b(subscriptions?|payments?|plans?|orders?)\b/i);
     });
   });
 

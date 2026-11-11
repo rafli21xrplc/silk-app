@@ -119,6 +119,7 @@ describe('M15 Panel admin dan M17 filter konten', () => {
       revisions: expect.any(Number),
       media: expect.any(Number),
       tariffRequests: expect.any(Number),
+      articles: expect.any(Number),
     });
     const queue = await admin.agent.get('/v1/admin/tariffs').query({ status: 'menunggu_tinjauan', limit: 100 });
     expect(res.body.data.tariffs).toBe(queue.body.data.length);

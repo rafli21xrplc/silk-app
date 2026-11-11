@@ -7,7 +7,7 @@ import { partners } from '@silk/db';
 import { FACILITY_IDS } from '@silk/db/seed';
 import { practitionerDetailSchema, practitionerListItemSchema } from '@silk/shared';
 import { db } from '../src/lib/db';
-import { CONSENT_SELF, JPEG_BYTES, createUser, getApp, mp4Bytes, resetDb, send, uploadTo, type TestUser } from './helpers';
+import { CONSENT_SELF, JPEG_BYTES, createUser, getApp, mp4Bytes, resetDb, send, uploadTo, withoutSqlOrder, type TestUser } from './helpers';
 
 /** `revalidate` asli tidak melakukan apa pun saat uji; di sini panggilannya direkam. */
 const revalidateCalls = vi.hoisted(() => [] as string[][]);
@@ -330,7 +330,8 @@ describe('Fase 4b: profil dan pencarian dokter', () => {
       const source = readFileSync(fileURLToPath(new URL('../src/modules/m1-directory/directory.repo.ts', import.meta.url)), 'utf8');
       const block = source.slice(source.indexOf('export async function searchPractitioners'), source.indexOf('export async function practitionerSpecialties'));
       expect(block.length).toBeGreaterThan(100);
-      expect(block).not.toMatch(/\b(subscriptions?|payments?|plans?|orders?|langganan|pembayaran)\b/i);
+      // Kata kunci SQL `ORDER BY` dan variabel `orderBy` bukan data pesanan; buang dulu sebelum diperiksa.
+      expect(withoutSqlOrder(block)).not.toMatch(/\b(subscriptions?|payments?|plans?|orders?|langganan|pembayaran)\b/i);
     });
   });
 
@@ -364,7 +365,7 @@ describe('Fase 4b: profil dan pencarian dokter', () => {
   });
 
   it('mitra dicabut: lencana mitra false (dokter tetap tampil selama profil terbit)', async () => {
-    await db().update(partners).set({ status: 'rejected' }).where(eq(partners.userId, medis.id));
+    await db().update(partners).set({ status: 'rejected', rejectionReason: 'Uji: STR tidak cocok', verifiedAt: null }).where(eq(partners.userId, medis.id));
     const d = await detail(doctor.slug);
     expect(d.verification.partner).toBe(false);
     // Artikel mitra yang tidak terverifikasi tidak tampil (aturan Fase 4).

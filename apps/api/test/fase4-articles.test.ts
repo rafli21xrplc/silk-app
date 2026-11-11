@@ -46,7 +46,7 @@ const pub = (slug: string) => request(getApp()).get(`/v1/articles/${slug}`);
 const publicSlugs = async () => ((await request(getApp()).get('/v1/articles?limit=100')).body.data as { slug: string }[]).map((a) => a.slug);
 const auditActions = async (id: string) =>
   (
-    await db().execute<{ action: string }>(sql`SELECT action FROM audit_logs WHERE entity = 'partner_article' AND entity_id = ${id} ORDER BY created_at, id`)
+    await db().execute<{ action: string }>(sql`SELECT action FROM audit_logs WHERE entity = 'partner_article' AND entity_id = ${id} ORDER BY at, id`)
   ).rows.map((r) => r.action);
 
 describe('Fase 4: artikel oleh mitra (F-05)', () => {
@@ -276,7 +276,7 @@ describe('Fase 4: artikel oleh mitra (F-05)', () => {
   it('mitra yang tidak lagi terverifikasi: artikelnya tersembunyi', async () => {
     const owner = await createUser({ partner: { type: 'gaya_hidup' } });
     const a = await publish(owner, 'Artikel mitra yang dicabut');
-    await db().update(partners).set({ status: 'rejected' }).where(eq(partners.userId, owner.id));
+    await db().update(partners).set({ status: 'rejected', rejectionReason: 'Uji: izin kedaluwarsa', verifiedAt: null }).where(eq(partners.userId, owner.id));
     expect((await pub(a.slug)).status).toBe(404);
     expect(await publicSlugs()).not.toContain(a.slug);
   });

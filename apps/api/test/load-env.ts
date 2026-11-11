@@ -10,7 +10,10 @@ import { assertSafeTestDatabase } from '@silk/db/test-guard';
 export function loadTestEnv(): void {
   config({ path: path.resolve(fileURLToPath(import.meta.url), '../../../../.env'), quiet: true });
   const testUrl = process.env.TEST_DATABASE_URL;
-  assertSafeTestDatabase(testUrl, process.env.DATABASE_URL);
+  // globalSetup menimpa DATABASE_URL dan worker mewarisi env-nya; simpan URL dev asli agar guard di worker
+  // tetap membandingkan dengan database dev, bukan dengan URL uji yang sudah ditimpa.
+  process.env.SILK_DEV_DATABASE_URL ??= process.env.DATABASE_URL ?? '';
+  assertSafeTestDatabase(testUrl, process.env.SILK_DEV_DATABASE_URL || undefined);
   process.env.DATABASE_URL = testUrl;
   process.env.DATABASE_URL_UNPOOLED = testUrl;
   process.env.NODE_ENV = 'test';

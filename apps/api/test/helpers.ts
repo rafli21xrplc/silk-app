@@ -200,3 +200,6 @@ export async function attachProof(u: TestUser, requestId: string) {
   const confirm = await send(u, 'post', `/v1/portal/tariff-requests/${requestId}/documents/${presign.body.data.documentId}/confirm`);
   if (confirm.status !== 200) throw new Error(`konfirmasi dokumen gagal: ${JSON.stringify(confirm.body)}`);
 }
+
+/** Buang kata kunci SQL `ORDER BY` dan identifier `orderBy` sebelum uji statis kata "order/pesanan". */
+export const withoutSqlOrder = (source: string) => source.replace(/\bORDER\s+BY\b/gi, '').replace(/\borderBy\b/g, '');

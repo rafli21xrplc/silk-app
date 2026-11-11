@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { compareResponseSchema, serviceDetailSchema, tariffHistoryItemSchema } from '@silk/shared';
-import { FACILITY_IDS, TARIFF_IDS } from '@silk/db/seed';
+import { FACILITY_IDS, SERVICES, TARIFF_IDS } from '@silk/db/seed';
 import { getApp, resetDb } from './helpers';
 
 const api = () => request(getApp());
@@ -11,7 +11,8 @@ describe('M2 Katalog layanan dan tarif', () => {
 
   it('daftar dan cari layanan (termasuk alias)', async () => {
     const all = await api().get('/v1/services').query({ limit: 100 });
-    expect(all.body.data.length).toBe(8);
+    // Taksonomi tumbuh (konsultasi, rawat inap); jumlahnya mengikuti data referensi seed.
+    expect(all.body.data.length).toBe(SERVICES.length);
     const byAlias = await api().get('/v1/services').query({ q: 'gdp' });
     expect(byAlias.body.data[0].slug).toBe('gula-darah-puasa');
   });

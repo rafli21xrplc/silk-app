@@ -69,7 +69,8 @@ export function env(): Env {
 
 /** Hanya untuk uji: baca ulang env (mis. setelah mengubah FEATURE_FLAGS). */
 export function resetEnvCacheForTests(): void {
-  if (env().NODE_ENV !== 'test') throw new Error('resetEnvCacheForTests hanya untuk NODE_ENV=test');
+  // Baca process.env langsung: memanggil env() di sini bisa gagal lebih dulu bila env yang sedang diuji tidak sah.
+  if (process.env.NODE_ENV !== 'test') throw new Error('resetEnvCacheForTests hanya untuk NODE_ENV=test');
   cached = undefined;
 }
 

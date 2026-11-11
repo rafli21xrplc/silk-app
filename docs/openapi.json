@@ -493,6 +493,18 @@
                           "publishedTariffCount": {
                             "type": "integer"
                           },
+                          "consultationFeeMin": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "practitionerCount": {
+                            "type": "integer"
+                          },
+                          "hasVideo": {
+                            "type": "boolean"
+                          },
                           "priceAvailable": {
                             "type": "boolean"
                           },
@@ -553,6 +565,9 @@
                           "price",
                           "trust",
                           "publishedTariffCount",
+                          "consultationFeeMin",
+                          "practitionerCount",
+                          "hasVideo",
                           "priceAvailable",
                           "nearestLocation",
                           "rating"

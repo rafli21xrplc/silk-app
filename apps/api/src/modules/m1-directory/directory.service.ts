@@ -93,6 +93,9 @@ export async function searchFacilities(q: FacilitySearchQuery, now = new Date())
       price: version ? toPrice(version) : null,
       trust: version ? toTrust(version, now) : null,
       publishedTariffCount: Number(r.tariff_count),
+      consultationFeeMin: r.consultation_fee_min === null ? null : Number(r.consultation_fee_min),
+      practitionerCount: Number(r.practitioner_count),
+      hasVideo: r.has_video,
       priceAvailable: version !== null && version.priceType !== 'tanya' && version.priceMin !== null,
       nearestLocation:
         r.nl_primary === false && r.nl_address && r.nl_city ? { label: r.nl_label, address: r.nl_address, city: r.nl_city } : null,

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, MapPin, Navigation, Star } from 'lucide-react';
+import { facilityHighlights } from '@/lib/facility-summary';
 import type { FacilityListItem } from '@/lib/types';
 import { t } from '@/messages/id';
 import { EstimateBadge } from './estimate-badge';
@@ -8,9 +9,11 @@ import { TrustBadge } from './trust-badge';
 
 /**
  * Kartu hasil: identitas faskes di atas, harga menonjol di bawah (pola marketplace), tanpa iklan/peringkat.
- * Faskes tanpa tarif terbit diberi label "Tarif belum tersedia", bukan disembunyikan.
+ * Faskes tanpa tarif terbit diberi label "Tarif belum tersedia", bukan disembunyikan. Tanpa filter layanan,
+ * kartu menampilkan ringkasan isi profil (jumlah tarif, biaya konsultasi, dokter, video), bukan bar kosong.
  */
 export function FacilityCard({ facility }: { facility: FacilityListItem }) {
+  const highlights = facilityHighlights(facility);
   return (
     <article className="group relative flex h-full flex-col gap-4 rounded-card border border-line/80 bg-white p-5 shadow-soft transition-[border-color,box-shadow,transform] duration-300 ease-soft focus-within:border-primary-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lift sm:p-6">
       <div className="min-w-0">
@@ -71,14 +74,34 @@ export function FacilityCard({ facility }: { facility: FacilityListItem }) {
             </div>
             <TrustBadge trust={facility.trust} compact />
           </>
-        ) : facility.publishedTariffCount === 0 ? (
-          <span className="inline-flex items-center justify-between gap-2 text-sm font-semibold text-muted" data-no-tariff>
-            {t.search.noTariff} <ArrowRight className="size-4 text-primary-700 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" aria-hidden="true" />
-          </span>
         ) : (
-          <span className="inline-flex items-center justify-between gap-2 text-sm font-semibold text-primary-700" aria-hidden="true">
-            {t.facility.tariffs} <ArrowRight className="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" />
-          </span>
+          <>
+            {highlights.length > 0 && (
+              <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label={t.search.summary.label} data-facility-summary>
+                {highlights.map((h) => (
+                  <li
+                    key={h.key}
+                    className={
+                      h.key === 'konsultasi'
+                        ? 'rounded-full bg-mint px-2.5 py-1 text-[0.8rem] font-semibold text-mint-ink'
+                        : 'rounded-full bg-white px-2.5 py-1 text-[0.8rem] font-medium text-ink-soft ring-1 ring-line/80'
+                    }
+                  >
+                    {h.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {facility.publishedTariffCount === 0 ? (
+              <span className="inline-flex items-center justify-between gap-2 text-sm font-semibold text-muted" data-no-tariff>
+                {t.search.noTariff} <ArrowRight className="size-4 text-primary-700 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" aria-hidden="true" />
+              </span>
+            ) : (
+              <span className="inline-flex items-center justify-between gap-2 text-sm font-semibold text-primary-700" aria-hidden="true">
+                {t.search.summary.open} <ArrowRight className="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" />
+              </span>
+            )}
+          </>
         )}
       </div>
     </article>

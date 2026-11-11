@@ -2,7 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { partners } from '@silk/db';
-import { practitionerDetailSchema, practitionerListItemSchema, profileReadinessSchema } from '@silk/shared';
+import { facilityListItemSchema, practitionerDetailSchema, practitionerListItemSchema, profileReadinessSchema } from '@silk/shared';
 import { db } from '../src/lib/db';
 import { resetEnvCacheForTests } from '../src/lib/env';
 import { importDemoVideo } from '../src/modules/profiles/media-import.service';
@@ -520,9 +520,27 @@ describe('USP lanjutan: filter video dan biaya serta urutan biaya konsultasi di 
     expect(await slugs({ sort: 'fee_asc' })).toEqual([b.slug, a.slug, d.slug, c.slug]);
   });
 
+  it('kartu /cari tanpa filter layanan membawa ringkasan: biaya konsultasi, jumlah dokter, video (evaluasi UI/UX A2)', async () => {
+    const res = await api().get('/v1/facilities').query({ city: CITY, limit: 50 });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    const items = (res.body.data as unknown[]).map((x) => facilityListItemSchema.parse(x));
+    const byId = new Map(items.map((i) => [i.id, i]));
+    expect(byId.get(a.facilityId)).toMatchObject({ publishedTariffCount: 1, consultationFeeMin: 175_000, practitionerCount: 1, hasVideo: true, price: null });
+    expect(byId.get(b.facilityId)).toMatchObject({ consultationFeeMin: 100_000, practitionerCount: 1, hasVideo: false });
+    // "Tanya" bukan angka: tidak dijadikan biaya konsultasi.
+    expect(byId.get(c.facilityId)).toMatchObject({ publishedTariffCount: 1, consultationFeeMin: null });
+    expect(byId.get(d.facilityId)).toMatchObject({ publishedTariffCount: 0, consultationFeeMin: null, hasVideo: false });
+  });
+
   it('video yang persetujuannya dicabut tidak lagi lolos filter video', async () => {
     await db().execute(sql`UPDATE media_consents SET revoked_at = now(), revoke_reason = 'uji' WHERE facility_id = ${a.facilityId}`);
     expect(await slugs({ video: '1' })).toEqual([]);
+  });
+
+  it('ringkasan kartu /cari ikut aturan persetujuan: video yang dicabut tidak lagi dihitung', async () => {
+    const res = await api().get('/v1/facilities').query({ city: CITY, limit: 50 });
+    const item = (res.body.data as { id: string; hasVideo: boolean }[]).find((i) => i.id === a.facilityId)!;
+    expect(item.hasVideo).toBe(false);
   });
 
   it('nilai filter tidak sah ditolak 400', async () => {

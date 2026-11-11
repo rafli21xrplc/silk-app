@@ -48,6 +48,9 @@ export type FacilitySearchRow = {
   nl_primary: boolean | null;
   score: number;
   tariff_count: number;
+  consultation_fee_min: string | number | null;
+  practitioner_count: number;
+  has_video: boolean;
   tariff_id: string | null;
   price_type: PriceType | null;
   price_min: number | null;
@@ -222,6 +225,10 @@ export function buildSearchQuery(p: FacilitySearchParams): SQL {
       nl.label AS nl_label, nl.address AS nl_address, nl.city AS nl_city, nl.is_primary AS nl_primary,
       ${score} AS score,
       (SELECT count(*)::int FROM published_tariffs c WHERE c.facility_id = f.id) AS tariff_count,
+      ${consultationFeeMin(sql`f.id`)} AS consultation_fee_min,
+      (SELECT count(*)::int FROM facility_practitioners sp JOIN practitioners spp ON spp.id = sp.practitioner_id
+        WHERE sp.facility_id = f.id AND spp.status = 'terbit') AS practitioner_count,
+      ${hasPublicVideo(sql`f.id`)} AS has_video,
       pt.tariff_id, pt.price_type, pt.price_min, pt.price_max, pt.effective_from, pt.effective_to,
       pt.verified_at, pt.verification AS t_verification,
       ds.kind AS source_kind, ds.title AS source_title, ds.url AS source_url, ds.document_date AS source_document_date,
@@ -509,17 +516,25 @@ const CONSULTATION_JSON = sql`(SELECT json_build_object(
   ORDER BY (ct.price_type = 'tanya') ASC, cs.name ASC, ct.tariff_id ASC
   LIMIT 1)`;
 
-/** Batas bawah biaya konsultasi berangka di profil praktik utama (untuk filter `fee` dan urutan `fee_asc`). */
-const CONSULTATION_FEE_MIN = sql`(SELECT min(ct.price_min)
+/** Batas bawah biaya konsultasi berangka (bukan "tanya") di satu profil faskes. */
+function consultationFeeMin(facilityId: SQL): SQL {
+  return sql`(SELECT min(ct.price_min)
   FROM published_tariffs ct
   JOIN services cs ON cs.id = ct.service_id
   JOIN service_categories cc ON cc.id = cs.category_id AND cc.slug = ${CONSULTATION_CATEGORY}
-  WHERE ct.facility_id = pp.id AND ct.price_type <> 'tanya' AND ct.price_min IS NOT NULL)`;
+  WHERE ct.facility_id = ${facilityId} AND ct.price_type <> 'tanya' AND ct.price_min IS NOT NULL)`;
+}
 
-/** Video perkenalan profil utama yang boleh tampil publik (disetujui dan persetujuan aktif, evaluasi R6). */
-const HAS_PUBLIC_VIDEO = sql`EXISTS (SELECT 1 FROM profile_media pm
-  WHERE pm.facility_id = pp.id AND pm.kind = 'video' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
+/** Video perkenalan profil yang boleh tampil publik (disetujui dan persetujuan aktif, evaluasi R6). */
+function hasPublicVideo(facilityId: SQL): SQL {
+  return sql`EXISTS (SELECT 1 FROM profile_media pm
+  WHERE pm.facility_id = ${facilityId} AND pm.kind = 'video' AND pm.status = 'approved' AND pm.public_url IS NOT NULL
     AND ${consentAllowsPublic(sql`pm.id`, sql`pm.kind`)})`;
+}
+
+/** Biaya konsultasi di profil praktik utama `pp` (untuk filter `fee` dan urutan `fee_asc`). */
+const CONSULTATION_FEE_MIN = consultationFeeMin(sql`pp.id`);
+const HAS_PUBLIC_VIDEO = hasPublicVideo(sql`pp.id`);
 
 /**
  * Daftar dan pencarian dokter (F-03, Fase 4b). Lokasi dokter = lokasi semua tempat praktiknya yang terbit.

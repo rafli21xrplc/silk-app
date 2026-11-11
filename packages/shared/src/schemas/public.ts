@@ -113,6 +113,12 @@ export const facilityListItemSchema = z.object({
   trust: trustSchema.nullable(),
   /** Fase 3: jumlah tarif terbit; 0 = "tarif belum tersedia". */
   publishedTariffCount: z.number().int(),
+  /** Ringkasan kartu (evaluasi UI/UX A2): batas bawah biaya konsultasi berangka di profil ini. */
+  consultationFeeMin: z.number().int().nullable(),
+  /** Ringkasan kartu: jumlah dokter terbit yang tertaut ke profil ini. */
+  practitionerCount: z.number().int(),
+  /** Ringkasan kartu: profil punya video perkenalan yang boleh tampil publik. */
+  hasVideo: z.boolean(),
   /** Fase 3: ada angka harga untuk layanan yang dicari (bukan `tanya`). */
   priceAvailable: z.boolean(),
   /** Fase 3: lokasi terdekat dari titik pencarian bila bukan lokasi utama. */

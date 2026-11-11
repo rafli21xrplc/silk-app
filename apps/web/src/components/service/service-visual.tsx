@@ -1,17 +1,24 @@
 import {
   Activity,
+  Ambulance,
+  Apple,
   Bean,
+  BedDouble,
   Bone,
   BriefcaseMedical,
   ClipboardCheck,
   Droplet,
   Droplets,
+  Dumbbell,
   FlaskConical,
+  Flower2,
   HeartPulse,
   Layers,
+  MessagesSquare,
   Microscope,
   ScanLine,
   ShieldPlus,
+  Smile,
   Stethoscope,
   Syringe,
   TestTube,
@@ -52,6 +59,10 @@ const CATEGORY_ICONS: [RegExp, LucideIcon][] = [
   [/lab/, Microscope],
   [/radiologi|penunjang/, ScanLine],
   [/mcu|check-up/, ClipboardCheck],
+  [/konsultasi/, Stethoscope],
+  [/rawat-inap/, BedDouble],
+  [/gaya-hidup/, Dumbbell],
+  [/duka/, Flower2],
 ];
 export const categoryIcon = (slug: string): LucideIcon =>
   CATEGORY_ICONS.find(([re]) => re.test(slug))?.[1] ?? Layers;
@@ -72,6 +83,14 @@ const SERVICE_ICONS: [RegExp, LucideIcon][] = [
   [/ekg|jantung/, HeartPulse],
   [/rontgen|thorax|x-ray/, ScanLine],
   [/usg|ultrasonografi/, Waves],
+  // Evaluasi UI/UX B5: rawat inap, gaya hidup, dan rumah duka tidak lagi memakai tabung uji.
+  [/rawat-inap/, BedDouble],
+  [/senam|latihan/, Dumbbell],
+  [/gizi/, Apple],
+  [/konseling/, MessagesSquare],
+  [/gigi/, Smile],
+  [/mobil-jenazah/, Ambulance],
+  [/jenazah|persemayaman/, Flower2],
   [/dokter|konsultasi/, Stethoscope],
 ];
 export const serviceIcon = (slug: string): LucideIcon =>

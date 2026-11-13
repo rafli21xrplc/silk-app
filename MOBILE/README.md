@@ -45,6 +45,24 @@ Memperbarui data cadangan dari API yang sedang jalan (hanya data seed demo, tanp
 SILK_API_ORIGIN=http://127.0.0.1:4000 corepack pnpm --filter @silk/mobile snapshot
 ```
 
+## Foto ilustrasi (data demo)
+
+Dokter dan faskes fiktif di data demo memakai foto stok dari Unsplash (Unsplash License) agar layar tidak
+berisi inisial dan ikon saja. Aturannya:
+
+- Foto hanya dipetakan ke slug data demo (`src/demo/photos.ts`). Foto dari API (`photoUrl`, media yang disetujui)
+  selalu didahulukan; dokter dan faskes sungguhan tidak pernah mendapat foto ilustrasi.
+- Foto besar di profil selalu diberi label "Foto ilustrasi"; Info menjelaskan bahwa orang di foto bukan dokter
+  yang namanya tertulis.
+- Satu wajah untuk satu dokter; foto faskes tanpa orang.
+- Berkas ada di `public/demo/photos` (sudah dipotong, sekitar 2,5 MB). Kredit fotografer: `public/demo/photos/CREDITS.md`.
+
+Mengunduh ulang setelah mengubah daftar foto:
+
+```bash
+corepack pnpm --filter @silk/mobile photos
+```
+
 ## Struktur
 
 ```
@@ -54,6 +72,7 @@ src/lib/silk/       fetchApi + cadangan (source.ts), API bertipe (api.ts), penca
 src/lib/            parsing parameter, format harga/tanggal, kontak, ringkasan
 src/messages/id.ts  semua teks UI (lolos filter konten M17, diuji)
 scripts/snapshot.ts pembuat data cadangan
+scripts/photos.ts   pengunduh foto ilustrasi demo + CREDITS.md
 ```
 
 ## Pemeriksaan

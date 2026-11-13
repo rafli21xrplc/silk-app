@@ -42,6 +42,7 @@ export const t = {
     share: 'Bagikan',
     copied: 'Tautan disalin',
     openMap: 'Buka di peta',
+    illustrative: 'Foto ilustrasi',
   },
   home: {
     heroTitle: 'Tahu biayanya, kenal dokternya, sebelum datang',
@@ -60,9 +61,15 @@ export const t = {
     articlesTitle: 'Bacaan kesehatan',
     howTitle: 'Cara membaca angka di SILK',
     how: [
-      { title: 'Tanggal berlaku', body: 'Setiap tarif menyebut sejak kapan berlaku dan kapan terakhir dicek.' },
+      {
+        title: 'Tanggal berlaku',
+        body: 'Setiap tarif menyebut sejak kapan berlaku dan kapan terakhir dicek.',
+      },
       { title: 'Sumber jelas', body: 'Dokumen publik, mitra, atau tim SILK, selalu tercantum.' },
-      { title: 'Perkiraan, bukan tagihan', body: 'Konfirmasikan ke tempat layanan sebelum datang.' },
+      {
+        title: 'Perkiraan, bukan tagihan',
+        body: 'Konfirmasikan ke tempat layanan sebelum datang.',
+      },
     ],
     neutralTitle: 'Urutan yang netral',
     neutralBody: 'Hasil diurutkan menurut relevansi, harga, jarak, atau nama. Pembayaran tidak pernah memengaruhi urutan.',
@@ -304,14 +311,25 @@ export const t = {
   },
   info: {
     title: 'Tentang SILK',
-    intro:
-      'SILK membantu Anda mengetahui perkiraan biaya layanan kesehatan dan mengenal dokternya sebelum datang, di Kota dan Kabupaten Malang.',
+    intro: 'SILK membantu Anda mengetahui perkiraan biaya layanan kesehatan dan mengenal dokternya sebelum datang, di Kota dan Kabupaten Malang.',
     methodTitle: 'Metodologi data',
     method: [
-      { title: 'Dari mana angkanya', body: 'Dokumen publik (peraturan daerah, PMK), mitra yang mengisi lewat portal, atau tim SILK.' },
-      { title: 'Status verifikasi', body: 'Setiap tarif diberi label: belum diverifikasi, dari dokumen publik, diisi mitra, atau diverifikasi tim SILK.' },
-      { title: 'Tanggal dan tarif lama', body: 'Tarif menyebut tanggal berlaku. Tarif yang lama tidak diperbarui ditandai agar Anda mengonfirmasi.' },
-      { title: 'Riwayat tidak dihapus', body: 'Perubahan harga disimpan sebagai versi baru, jadi riwayatnya tetap bisa ditelusuri.' },
+      {
+        title: 'Dari mana angkanya',
+        body: 'Dokumen publik (peraturan daerah, PMK), mitra yang mengisi lewat portal, atau tim SILK.',
+      },
+      {
+        title: 'Status verifikasi',
+        body: 'Setiap tarif diberi label: belum diverifikasi, dari dokumen publik, diisi mitra, atau diverifikasi tim SILK.',
+      },
+      {
+        title: 'Tanggal dan tarif lama',
+        body: 'Tarif menyebut tanggal berlaku. Tarif yang lama tidak diperbarui ditandai agar Anda mengonfirmasi.',
+      },
+      {
+        title: 'Riwayat tidak dihapus',
+        body: 'Perubahan harga disimpan sebagai versi baru, jadi riwayatnya tetap bisa ditelusuri.',
+      },
     ],
     neutralTitle: 'Netral dan tanpa iklan',
     neutralBody: 'Urutan hasil tidak pernah dipengaruhi pembayaran atau langganan. Rating dan ulasan tidak dijual.',
@@ -319,6 +337,9 @@ export const t = {
     linksTitle: 'Selengkapnya',
     articles: 'Artikel kesehatan',
     services: 'Katalog layanan',
+    photosTitle: 'Foto',
+    photosNote:
+      'Foto dokter dan faskes pada data demo adalah foto ilustrasi dari Unsplash, bukan foto orang atau tempat yang namanya tertulis. Di layanan sungguhan, foto hanya tampil setelah disetujui dokter atau faskesnya.',
     installTitle: 'Pasang di ponsel',
     installBody: 'Buka menu peramban lalu pilih "Tambahkan ke layar utama" agar SILK terbuka seperti aplikasi.',
     disclaimer: 'Informasi di SILK bukan nasihat medis dan bukan penawaran harga yang mengikat.',

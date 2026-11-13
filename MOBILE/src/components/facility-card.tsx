@@ -1,7 +1,9 @@
 import type { FacilityListItem } from '@silk/shared';
+import { facilityPhoto } from '@/lib/photos';
 import { facilityHighlights } from '@/lib/summary';
 import { t } from '@/messages/id';
 import { ListRow } from './list';
+import { Thumb } from './photo';
 import { PriceValue } from './price';
 import { TrustNote } from './trust';
 
@@ -18,6 +20,7 @@ export function FacilityRow({ facility: f, common }: { facility: FacilityListIte
       href={`/faskes/${f.slug}`}
       align="start"
       chevron={false}
+      leading={<Thumb photo={facilityPhoto(f.slug)} />}
       title={<span className="font-semibold">{f.name}</span>}
       sub={
         <>

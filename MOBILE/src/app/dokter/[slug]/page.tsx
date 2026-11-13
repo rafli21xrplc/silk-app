@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { BadgeCheck, MapPin } from 'lucide-react';
+import { BadgeCheck } from 'lucide-react';
 import { Avatar } from '@/components/avatar';
 import { ContactActions } from '@/components/contact-actions';
 import { DemoNotice } from '@/components/demo-notice';
 import { DoctorVideo } from '@/components/doctor-video';
 import { ListGroup, ListRow } from '@/components/list';
+import { HeroPhoto } from '@/components/photo';
 import { PriceValue } from '@/components/price';
 import { NextSessionFact, ScheduleRows, WeekStrip } from '@/components/schedule';
 import { ShareButton } from '@/components/share-button';
@@ -13,6 +14,7 @@ import { TariffBrowser } from '@/components/tariff-browser';
 import { TopBar } from '@/components/top-bar';
 import { TrustNote } from '@/components/trust';
 import { formatDate, formatShortDate } from '@/lib/format';
+import { doctorPhoto } from '@/lib/photos';
 import { getPractitioner, snapshotDate } from '@/lib/silk/api';
 import { t } from '@/messages/id';
 
@@ -22,7 +24,12 @@ type Params = Promise<{ slug: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const p = await getPractitioner((await params).slug);
-  return p ? { title: p.data.name, description: [p.data.specialty, ...p.data.facilities.map((f) => f.name)].filter(Boolean).join(' · ') } : {};
+  return p
+    ? {
+        title: p.data.name,
+        description: [p.data.specialty, ...p.data.facilities.map((f) => f.name)].filter(Boolean).join(' · '),
+      }
+    : {};
 }
 
 /** Satu sel fakta kunci: label kecil di atas, nilai di bawah. */
@@ -44,6 +51,7 @@ export default async function DoctorPage({ params }: { params: Params }) {
   const cities = [...new Set(p.practices.flatMap((x) => (x.locations.length ? x.locations.map((l) => l.city) : [x.facility.city])))];
   const allSlots = p.practices.flatMap((x) => x.schedules);
   const fee = p.consultation;
+  const photo = doctorPhoto(p.slug, p.photo?.url, p.name);
   // Biaya konsultasi tampil di atas; daftar di bawah memuat layanan lain.
   const otherTariffs = p.tariffs.filter((x) => x.id !== fee?.id);
 
@@ -53,9 +61,11 @@ export default async function DoctorPage({ params }: { params: Params }) {
       <DemoNotice show={loaded.source === 'demo'} date={snapshotDate()} />
 
       {/* Siapa dokternya: identitas, lalu kredensial sebagai teks (bukan tumpukan pil). */}
+      {/* Wajah dokter dulu (USP "kenal dokternya"); tanpa foto: inisial di samping nama. */}
+      {photo && <HeroPhoto photo={photo} ratio="portrait" className="mx-4 mt-3" />}
       <header className="px-5 pt-5">
         <div className="flex items-center gap-4">
-          <Avatar name={p.name} photoUrl={p.photo?.url ?? null} size="lg" />
+          {!photo && <Avatar name={p.name} photoUrl={null} size="lg" />}
           <div className="min-w-0">
             <h1 className="m-0 text-2xl leading-tight font-bold tracking-tight">{p.name}</h1>
             {p.specialty && <p className="m-0 mt-1 text-base text-ink-soft">{p.specialty}</p>}
@@ -74,12 +84,7 @@ export default async function DoctorPage({ params }: { params: Params }) {
               {t.doctors.partnerVerified}
             </span>
           )}
-          {cities.length > 0 && (
-            <span className="inline-flex items-center gap-1 text-muted">
-              <MapPin className="size-4" aria-hidden="true" />
-              {cities.join(', ')}
-            </span>
-          )}
+          {cities.length > 0 && <span className="text-muted">{cities.join(', ')}</span>}
         </p>
       </header>
 
@@ -188,12 +193,7 @@ export default async function DoctorPage({ params }: { params: Params }) {
       {p.articles.length > 0 && (
         <ListGroup id="artikel" title={t.doctors.articles} className="mt-8">
           {p.articles.map((a) => (
-            <ListRow
-              key={a.slug}
-              href={`/artikel/${a.slug}`}
-              title={a.title}
-              sub={`${t.articles.minutes(a.readingMinutes)} · ${formatDate(a.publishedAt)}`}
-            />
+            <ListRow key={a.slug} href={`/artikel/${a.slug}`} title={a.title} sub={`${t.articles.minutes(a.readingMinutes)} · ${formatDate(a.publishedAt)}`} />
           ))}
         </ListGroup>
       )}

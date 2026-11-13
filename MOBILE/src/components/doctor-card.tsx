@@ -1,5 +1,6 @@
 import { BadgeCheck, PlayCircle } from 'lucide-react';
 import type { PractitionerListItem } from '@silk/shared';
+import { doctorPhoto } from '@/lib/photos';
 import { t } from '@/messages/id';
 import { Avatar } from './avatar';
 import { ListRow } from './list';
@@ -18,7 +19,7 @@ export function DoctorRow({ doctor: d }: { doctor: PractitionerListItem }) {
       href={`/dokter/${d.slug}`}
       align="start"
       chevron={false}
-      leading={<Avatar name={d.name} photoUrl={d.photoUrl} size="sm" />}
+      leading={<Avatar name={d.name} photoUrl={doctorPhoto(d.slug, d.photoUrl, d.name)?.square} size="md" />}
       title={<span className="font-semibold">{d.name}</span>}
       sub={
         <>

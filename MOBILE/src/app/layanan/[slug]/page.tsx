@@ -7,12 +7,14 @@ import { ChipLink } from '@/components/chip-link';
 import { DemoNotice } from '@/components/demo-notice';
 import { Empty } from '@/components/empty';
 import { ListBox, ListGroup, ListRow } from '@/components/list';
+import { Thumb } from '@/components/photo';
 import { PriceValue } from '@/components/price';
 import { RangeBar } from '@/components/range-bar';
 import { ShareButton } from '@/components/share-button';
 import { TopBar } from '@/components/top-bar';
 import { TrustNote } from '@/components/trust';
 import { formatShortDate, priceRangeText } from '@/lib/format';
+import { facilityPhoto } from '@/lib/photos';
 import { relativeWidth } from '@/lib/range';
 import { toQueryString } from '@/lib/search';
 import { anyDemo, getCompare, getService, snapshotDate } from '@/lib/silk/api';
@@ -118,11 +120,16 @@ export default async function ServicePage({ params, searchParams }: { params: Pa
                     marker="compare"
                     href={`/faskes/${r.facility.slug}`}
                     chevron={false}
+                    leading={<Thumb photo={facilityPhoto(r.facility.slug)} className="size-11 rounded-lg" />}
                     title={r.facility.name}
                     sub={
                       <>
                         {value !== null && top > 0 && (
-                          <span className="mt-1 mb-1.5 block h-1 rounded-full bg-primary-300" style={{ width: `${relativeWidth(value, top)}%` }} aria-hidden="true" />
+                          <span
+                            className="mt-1 mb-1.5 block h-1 rounded-full bg-primary-300"
+                            style={{ width: `${relativeWidth(value, top)}%` }}
+                            aria-hidden="true"
+                          />
                         )}
                         <TrustNote trust={r} common={common} />
                       </>

@@ -54,6 +54,13 @@ export default async function InfoPage() {
         <p className="m-0 mt-1.5 text-base text-ink-soft">{t.info.neutralBody}</p>
       </section>
 
+      <section aria-labelledby="foto" className="mt-7 px-5">
+        <h2 id="foto" className="m-0 text-base font-bold">
+          {t.info.photosTitle}
+        </h2>
+        <p className="m-0 mt-1.5 text-sm text-ink-soft">{t.info.photosNote}</p>
+      </section>
+
       <ListGroup id="tautan" title={t.info.linksTitle} className="mt-7">
         <ListRow href="/layanan" title={t.info.services} />
         <ListRow href="/artikel" title={t.info.articles} />

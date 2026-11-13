@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ChevronRight, LocateFixed, MapPin, Stethoscope } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { DemoNotice } from '@/components/demo-notice';
 import { DoctorRow } from '@/components/doctor-card';
 import { ListGroup, ListRow } from '@/components/list';
@@ -38,15 +38,21 @@ export default async function HomePage() {
       <header className="pt-safe px-5">
         <div className="flex h-14 items-center justify-between">
           <span className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-primary-800">
-            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              className="size-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <path d="M3 12h4l3-8 4 16 3-8h4" />
             </svg>
             {t.site.name}
           </span>
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-muted">
-            <MapPin className="size-3.5" aria-hidden="true" />
-            {t.site.region}
-          </span>
+          <span className="text-xs font-medium text-muted">{t.site.region}</span>
         </div>
         <h1 className="mt-4 mb-5 text-3xl leading-[1.1] font-bold tracking-tight">{t.home.heroTitle}</h1>
       </header>
@@ -54,12 +60,10 @@ export default async function HomePage() {
         <SearchForm placeholder={t.home.searchPlaceholder} />
       </div>
       <nav aria-label={t.home.categoriesLabel} className="mt-3 flex gap-5 px-5 text-sm font-semibold">
-        <Link href="/cari?dekat=1" className="inline-flex items-center gap-1.5 text-primary-700 no-underline">
-          <LocateFixed className="size-4" aria-hidden="true" />
+        <Link href="/cari?dekat=1" className="text-primary-700 no-underline">
           {t.home.shortcuts.near}
         </Link>
-        <Link href="/dokter" className="inline-flex items-center gap-1.5 text-primary-700 no-underline">
-          <Stethoscope className="size-4" aria-hidden="true" />
+        <Link href="/dokter" className="text-primary-700 no-underline">
           {t.home.shortcuts.doctors}
         </Link>
       </nav>

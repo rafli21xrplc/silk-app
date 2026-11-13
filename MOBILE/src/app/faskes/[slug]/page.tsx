@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { BadgeCheck, Navigation } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 import { Avatar } from '@/components/avatar';
 import { ContactActions } from '@/components/contact-actions';
 import { DemoNotice } from '@/components/demo-notice';
 import { Empty } from '@/components/empty';
 import { ListGroup, ListRow } from '@/components/list';
+import { HeroPhoto } from '@/components/photo';
 import { PriceValue } from '@/components/price';
 import { NextSession, WeekStrip } from '@/components/schedule';
 import { ShareButton } from '@/components/share-button';
@@ -15,6 +16,7 @@ import { TopBar } from '@/components/top-bar';
 import { TrustNote } from '@/components/trust';
 import { directionsUrl } from '@/lib/contact';
 import { formatDate } from '@/lib/format';
+import { doctorPhoto, facilityPhoto } from '@/lib/photos';
 import { groupHours } from '@/lib/schedule';
 import { getFacility, snapshotDate } from '@/lib/silk/api';
 import { commonVerification } from '@/lib/trust';
@@ -26,7 +28,12 @@ type Params = Promise<{ slug: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const f = await getFacility((await params).slug);
-  return f ? { title: f.data.name, description: `${t.facilityType[f.data.type] ?? ''} · ${f.data.address}` } : {};
+  return f
+    ? {
+        title: f.data.name,
+        description: `${t.facilityType[f.data.type] ?? ''} · ${f.data.address}`,
+      }
+    : {};
 }
 
 export default async function FacilityPage({ params }: { params: Params }) {
@@ -40,6 +47,7 @@ export default async function FacilityPage({ params }: { params: Params }) {
   const hasHours = rawHours.some(Boolean);
   const hours = groupHours(rawHours, t.weekday.slice(1), t.facility.everyDay);
   // Biaya konsultasi faskes ini (tarif kategori konsultasi): menjawab "berapa biayanya" langsung di tab Dokter.
+  const photo = facilityPhoto(f.slug, f.media, f.name);
   const fees = f.tariffs.filter((x) => x.service.categorySlug === 'konsultasi');
   const feeCommon = commonVerification(fees.map((x) => x.trust));
 
@@ -74,7 +82,7 @@ export default async function FacilityPage({ params }: { params: Params }) {
                 marker="facility-doctor"
                 href={`/dokter/${d.slug}`}
                 align="start"
-                leading={<Avatar name={d.name} photoUrl={d.photoUrl} size="sm" />}
+                leading={<Avatar name={d.name} photoUrl={doctorPhoto(d.slug, d.photoUrl, d.name)?.square} size="md" />}
                 title={<span className="font-semibold">{d.name}</span>}
                 sub={
                   <>
@@ -127,7 +135,12 @@ export default async function FacilityPage({ params }: { params: Params }) {
             title={[l.label, l.address].filter(Boolean).join(' · ')}
             sub={`${t.facility.otherLocations} · ${l.city}`}
             trailing={
-              <a href={directionsUrl(l.lat, l.lng)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700">
+              <a
+                href={directionsUrl(l.lat, l.lng)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700"
+              >
                 <Navigation className="size-3.5" aria-hidden="true" />
                 {t.facility.directions}
               </a>
@@ -144,22 +157,30 @@ export default async function FacilityPage({ params }: { params: Params }) {
       <TopBar title={f.name} backHref="/cari" action={<ShareButton title={f.name} />} />
       <DemoNotice show={loaded.source === 'demo'} date={snapshotDate()} />
       {/* Nama dulu; jenis dan wilayah sebagai keterangan teks, bukan tumpukan pil (evaluasi A6). */}
+      {photo && <HeroPhoto photo={photo} className="mx-4 mt-3" />}
       <header className="px-5 pt-5 pb-4">
         <p className="m-0 text-xs font-semibold tracking-wide text-muted uppercase">
           {t.facilityType[f.type] ?? f.type} · {f.city}
         </p>
         <h1 className="m-0 mt-1 text-2xl leading-tight font-bold tracking-tight">{f.name}</h1>
         <p className="m-0 mt-1.5 text-sm text-ink-soft">{f.address}</p>
-        <p className="m-0 mt-1.5 inline-flex items-center gap-1 text-xs text-muted">
-          <BadgeCheck className="size-3.5" aria-hidden="true" />
-          {t.facility.verifiedProfile(t.verification[f.verification] ?? f.verification)}
-        </p>
+        <p className="m-0 mt-1.5 text-xs text-muted">{t.facility.verifiedProfile(t.verification[f.verification] ?? f.verification)}</p>
       </header>
       <ContactActions phone={f.phone} website={f.website} location={point} />
       <Tabs
         tabs={[
-          { id: 'tarif', label: t.facility.tabs.tariffs, count: f.tariffs.length, content: <TariffBrowser tariffs={f.tariffs} /> },
-          { id: 'dokter', label: t.facility.tabs.doctors, count: f.practitioners.length, content: doctorsPanel },
+          {
+            id: 'tarif',
+            label: t.facility.tabs.tariffs,
+            count: f.tariffs.length,
+            content: <TariffBrowser tariffs={f.tariffs} />,
+          },
+          {
+            id: 'dokter',
+            label: t.facility.tabs.doctors,
+            count: f.practitioners.length,
+            content: doctorsPanel,
+          },
           { id: 'info', label: t.facility.tabs.info, content: infoPanel },
         ]}
       />

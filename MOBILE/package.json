@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src scripts",
     "test": "vitest run",
-    "snapshot": "tsx scripts/snapshot.ts"
+    "snapshot": "tsx scripts/snapshot.ts",
+    "photos": "tsx scripts/photos.ts"
   },
   "dependencies": {
     "@silk/shared": "workspace:*",

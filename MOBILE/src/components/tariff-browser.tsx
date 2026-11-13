@@ -33,7 +33,10 @@ export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
   // "Semua": dikelompokkan per kategori (kepala kelompok = kategori, jadi baris tidak perlu ikon).
   const groups = cat
     ? [{ slug: cat, name: categories.find((c) => c.slug === cat)?.name ?? '', items: shown }]
-    : categories.map((c) => ({ ...c, items: tariffs.filter((x) => x.service.categorySlug === c.slug) }));
+    : categories.map((c) => ({
+        ...c,
+        items: tariffs.filter((x) => x.service.categorySlug === c.slug),
+      }));
   return (
     <>
       {categories.length > 1 && (
@@ -71,7 +74,6 @@ export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
               key={x.id}
               marker="tariff"
               onClick={() => setOpen(x)}
-              chevron
               title={x.package?.name ?? x.service.name}
               sub={<TrustNote trust={x.trust} common={common} />}
               trailing={<PriceValue price={x.price} />}
@@ -95,7 +97,11 @@ export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
                 <ul className="m-0 grid list-none gap-1.5 p-0">
                   {open.package.components.map((c) => (
                     <li key={c.label} className="flex items-center gap-2 text-sm">
-                      {c.included ? <Check className="size-4 text-ok" aria-label={t.facility.included} /> : <Minus className="size-4 text-muted" aria-label={t.facility.excluded} />}
+                      {c.included ? (
+                        <Check className="size-4 text-ok" aria-label={t.facility.included} />
+                      ) : (
+                        <Minus className="size-4 text-muted" aria-label={t.facility.excluded} />
+                      )}
                       <span className={c.included ? 'text-ink' : 'text-muted line-through'}>{c.label}</span>
                     </li>
                   ))}

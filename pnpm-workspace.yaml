@@ -1,3 +1,5 @@
 packages:
   - "apps/*"
   - "packages/*"
+  # Versi ponsel (PWA) untuk demo; hanya frontend, membaca API publik SILK.
+  - "MOBILE"

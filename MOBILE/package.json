@@ -1,0 +1,39 @@
+{
+  "name": "@silk/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start -p 3002",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src scripts",
+    "test": "vitest run",
+    "snapshot": "tsx scripts/snapshot.ts"
+  },
+  "dependencies": {
+    "@silk/shared": "workspace:*",
+    "@tailwindcss/postcss": "4.3.3",
+    "@tanstack/react-query": "5.104.5",
+    "clsx": "2.1.1",
+    "lucide-react": "1.66.0",
+    "next": "15.5.28",
+    "postcss": "8.5.32",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
+    "server-only": "0.0.1",
+    "tailwind-merge": "3.7.0",
+    "tailwindcss": "4.3.3",
+    "vaul": "1.1.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@silk/config": "workspace:*",
+    "@types/node": "20.19.43",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "tsx": "4.23.15",
+    "vitest": "3.2.7"
+  }
+}

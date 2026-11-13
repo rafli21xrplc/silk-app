@@ -10,7 +10,7 @@ describe('format', () => {
   it('harga: "tanya" tidak pernah jadi angka', () => {
     expect(priceText({ type: 'tanya', min: null, max: null })).toBe('Tanyakan ke faskes');
     expect(priceText({ type: 'tetap', min: 85000, max: null })).toBe('Rp85.000');
-    expect(priceRangeText(15000, 45000)).toBe('Rp15.000 – Rp45.000');
+    expect(priceRangeText(15000, 45000)).toBe('Rp15.000–Rp45.000');
     expect(priceRangeText(15000, 15000)).toBe('Rp15.000');
     expect(priceRangeText(null, null)).toBeNull();
   });

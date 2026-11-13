@@ -15,7 +15,7 @@ export function SearchForm({ action = '/cari', placeholder, defaultValue, hidden
         aria-label={placeholder}
         enterKeyHint="search"
         autoComplete="off"
-        className="h-12 w-full rounded-2xl border border-line bg-white pr-4 pl-12 text-[0.95rem] text-ink shadow-soft outline-none placeholder:text-muted focus:border-primary-400"
+        className="h-12 w-full rounded-xl border border-line bg-white pr-4 pl-12 text-base text-ink outline-none placeholder:text-muted focus:border-primary-400"
       />
       <button type="submit" className="sr-only">
         {t.search.submit}

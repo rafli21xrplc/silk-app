@@ -44,12 +44,12 @@ export function FacilityFilters({ params, services, categories }: { params: Faci
           setDraft(params);
           setOpen(true);
         }}
-        className="tap inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-3.5 text-sm font-semibold text-ink shadow-soft"
+        className="tap inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-3.5 text-sm font-semibold text-ink"
         data-open-filters
       >
         <SlidersHorizontal className="size-4" aria-hidden="true" />
         {t.search.filters}
-        {count > 0 && <span className="grid size-5 place-items-center rounded-full bg-primary-600 text-[0.7rem] text-white">{count}</span>}
+        {count > 0 && <span className="grid size-5 place-items-center rounded-full bg-primary-600 text-xs text-white">{count}</span>}
       </button>
       <Sheet
         open={open}
@@ -64,7 +64,7 @@ export function FacilityFilters({ params, services, categories }: { params: Faci
             >
               {t.search.reset}
             </button>
-            <button type="button" onClick={() => apply(draft)} className="tap h-12 flex-[2] rounded-full bg-primary-600 font-semibold text-white shadow-soft" data-apply-filters>
+            <button type="button" onClick={() => apply(draft)} className="tap h-12 flex-[2] rounded-full bg-primary-600 font-semibold text-white" data-apply-filters>
               {t.search.apply}
             </button>
           </div>

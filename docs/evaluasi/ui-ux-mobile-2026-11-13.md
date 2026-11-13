@@ -193,3 +193,34 @@ Verifikasi: tangkapan ulang 8 layar dan ukur lagi tabel §1. Target:
    - USP meminta angka biaya "diberi keterangan sebagai perkiraan" (`docs/usp-silk.md`). Usulan ini tetap memenuhinya: keterangan selalu terlihat di kepala kelompok pada layar yang sama, dan sheet detail tetap memuat sumber dan tingkat verifikasi lengkap.
    - Bila pemilik ingin keterangan tetap di setiap baris, cukup dibuat lebih ringan: teks kecil "perkiraan", bukan pil.
 2. **Format ringkas "Rp15–45 rb"** hanya di daftar ringkasan (beranda, katalog). Di profil faskes dan daftar banding, harga tetap ditulis penuh.
+
+## 8. Status penerapan (13 November 2026)
+
+Diterapkan atas permintaan pemilik ("detail dokter lebih baik, dan layout lain"). Keputusan §7 memakai rekomendasi:
+label perkiraan dan sumber per kelompok, format ringkas hanya di daftar ringkasan.
+
+**Detail dokter dan kartu dokter**
+- Header: nama, spesialisasi, lalu kredensial sebagai teks (STR, mitra, wilayah), bukan pil.
+- Strip fakta 3 kolom: biaya konsultasi, jadwal terdekat ("Hari ini", "Besok", "Sekarang, sampai 20.00"), jumlah tempat praktik.
+- "Jadwal" dan "Tempat praktik" digabung per lokasi; baris hari ini disorot; strip pekan S S R K J S M.
+- Kartu dokter di tab Dokter profil faskes: strip pekan + jadwal terdekat di faskes itu; di atasnya biaya konsultasi faskes.
+- "Hari ini" dihitung di peramban (zona Asia/Jakarta) agar benar walau halaman di-cache.
+
+**Layout lain**
+- Komponen `ListGroup`/`ListRow`: daftar tarif, katalog, banding, hasil cari, daftar dokter, beranda, Info.
+- Harga rata kanan; "Perkiraan" dan sumber terbanyak sekali di kepala daftar; baris hanya menandai yang berbeda.
+- Beranda versi alat; "Cara membaca angka" pindah ke Info. Tab bergaris bawah; chip aktif berwarna tinta.
+- Detail layanan: batang sebaran harga per wilayah (nilai tengah ditebalkan) dan garis relatif per faskes.
+- Jam buka yang sama digabung ("Setiap hari 24 jam", "Senin–Jumat").
+- Kotak ikon, gradien, dan `section.tsx`/`service-icon.tsx` dihapus; semua ukuran huruf bebas diganti skala Tailwind.
+- Temuan kecil C1–C4 selesai (C5, bahasa teknis di Info, belum).
+
+| Layar | Tinggi sebelum → sesudah (px) | Ukuran huruf | Kotak ikon | Pil |
+| --- | --- | --- | --- | --- |
+| Beranda | 1.863 → 1.575 | 13 → 5 | 17 → 0 | 18 → 10 |
+| Cari `?service=hemoglobin` | 4.058 → 2.348 | 9 → 4 | 0 → 0 | 68 → 17 |
+| Profil RS Kepanjen | 3.556 → 2.441 | 9 → 4 | 22 → 0 | 59 → 9 |
+| Daftar dokter | 2.205 → 1.255 | 9 → 4 | 0 → 0 | 30 → 17 |
+| Katalog layanan | 3.479 → 2.724 | 7 → 4 | 32 → 0 | 8 → 8 |
+
+Gradien di semua layar: 0. Uji: 350 lolos (termasuk jadwal terdekat, gabung jam buka, penanda kepercayaan, format rentang).

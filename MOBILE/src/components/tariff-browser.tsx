@@ -2,19 +2,21 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Check, ChevronRight, Minus, Scale } from 'lucide-react';
+import { Check, Minus, Scale } from 'lucide-react';
 import type { PublicTariff } from '@silk/shared';
 import { cn } from '@/lib/cn';
 import { t } from '@/messages/id';
 import { Empty } from './empty';
-import { PriceTag } from './price';
-import { serviceIcon, categoryTone, IconTile } from './service-icon';
+import { commonVerification } from '@/lib/trust';
+import { ListGroup, ListRow } from './list';
+import { PriceTag, PriceValue } from './price';
 import { Sheet } from './sheet';
-import { TrustDetail, TrustLine } from './trust';
+import { TrustDetail, TrustNote } from './trust';
 
 /**
- * Daftar tarif satu profil: saring per kategori (evaluasi UI/UX C4), ketuk untuk rincian
- * (sumber, tanggal, verifikasi, isi paket) dalam lembar bawah.
+ * Daftar tarif satu profil seperti papan tarif: dikelompokkan per kategori, harga rata kanan.
+ * "Perkiraan" dan sumber terbanyak disebut sekali di atas; baris hanya menandai yang berbeda.
+ * Ketuk baris untuk rincian lengkap (sumber, tanggal, verifikasi, isi paket) dalam lembar bawah.
  */
 export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
   const categories = useMemo(() => {
@@ -27,10 +29,15 @@ export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
   const shown = cat ? tariffs.filter((x) => x.service.categorySlug === cat) : tariffs;
 
   if (tariffs.length === 0) return <Empty text={t.facility.noTariffs} />;
+  const common = commonVerification(tariffs.map((x) => x.trust));
+  // "Semua": dikelompokkan per kategori (kepala kelompok = kategori, jadi baris tidak perlu ikon).
+  const groups = cat
+    ? [{ slug: cat, name: categories.find((c) => c.slug === cat)?.name ?? '', items: shown }]
+    : categories.map((c) => ({ ...c, items: tariffs.filter((x) => x.service.categorySlug === c.slug) }));
   return (
     <>
       {categories.length > 1 && (
-        <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3" role="group" aria-label={t.search.category}>
+        <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label={t.search.category}>
           {[{ slug: '', name: t.facility.allCategories }, ...categories].map((c) => (
             <button
               key={c.slug || 'semua'}
@@ -38,8 +45,8 @@ export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
               aria-pressed={cat === c.slug}
               onClick={() => setCat(c.slug)}
               className={cn(
-                'tap h-9 shrink-0 rounded-full border px-3.5 text-[0.8rem] font-semibold',
-                cat === c.slug ? 'border-primary-600 bg-primary-600 text-white' : 'border-line bg-white text-ink-soft',
+                'h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium transition-colors',
+                cat === c.slug ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink-soft active:bg-surface',
               )}
             >
               {c.name}
@@ -47,35 +54,40 @@ export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
           ))}
         </div>
       )}
-      <ul className="m-0 grid list-none gap-2.5 px-4">
-        {shown.map((x) => (
-          <li key={x.id}>
-            <button
-              type="button"
+      <p className="m-0 px-5 pt-3 text-xs text-muted" data-estimate-note>
+        {t.price.groupNote(common ? (t.verification[common] ?? null) : null)}
+      </p>
+      {groups.map((g, i) => (
+        <ListGroup
+          key={g.slug}
+          id={`tarif-${g.slug}`}
+          level={3}
+          title={groups.length > 1 ? g.name : undefined}
+          aside={groups.length > 1 ? <span className="text-xs text-muted">{g.items.length}</span> : undefined}
+          className={i === 0 ? 'mt-3' : 'mt-5'}
+        >
+          {g.items.map((x) => (
+            <ListRow
+              key={x.id}
+              marker="tariff"
               onClick={() => setOpen(x)}
-              className="tap flex w-full items-start gap-3 rounded-2xl border border-line/70 bg-white p-3.5 text-left shadow-soft"
-              data-tariff
-            >
-              <IconTile icon={serviceIcon(x.service.slug)} tone={categoryTone(x.service.categorySlug)} size="sm" />
-              <span className="grid min-w-0 flex-1 gap-1">
-                <span className="text-sm leading-snug font-semibold">{x.package?.name ?? x.service.name}</span>
-                <PriceTag price={x.price} size="sm" />
-                <TrustLine trust={x.trust} />
-              </span>
-              <ChevronRight className="mt-1 size-5 shrink-0 text-muted" aria-hidden="true" />
-            </button>
-          </li>
-        ))}
-      </ul>
+              chevron
+              title={x.package?.name ?? x.service.name}
+              sub={<TrustNote trust={x.trust} common={common} />}
+              trailing={<PriceValue price={x.price} />}
+            />
+          ))}
+        </ListGroup>
+      ))}
 
       <Sheet open={open !== null} onOpenChange={(o) => !o && setOpen(null)} title={t.facility.tariffDetail}>
         {open && (
           <div className="grid gap-5">
             <div>
-              <p className="m-0 text-[0.8rem] font-semibold text-muted">{open.service.category}</p>
-              <p className="m-0 mb-2 text-lg leading-snug font-bold">{open.package?.name ?? open.service.name}</p>
+              <p className="m-0 text-xs font-semibold tracking-wide text-muted uppercase">{open.service.category}</p>
+              <p className="m-0 mb-2 text-xl leading-snug font-bold">{open.package?.name ?? open.service.name}</p>
               <PriceTag price={open.price} size="lg" />
-              <p className="m-0 mt-2 text-[0.8rem] text-muted">{t.price.estimateHelp}</p>
+              <p className="m-0 mt-2 text-sm text-muted">{t.price.estimateHelp}</p>
             </div>
             {open.package && open.package.components.length > 0 && (
               <div>
@@ -88,7 +100,7 @@ export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
                     </li>
                   ))}
                 </ul>
-                {open.package.notes && <p className="m-0 mt-2 text-[0.8rem] text-muted">{open.package.notes}</p>}
+                {open.package.notes && <p className="m-0 mt-2 text-sm text-muted">{open.package.notes}</p>}
               </div>
             )}
             {(open.inclusions || open.exclusions) && (
@@ -107,13 +119,13 @@ export function TariffBrowser({ tariffs }: { tariffs: PublicTariff[] }) {
                 )}
               </dl>
             )}
-            <div className="rounded-2xl bg-surface/70 p-4">
+            <div className="rounded-2xl bg-surface p-4">
               <p className="m-0 mb-3 text-sm font-bold">{t.facility.trustTitle}</p>
               <TrustDetail trust={open.trust} />
             </div>
             <Link
               href={`/layanan/${open.service.slug}`}
-              className="tap inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary-600 font-semibold text-white no-underline shadow-soft"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary-600 font-semibold text-white no-underline active:bg-primary-700"
             >
               <Scale className="size-4" aria-hidden="true" />
               {t.facility.compareThis}

@@ -26,13 +26,13 @@ export default async function ArticlePage({ params }: { params: Params }) {
       <TopBar title={t.articles.title} backHref="/artikel" action={<ShareButton title={a.title} />} />
       <DemoNotice show={loaded.source === 'demo'} date={snapshotDate()} />
       <article className="px-4 pt-5">
-        <h1 className="m-0 text-[1.45rem] leading-tight font-extrabold tracking-tight">{a.title}</h1>
-        <p className="m-0 mt-2 text-[0.8rem] text-muted">
+        <h1 className="m-0 text-2xl leading-tight font-extrabold tracking-tight">{a.title}</h1>
+        <p className="m-0 mt-2 text-sm text-muted">
           {t.articles.by(a.author.name)} · {formatDate(a.publishedAt)} · {t.articles.minutes(a.readingMinutes)}
         </p>
         <p className="m-0 mt-4 mb-4 text-base font-medium text-ink">{a.description}</p>
         <ArticleBody blocks={a.body} />
-        <p className="m-0 mt-6 rounded-xl bg-surface px-3.5 py-2.5 text-[0.78rem] text-muted">{t.articles.note}</p>
+        <p className="m-0 mt-6 rounded-xl bg-surface px-3.5 py-2.5 text-xs text-muted">{t.articles.note}</p>
       </article>
     </>
   );

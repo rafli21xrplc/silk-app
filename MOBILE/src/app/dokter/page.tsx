@@ -24,8 +24,7 @@ export default async function DoctorsPage({ searchParams }: { searchParams: Sear
   return (
     <>
       <header className="pt-safe px-4 pb-3">
-        <h1 className="m-0 pt-4 text-xl font-extrabold tracking-tight">{t.doctors.title}</h1>
-        <p className="m-0 mt-1 mb-3 text-[0.82rem] text-muted">{t.doctors.intro}</p>
+        <h1 className="m-0 px-1 pt-5 pb-4 text-2xl font-bold tracking-tight">{t.doctors.title}</h1>
         <SearchForm action="/dokter" placeholder={t.doctors.placeholder} defaultValue={p.q} hidden={{ specialty: p.specialty }} />
       </header>
       <div className="sticky top-0 z-20 grid gap-2 border-b border-line/60 bg-canvas/95 py-2.5 backdrop-blur">

@@ -19,7 +19,7 @@ function Spans({ block }: { block: Block }) {
 /** Isi artikel dari blok terstruktur (bukan HTML mentah): aman dari injeksi. */
 export function ArticleBody({ blocks }: { blocks: Block[] }) {
   return (
-    <div className="grid gap-3 text-[0.95rem] leading-relaxed text-ink-soft">
+    <div className="grid gap-3 text-base leading-relaxed text-ink-soft">
       {groupArticleBlocks(blocks).map((n, i) => {
         if (n.kind === 'list') {
           const List = n.ordered ? 'ol' : 'ul';

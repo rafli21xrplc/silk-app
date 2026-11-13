@@ -60,7 +60,7 @@ export function NearMe({ active }: { active: boolean }) {
         onClick={active ? clear : locate}
         aria-pressed={active}
         className={cn(
-          'tap inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold shadow-soft',
+          'tap inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold',
           active ? 'border-primary-300 bg-primary-50 text-primary-800' : 'border-line bg-white text-ink',
         )}
       >
@@ -69,7 +69,7 @@ export function NearMe({ active }: { active: boolean }) {
         {active && <X className="size-3.5" aria-hidden="true" />}
       </button>
       {state === 'denied' && (
-        <p role="alert" className="m-0 w-full text-[0.75rem] text-warn">
+        <p role="alert" className="m-0 w-full text-xs text-warn">
           {t.search.geoDenied}
         </p>
       )}

@@ -11,7 +11,7 @@ export default function NotFound() {
         </span>
         <h1 className="m-0 text-xl font-bold">{t.common.notFoundTitle}</h1>
         <p className="m-0 max-w-xs text-sm text-muted">{t.common.notFoundBody}</p>
-        <Link href="/" className="tap mt-2 inline-flex h-12 items-center rounded-full bg-primary-600 px-6 font-semibold text-white no-underline shadow-soft">
+        <Link href="/" className="tap mt-2 inline-flex h-12 items-center rounded-full bg-primary-600 px-6 font-semibold text-white no-underline">
           {t.common.backHome}
         </Link>
       </div>

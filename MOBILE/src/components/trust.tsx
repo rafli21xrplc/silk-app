@@ -1,7 +1,8 @@
-import { AlertTriangle, BadgeCheck, CalendarDays, FileText } from 'lucide-react';
+import { BadgeCheck, CalendarDays, FileText } from 'lucide-react';
 import type { Trust } from '@silk/shared';
 import { cn } from '@/lib/cn';
 import { formatDate, formatShortDate } from '@/lib/format';
+import { trustFlags } from '@/lib/trust';
 import { t } from '@/messages/id';
 
 const TONE: Record<string, string> = {
@@ -13,25 +14,9 @@ const TONE: Record<string, string> = {
 
 export function VerificationBadge({ level, className }: { level: string; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold', TONE[level] ?? TONE.publik_belum_diverifikasi, className)}>
+    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold', TONE[level] ?? TONE.publik_belum_diverifikasi, className)}>
       <BadgeCheck className="size-3" aria-hidden="true" />
       {t.verification[level] ?? level}
-    </span>
-  );
-}
-
-/** Konteks kepercayaan satu baris: verifikasi, berlaku sejak, dan penanda tarif lama. */
-export function TrustLine({ trust }: { trust: Trust }) {
-  return (
-    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.75rem] text-muted">
-      <VerificationBadge level={trust.verification} />
-      <span>{`${t.trust.effectiveFrom} ${formatShortDate(trust.effectiveFrom)}`}</span>
-      {trust.stale && (
-        <span className="inline-flex items-center gap-1 font-semibold text-warn">
-          <AlertTriangle className="size-3" aria-hidden="true" />
-          {t.trust.stale}
-        </span>
-      )}
     </span>
   );
 }
@@ -65,5 +50,45 @@ export function TrustDetail({ trust }: { trust: Trust }) {
       </dl>
       {trust.stale && <p className="m-0 rounded-xl bg-warn-soft px-3 py-2 text-sm text-warn">{t.trust.staleHelp}</p>}
     </div>
+  );
+}
+
+const DOT: Record<string, string> = {
+  diverifikasi_admin: 'bg-ok text-ok',
+  dari_dokumen_publik: 'bg-sky-ink text-sky-ink',
+  diisi_faskes: 'bg-violet text-violet',
+  publik_belum_diverifikasi: 'bg-muted text-muted',
+};
+
+function Flag({ tone, children }: { tone: string; children: React.ReactNode }) {
+  const [dot, text] = tone.split(' ');
+  return (
+    <span className={cn('inline-flex items-center gap-1', text)}>
+      <span className={cn('size-1.5 rounded-full', dot)} aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Keterangan kecil di bawah nama tarif: tanggal berlaku, lalu hanya yang berbeda dari kepala daftar
+ * (tingkat verifikasi lain, tarif lama). Rincian lengkap tetap di lembar detail.
+ */
+export function TrustNote({
+  trust,
+  common,
+  showDate = true,
+}: {
+  trust: Pick<Trust, 'effectiveFrom' | 'stale'> & { verification: string };
+  common: string | null;
+  showDate?: boolean;
+}) {
+  const flags = trustFlags(trust, common);
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      {showDate && <span>{t.trust.since(formatShortDate(trust.effectiveFrom))}</span>}
+      {flags.includes('verification') && <Flag tone={DOT[trust.verification] ?? DOT.publik_belum_diverifikasi!}>{t.verification[trust.verification] ?? trust.verification}</Flag>}
+      {flags.includes('stale') && <Flag tone="bg-warn text-warn">{t.trust.stale}</Flag>}
+    </span>
   );
 }

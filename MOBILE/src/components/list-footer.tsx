@@ -13,7 +13,7 @@ export function ListFooter(props: {
   count: number;
 }) {
   return (
-    <div className="px-4 py-5 text-center text-[0.8rem] text-muted">
+    <div className="px-4 py-5 text-center text-sm text-muted">
       <div ref={props.sentinel} aria-hidden="true" />
       {props.isFetchingNextPage ? (
         <span className="inline-flex items-center gap-2" role="status">
@@ -23,12 +23,12 @@ export function ListFooter(props: {
       ) : props.isError ? (
         <span className="grid justify-items-center gap-2" role="alert">
           {t.common.error}
-          <button type="button" onClick={props.onMore} className="tap rounded-full bg-white px-4 py-2 font-semibold text-primary-700 shadow-soft">
+          <button type="button" onClick={props.onMore} className="tap rounded-full bg-white px-4 py-2 font-semibold text-primary-700">
             {t.common.retry}
           </button>
         </span>
       ) : props.hasNextPage ? (
-        <button type="button" onClick={props.onMore} className="tap rounded-full bg-white px-4 py-2 font-semibold text-primary-700 shadow-soft">
+        <button type="button" onClick={props.onMore} className="tap rounded-full bg-white px-4 py-2 font-semibold text-primary-700">
           {t.common.loadMore}
         </button>
       ) : props.count > 0 ? (

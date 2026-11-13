@@ -19,18 +19,18 @@ export default async function ArticlesPage() {
     <>
       <TopBar title={t.articles.title} backHref="/info" />
       <DemoNotice show={articles.source === 'demo'} date={snapshotDate()} />
-      <p className="m-0 px-4 pt-4 pb-3 text-[0.85rem] text-muted">{t.articles.intro}</p>
+      <p className="m-0 px-4 pt-4 pb-3 text-sm text-muted">{t.articles.intro}</p>
       {articles.data.length === 0 ? (
         <Empty text={t.articles.none} />
       ) : (
         <ul className="m-0 grid list-none gap-2.5 px-4">
           {articles.data.map((a) => (
             <li key={a.slug}>
-              <Link href={`/artikel/${a.slug}`} className="tap flex items-center gap-3 rounded-2xl border border-line/70 bg-white p-4 text-ink no-underline shadow-soft">
+              <Link href={`/artikel/${a.slug}`} className="tap flex items-center gap-3 rounded-2xl border border-line/70 bg-white p-4 text-ink no-underline">
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold leading-snug">{a.title}</span>
-                  <span className="mt-1 line-clamp-2 block text-[0.82rem] text-ink-soft">{a.description}</span>
-                  <span className="mt-1.5 block text-[0.72rem] text-muted">
+                  <span className="mt-1 line-clamp-2 block text-sm text-ink-soft">{a.description}</span>
+                  <span className="mt-1.5 block text-xs text-muted">
                     {t.articles.by(a.author.name)} · {t.articles.minutes(a.readingMinutes)} · {formatShortDate(a.publishedAt)}
                   </span>
                 </span>

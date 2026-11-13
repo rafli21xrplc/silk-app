@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { Info } from 'lucide-react';
 import { DemoNotice } from '@/components/demo-notice';
 import { FacilityFilters } from '@/components/facility-filters';
 import { FacilityResults } from '@/components/facility-results';
@@ -30,7 +29,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   return (
     <>
       <header className="pt-safe sticky top-0 z-30 border-b border-line/60 bg-canvas/95 px-4 pb-3 backdrop-blur">
-        <h1 className="m-0 pt-4 pb-3 text-xl leading-tight font-extrabold tracking-tight">{heading}</h1>
+        <h1 className="m-0 px-1 pt-4 pb-3 text-xl leading-tight font-bold tracking-tight">{heading}</h1>
         <SearchForm placeholder={t.search.placeholder} defaultValue={matched ? raw.q : p.q} hidden={{ city: p.city, type: p.type }} />
         <div className="no-scrollbar -mx-4 mt-3 flex flex-wrap items-center gap-2 px-4">
           <FacilityFilters
@@ -47,11 +46,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
       <DemoNotice show={anyDemo(services, categories, first)} date={snapshotDate()} />
 
       {matched && (
-        <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-2xl bg-primary-50 px-3.5 py-3 text-[0.82rem] text-primary-900" data-matched-service>
-          <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <div className="mx-5 mt-3 text-sm text-ink-soft" data-matched-service>
           <span>
             {t.search.matchedService(matched.name)}{' '}
-            <Link href={`/cari?${toQueryString({ q: raw.q, teks: '1' })}`} className="font-semibold text-primary-700 underline">
+            <Link href={`/cari?${toQueryString({ q: raw.q, teks: '1' })}`} className="font-semibold text-primary-700">
               {t.search.searchAsText(raw.q ?? '')}
             </Link>
           </span>

@@ -2,8 +2,9 @@
 
 import { doctorPageSchema, type DoctorPage } from '@/lib/pages';
 import { t } from '@/messages/id';
-import { DoctorCard } from './doctor-card';
+import { DoctorRow } from './doctor-card';
 import { Empty } from './empty';
+import { ListBox } from './list';
 import { ListFooter } from './list-footer';
 import { useInfiniteList } from './use-infinite-list';
 
@@ -12,16 +13,14 @@ export function DoctorResults({ query, initial }: { query: string; initial: Doct
   if (list.items.length === 0) return <Empty text={t.doctors.none} />;
   return (
     <>
-      <p className="m-0 px-4 pb-2 text-[0.8rem] font-semibold text-muted" aria-live="polite">
+      <p className="m-0 px-5 pb-2 text-xs font-medium text-muted" aria-live="polite">
         {t.doctors.results(list.items.length, list.hasNextPage)}
       </p>
-      <ul className="m-0 grid list-none gap-3 px-4">
+      <ListBox>
         {list.items.map((d) => (
-          <li key={d.slug} className="animate-rise">
-            <DoctorCard doctor={d} />
-          </li>
+          <DoctorRow key={d.slug} doctor={d} />
         ))}
-      </ul>
+      </ListBox>
       <ListFooter
         sentinel={list.sentinel}
         hasNextPage={list.hasNextPage}

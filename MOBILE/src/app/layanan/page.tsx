@@ -41,9 +41,8 @@ export default async function ServicesPage({ searchParams }: { searchParams: Sea
 
   return (
     <>
-      <header className="pt-safe px-4 pb-1">
-        <h1 className="m-0 pt-4 text-xl font-extrabold tracking-tight">{t.services.title}</h1>
-        <p className="m-0 mt-1 text-[0.82rem] text-muted">{t.services.intro}</p>
+      <header className="pt-safe px-5">
+        <h1 className="m-0 pt-5 pb-1 text-2xl font-bold tracking-tight">{t.services.title}</h1>
       </header>
       <DemoNotice show={anyDemo(services, categories, ...details)} date={snapshotDate()} />
       <ServiceCatalog items={items} categories={cats.map((c) => ({ slug: c.slug, name: c.name }))} initialCategory={typeof kategori === 'string' ? kategori : ''} />

@@ -1,14 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ChevronRight, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { priceRangeText } from '@/lib/format';
+import { priceRangeShort } from '@/lib/format';
 import { normalizeTerm } from '@/lib/search';
 import { t } from '@/messages/id';
 import { Empty } from './empty';
-import { categoryTone, IconTile, serviceIcon } from './service-icon';
+import { ListGroup, ListRow } from './list';
 
 export interface CatalogItem {
   slug: string;
@@ -32,10 +31,15 @@ export function ServiceCatalog({ items, categories, initialCategory }: { items: 
       ),
     [items, cat, term],
   );
+  // Tanpa saringan: dikelompokkan per kategori (urutan dari server). Dengan saringan/kata kunci: satu daftar.
+  const groups =
+    cat || term
+      ? [{ slug: '', name: '', items: shown }]
+      : categories.map((c) => ({ ...c, items: shown.filter((s) => s.category.slug === c.slug) })).filter((g) => g.items.length > 0);
 
   return (
     <>
-      <div className="sticky top-0 z-20 grid gap-2.5 border-b border-line/60 bg-canvas/95 px-4 py-3 backdrop-blur">
+      <div className="pt-safe sticky top-0 z-20 grid gap-2.5 border-b border-line/60 bg-canvas/95 px-4 py-3 backdrop-blur">
         <label className="relative block">
           <span className="sr-only">{t.services.searchPlaceholder}</span>
           <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted" aria-hidden="true" />
@@ -45,7 +49,7 @@ export function ServiceCatalog({ items, categories, initialCategory }: { items: 
             onChange={(e) => setQ(e.target.value)}
             placeholder={t.services.searchPlaceholder}
             enterKeyHint="search"
-            className="h-12 w-full rounded-2xl border border-line bg-white pr-4 pl-12 text-[0.95rem] shadow-soft outline-none placeholder:text-muted focus:border-primary-400"
+            className="h-12 w-full rounded-xl border border-line bg-white pr-4 pl-12 text-base outline-none placeholder:text-muted focus:border-primary-400"
           />
         </label>
         <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4" role="group" aria-label={t.search.category}>
@@ -56,8 +60,8 @@ export function ServiceCatalog({ items, categories, initialCategory }: { items: 
               aria-pressed={cat === c.slug}
               onClick={() => setCat(c.slug)}
               className={cn(
-                'tap h-9 shrink-0 rounded-full border px-3.5 text-[0.8rem] font-semibold',
-                cat === c.slug ? 'border-primary-600 bg-primary-600 text-white' : 'border-line bg-white text-ink-soft',
+                'h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium transition-colors',
+                cat === c.slug ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink-soft active:bg-surface',
               )}
             >
               {c.name}
@@ -70,31 +74,33 @@ export function ServiceCatalog({ items, categories, initialCategory }: { items: 
           <Empty text={t.services.none} />
         </div>
       ) : (
-        <ul className="m-0 grid list-none gap-2.5 px-4 pt-4">
-          {shown.map((s) => {
-            const range = priceRangeText(s.minPrice, s.maxPrice);
-            return (
-              <li key={s.slug}>
-                <Link href={`/layanan/${s.slug}`} className="tap flex items-center gap-3 rounded-2xl border border-line/70 bg-white p-3.5 text-ink no-underline shadow-soft" data-service>
-                  <IconTile icon={serviceIcon(s.slug)} tone={categoryTone(s.category.slug)} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm leading-snug font-semibold">{s.name}</span>
-                    {range ? (
-                      <span className="block text-[0.85rem] font-bold tabular-nums">{range}</span>
-                    ) : (
-                      <span className="block text-[0.8rem] text-muted">{t.services.noPrice}</span>
-                    )}
-                    <span className="block text-[0.72rem] text-muted">
-                      {s.category.name}
-                      {s.facilityCount > 0 && ` · ${t.services.facilities(s.facilityCount)}`}
-                    </span>
-                  </span>
-                  <ChevronRight className="size-5 shrink-0 text-muted" aria-hidden="true" />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        groups.map((g, i) => (
+          <ListGroup
+            key={g.slug || 'hasil'}
+            id={`kategori-${g.slug || 'hasil'}`}
+            level={3}
+            title={g.name || undefined}
+            aside={g.name ? <span className="text-xs text-muted">{g.items.length}</span> : undefined}
+            className={i === 0 ? 'mt-4' : 'mt-6'}
+          >
+            {g.items.map((s) => {
+              const range = priceRangeShort(s.minPrice, s.maxPrice);
+              return (
+                <ListRow
+                  key={s.slug}
+                  marker="service"
+                  href={`/layanan/${s.slug}`}
+                  chevron={false}
+                  title={s.name}
+                  sub={s.facilityCount > 0 ? t.services.facilities(s.facilityCount) : undefined}
+                  trailing={
+                    range ? <span className="text-base font-semibold tabular-nums">{range}</span> : <span className="text-sm text-muted">{t.services.noPriceShort}</span>
+                  }
+                />
+              );
+            })}
+          </ListGroup>
+        ))
       )}
     </>
   );

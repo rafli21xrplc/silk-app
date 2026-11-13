@@ -11,7 +11,7 @@ export function PriceTag({ price, size = 'md', className }: { price: Price; size
       <span
         className={cn(
           'font-bold tracking-tight tabular-nums',
-          ask ? 'text-[0.95rem] font-semibold text-muted' : size === 'lg' ? 'text-2xl text-ink' : size === 'sm' ? 'text-base text-ink' : 'text-lg text-ink',
+          ask ? 'text-base font-semibold text-muted' : size === 'lg' ? 'text-2xl text-ink' : size === 'sm' ? 'text-base text-ink' : 'text-lg text-ink',
         )}
       >
         {priceText(price)}
@@ -22,5 +22,14 @@ export function PriceTag({ price, size = 'md', className }: { price: Price; size
 }
 
 export function EstimateChip() {
-  return <span className="rounded-full border border-line bg-white px-2 py-0.5 text-[0.7rem] font-semibold text-ink-soft">{t.price.estimate}</span>;
+  return <span className="rounded-full border border-line bg-white px-2 py-0.5 text-xs font-semibold text-ink-soft">{t.price.estimate}</span>;
+}
+
+/** Harga untuk kolom kanan daftar: angka tabular; "tanya" jadi teks pendek. Label perkiraan ada di kepala daftar. */
+export function PriceValue({ price, className }: { price: Price; className?: string }) {
+  const ask = price.type === 'tanya' || price.min === null;
+  const text = ask ? t.price.askShort : priceText(price);
+  // Rentang panjang ("Rp15.000–Rp18.000") sedikit diperkecil agar nama di kiri tidak terlipat.
+  const size = ask || text.length > 12 ? 'text-sm' : 'text-base';
+  return <span className={cn('tabular-nums', size, ask ? 'text-muted' : 'font-semibold text-ink', className)}>{text}</span>;
 }

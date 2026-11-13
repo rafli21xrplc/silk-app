@@ -19,7 +19,7 @@ export function DoctorVideo({ video, name, posterUrl }: { video: Video; name: st
             <source src={video.url} type={video.mime} />
           </video>
         ) : (
-          <button type="button" onClick={() => setPlaying(true)} aria-label={t.doctors.playVideo(name)} className="group grid size-full place-items-center bg-gradient-to-br from-primary-700 to-primary-900">
+          <button type="button" onClick={() => setPlaying(true)} aria-label={t.doctors.playVideo(name)} className="group grid size-full place-items-center bg-primary-800">
             <span className="absolute inset-0 grid place-items-center opacity-30">
               <Avatar name={name} photoUrl={posterUrl} size="lg" className="size-32 text-4xl" />
             </span>
@@ -32,7 +32,7 @@ export function DoctorVideo({ video, name, posterUrl }: { video: Video; name: st
           </button>
         )}
       </div>
-      <figcaption className="mt-1.5 text-[0.75rem] text-muted">{video.caption ?? t.doctors.videoNote}</figcaption>
+      <figcaption className="mt-1.5 text-xs text-muted">{video.caption ?? t.doctors.videoNote}</figcaption>
     </figure>
   );
 }

@@ -1,20 +1,23 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Clock, MapPin, Navigation } from 'lucide-react';
+import { BadgeCheck, Navigation } from 'lucide-react';
 import { Avatar } from '@/components/avatar';
 import { ContactActions } from '@/components/contact-actions';
 import { DemoNotice } from '@/components/demo-notice';
 import { Empty } from '@/components/empty';
+import { ListGroup, ListRow } from '@/components/list';
+import { PriceValue } from '@/components/price';
+import { NextSession, WeekStrip } from '@/components/schedule';
 import { ShareButton } from '@/components/share-button';
 import { Tabs } from '@/components/tabs';
 import { TariffBrowser } from '@/components/tariff-browser';
 import { TopBar } from '@/components/top-bar';
-import { VerificationBadge } from '@/components/trust';
+import { TrustNote } from '@/components/trust';
 import { directionsUrl } from '@/lib/contact';
 import { formatDate } from '@/lib/format';
-import { groupByWeekday } from '@/lib/schedule';
+import { groupHours } from '@/lib/schedule';
 import { getFacility, snapshotDate } from '@/lib/silk/api';
+import { commonVerification } from '@/lib/trust';
 import { t } from '@/messages/id';
 
 export const revalidate = 300;
@@ -33,126 +36,129 @@ export default async function FacilityPage({ params }: { params: Params }) {
   const primary = f.locations.find((l) => l.isPrimary) ?? null;
   const point = primary ? { lat: primary.lat, lng: primary.lng } : f.location;
   const others = f.locations.filter((l) => !l.isPrimary);
-  const hours = t.facility.hoursDays.map((day, i) => ({ day: t.weekday[i + 1]!, value: f.hours?.[day] ?? null }));
-  const hasHours = hours.some((h) => h.value);
+  const rawHours = t.facility.hoursDays.map((day) => f.hours?.[day] ?? null);
+  const hasHours = rawHours.some(Boolean);
+  const hours = groupHours(rawHours, t.weekday.slice(1), t.facility.everyDay);
+  // Biaya konsultasi faskes ini (tarif kategori konsultasi): menjawab "berapa biayanya" langsung di tab Dokter.
+  const fees = f.tariffs.filter((x) => x.service.categorySlug === 'konsultasi');
+  const feeCommon = commonVerification(fees.map((x) => x.trust));
 
   const doctorsPanel =
     f.practitioners.length === 0 ? (
       <Empty text={t.facility.noDoctors} />
     ) : (
-      <ul className="m-0 grid list-none gap-2.5 px-4">
-        {f.practitioners.map((d) => {
-          const days = groupByWeekday(f.schedules.filter((s) => s.practitioner?.slug === d.slug));
-          return (
-            <li key={d.slug}>
-              <Link href={`/dokter/${d.slug}`} className="tap flex items-start gap-3 rounded-2xl border border-line/70 bg-white p-3.5 text-ink no-underline shadow-soft">
-                <Avatar name={d.name} photoUrl={d.photoUrl} size="sm" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold">{d.name}</span>
-                  {d.specialty && <span className="block text-[0.8rem] text-ink-soft">{d.specialty}</span>}
-                  {days.length > 0 && (
-                    <span className="mt-1.5 grid gap-0.5 text-[0.75rem] text-muted">
-                      {days.map((x) => (
-                        <span key={x.weekday}>
-                          <span className="font-semibold text-ink-soft">{t.weekday[x.weekday]}</span> {x.times.join(', ')}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                </span>
-                <ChevronRight className="mt-2 size-5 shrink-0 text-muted" aria-hidden="true" />
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <>
+        {fees.length > 0 && (
+          <ListGroup
+            id="biaya-konsultasi"
+            title={t.facility.feesHere}
+            className="mt-0"
+            note={`${t.price.groupNote(feeCommon ? (t.verification[feeCommon] ?? null) : null)} ${t.facility.feesHereNote}`}
+          >
+            {fees.map((x) => (
+              <ListRow
+                key={x.id}
+                title={x.package?.name ?? x.service.name}
+                sub={<TrustNote trust={x.trust} common={feeCommon} />}
+                trailing={<PriceValue price={x.price} />}
+              />
+            ))}
+          </ListGroup>
+        )}
+        <ListGroup id="dokter-di-sini" title={t.facility.doctorsHere} className={fees.length > 0 ? 'mt-7' : 'mt-0'}>
+          {f.practitioners.map((d) => {
+            const slots = f.schedules.filter((s) => s.practitioner?.slug === d.slug);
+            return (
+              <ListRow
+                key={d.slug}
+                marker="facility-doctor"
+                href={`/dokter/${d.slug}`}
+                align="start"
+                leading={<Avatar name={d.name} photoUrl={d.photoUrl} size="sm" />}
+                title={<span className="font-semibold">{d.name}</span>}
+                sub={
+                  <>
+                    {d.specialty && <span className="block text-sm text-ink-soft">{d.specialty}</span>}
+                    {slots.length > 0 ? (
+                      <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        <WeekStrip slots={slots} />
+                        <NextSession slots={slots} className="text-xs" />
+                      </span>
+                    ) : (
+                      <span className="mt-1 block">{t.facility.noScheduleHere}</span>
+                    )}
+                  </>
+                }
+              />
+            );
+          })}
+        </ListGroup>
+        {f.schedules.length > 0 && <p className="m-0 px-5 pt-2 text-xs text-muted">{t.doctors.scheduleHint}</p>}
+      </>
     );
 
   const infoPanel = (
-    <div className="grid gap-4 px-4">
+    <>
       {f.description && (
-        <section className="rounded-2xl bg-white p-4 shadow-soft">
-          <h2 className="m-0 mb-1.5 text-sm font-bold">{t.facility.about}</h2>
-          <p className="m-0 text-sm whitespace-pre-line text-ink-soft">{f.description}</p>
+        <section aria-labelledby="tentang-faskes" className="px-5">
+          <h2 id="tentang-faskes" className="m-0 text-base font-bold">
+            {t.facility.about}
+          </h2>
+          <p className="m-0 mt-2 text-base whitespace-pre-line text-ink-soft">{f.description}</p>
         </section>
       )}
-      <section className="rounded-2xl bg-white p-4 shadow-soft">
-        <h2 className="m-0 mb-2 flex items-center gap-1.5 text-sm font-bold">
-          <Clock className="size-4 text-primary-700" aria-hidden="true" />
-          {t.facility.hours}
-        </h2>
+      <ListGroup id="jam-buka" title={t.facility.hours} className={f.description ? 'mt-7' : 'mt-0'}>
         {hasHours ? (
-          <dl className="m-0 grid grid-cols-[6rem_1fr] gap-y-1 text-sm">
-            {hours.map((h) => (
-              <div key={h.day} className="contents">
-                <dt className="text-muted">{h.day}</dt>
-                <dd className="m-0 font-medium tabular-nums">{h.value ?? t.facility.hoursNotListed}</dd>
-              </div>
-            ))}
-          </dl>
+          hours.map((h) => (
+            <li key={h.days} className="flex items-baseline gap-3 px-4 py-2.5 text-sm">
+              <span className="w-28 shrink-0 text-muted">{h.days}</span>
+              <span className="tabular-nums">{h.value ?? t.facility.hoursNotListed}</span>
+            </li>
+          ))
         ) : (
-          <p className="m-0 text-sm text-muted">{t.facility.noHours}</p>
+          <li className="px-4 py-3 text-sm text-muted">{t.facility.noHours}</li>
         )}
-      </section>
-      <section className="rounded-2xl bg-white p-4 shadow-soft">
-        <h2 className="m-0 mb-2 flex items-center gap-1.5 text-sm font-bold">
-          <MapPin className="size-4 text-primary-700" aria-hidden="true" />
-          {t.facility.address}
-        </h2>
-        <p className="m-0 text-sm text-ink-soft">
-          {f.address}, {f.city}
-        </p>
-        {others.length > 0 && (
-          <>
-            <h3 className="m-0 mt-3 mb-1.5 text-[0.8rem] font-bold text-muted">{t.facility.otherLocations}</h3>
-            <ul className="m-0 grid list-none gap-2 p-0">
-              {others.map((l) => (
-                <li key={`${l.lat},${l.lng}`} className="flex items-start justify-between gap-3 text-sm">
-                  <span className="text-ink-soft">{[l.label, l.address, l.city].filter(Boolean).join(' · ')}</span>
-                  <a href={directionsUrl(l.lat, l.lng)} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary-700">
-                    <Navigation className="size-3.5" aria-hidden="true" />
-                    {t.facility.directions}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
-      <p className="m-0 text-center text-[0.75rem] text-muted">{t.facility.updatedAt(formatDate(f.updatedAt))}</p>
-    </div>
+      </ListGroup>
+      <ListGroup id="alamat" title={t.facility.address} className="mt-7">
+        <ListRow title={f.address} sub={f.city} />
+        {others.map((l) => (
+          <ListRow
+            key={`${l.lat},${l.lng}`}
+            title={[l.label, l.address].filter(Boolean).join(' · ')}
+            sub={`${t.facility.otherLocations} · ${l.city}`}
+            trailing={
+              <a href={directionsUrl(l.lat, l.lng)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700">
+                <Navigation className="size-3.5" aria-hidden="true" />
+                {t.facility.directions}
+              </a>
+            }
+          />
+        ))}
+      </ListGroup>
+      <p className="m-0 px-5 pt-4 text-xs text-muted">{t.facility.updatedAt(formatDate(f.updatedAt))}</p>
+    </>
   );
 
   return (
     <>
       <TopBar title={f.name} backHref="/cari" action={<ShareButton title={f.name} />} />
       <DemoNotice show={loaded.source === 'demo'} date={snapshotDate()} />
-      <div className="px-4 pt-4 pb-4">
-        <p className="m-0 mb-2 flex flex-wrap items-center gap-1.5 text-[0.72rem] font-semibold">
-          <span className="rounded-full bg-mint px-2 py-0.5 text-mint-ink">{t.facilityType[f.type] ?? f.type}</span>
-          <span className="rounded-full bg-surface px-2 py-0.5 text-ink-soft">{f.city}</span>
-          <VerificationBadge level={f.verification} />
+      {/* Nama dulu; jenis dan wilayah sebagai keterangan teks, bukan tumpukan pil (evaluasi A6). */}
+      <header className="px-5 pt-5 pb-4">
+        <p className="m-0 text-xs font-semibold tracking-wide text-muted uppercase">
+          {t.facilityType[f.type] ?? f.type} · {f.city}
         </p>
-        <h1 className="m-0 text-[1.45rem] leading-tight font-extrabold tracking-tight">{f.name}</h1>
-        <p className="m-0 mt-1.5 flex items-start gap-1 text-[0.85rem] text-muted">
-          <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          {f.address}
+        <h1 className="m-0 mt-1 text-2xl leading-tight font-bold tracking-tight">{f.name}</h1>
+        <p className="m-0 mt-1.5 text-sm text-ink-soft">{f.address}</p>
+        <p className="m-0 mt-1.5 inline-flex items-center gap-1 text-xs text-muted">
+          <BadgeCheck className="size-3.5" aria-hidden="true" />
+          {t.facility.verifiedProfile(t.verification[f.verification] ?? f.verification)}
         </p>
-      </div>
+      </header>
       <ContactActions phone={f.phone} website={f.website} location={point} />
       <Tabs
         tabs={[
-          {
-            id: 'tarif',
-            label: t.facility.tabs.tariffs,
-            count: f.tariffs.length,
-            content: (
-              <>
-                <p className="m-0 mx-4 mb-3 rounded-xl bg-warn-soft px-3 py-2 text-[0.75rem] text-warn">{t.facility.disclaimer}</p>
-                <TariffBrowser tariffs={f.tariffs} />
-              </>
-            ),
-          },
+          { id: 'tarif', label: t.facility.tabs.tariffs, count: f.tariffs.length, content: <TariffBrowser tariffs={f.tariffs} /> },
           { id: 'dokter', label: t.facility.tabs.doctors, count: f.practitioners.length, content: doctorsPanel },
           { id: 'info', label: t.facility.tabs.info, content: infoPanel },
         ]}

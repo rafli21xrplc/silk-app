@@ -1,0 +1,143 @@
+/*
+ * SILK Mobile: token desain sama dengan web (apps/web/src/app/globals.css), ditambah kebutuhan ponsel:
+ * area aman (notch, home indicator), target sentuh ≥ 44 px, dan bingkai ponsel saat dibuka di laptop.
+ */
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --color-canvas: #f6faf9;
+  --color-surface: #eef5f3;
+  --color-surface-2: #e8f0ee;
+  --color-ink: #1a2b2a;
+  --color-ink-soft: #364a48;
+  --color-muted: #5a6e6b;
+  --color-line: #dfe9e6;
+  --color-line-strong: #c5d4d0;
+  --color-field: #869a96;
+
+  --color-primary-50: #eef8f6;
+  --color-primary-100: #e3f5ef;
+  --color-primary-200: #c4e9df;
+  --color-primary-300: #97d6c6;
+  --color-primary-400: #5fbda8;
+  --color-primary-500: #2e9e8c;
+  --color-primary-600: #0e7c74;
+  --color-primary-700: #0b6b64;
+  --color-primary-800: #0a5650;
+  --color-primary-900: #08433f;
+
+  --color-mint: #e3f5ef;
+  --color-mint-ink: #0b6b64;
+  --color-sky: #e5f1fb;
+  --color-sky-ink: #1e5f8c;
+  --color-peach: #fdede4;
+  --color-peach-ink: #9a4a1f;
+  --color-lilac: #efeafb;
+  --color-lilac-ink: #5b3fa0;
+  --color-lemon: #fbf5dc;
+  --color-lemon-ink: #7a5b00;
+
+  --color-ok: #1f6b45;
+  --color-ok-soft: #e6f3ec;
+  --color-warn: #8a4b00;
+  --color-warn-soft: #fbf1e1;
+  --color-warn-line: #ecc98f;
+  --color-violet: #5b3fa0;
+  --color-violet-soft: #f0ecfa;
+
+  --radius-card: 1.25rem;
+
+  --shadow-soft: 0 1px 2px rgb(14 124 116 / 0.04), 0 6px 20px -6px rgb(14 60 56 / 0.08);
+  --shadow-lift: 0 2px 6px rgb(14 124 116 / 0.05), 0 22px 48px -16px rgb(14 60 56 / 0.18);
+  --shadow-bar: 0 -1px 0 rgb(14 60 56 / 0.06), 0 -8px 24px -12px rgb(14 60 56 / 0.12);
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-rise: rise 0.45s var(--ease-soft) both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  @keyframes shimmer {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    background: var(--color-canvas);
+  }
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+    overscroll-behavior-y: none;
+  }
+  /* Laptop/desktop (demo): latar lembut di sekitar bingkai ponsel. */
+  @media (min-width: 640px) {
+    html {
+      background: radial-gradient(1200px 600px at 20% 0%, var(--color-primary-100), transparent 60%),
+        radial-gradient(900px 500px at 100% 100%, var(--color-sky), transparent 60%), var(--color-surface);
+    }
+    body {
+      background: transparent;
+    }
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+  button,
+  [role='button'] {
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+@utility tap {
+  @apply transition-transform duration-150 ease-out active:scale-[0.98];
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  @apply rounded-full bg-white px-4 py-2 font-semibold text-primary-800 shadow-lift;
+}

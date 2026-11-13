@@ -3,7 +3,7 @@
  *   corepack pnpm --filter @silk/mobile photos
  * Ukuran sudah dipotong di server Unsplash (imgix), jadi tidak perlu pemroses gambar lokal.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PHOTO_SIZES, PHOTOS, type PhotoKey } from '../src/demo/photos';
 
@@ -14,7 +14,15 @@ function url(id: string, [w, h]: readonly [number, number], faces: boolean): str
   return `https://images.unsplash.com/${id}?w=${w}&h=${h}&fit=crop&crop=${crop}&q=72&fm=jpg&auto=format`;
 }
 
+const exists = (file: string) =>
+  access(path.join(OUT, file)).then(
+    () => true,
+    () => false,
+  );
+
+/** Berkas yang sudah ada dilewati (pakai --ulang untuk mengunduh semua lagi). */
 async function download(src: string, file: string): Promise<number> {
+  if (!process.argv.includes('--ulang') && (await exists(file))) return 0;
   const res = await fetch(src);
   if (!res.ok || !res.headers.get('content-type')?.startsWith('image/')) throw new Error(`${res.status} ${src}`);
   const buf = Buffer.from(await res.arrayBuffer());
@@ -36,8 +44,9 @@ async function main() {
     '# Kredit foto ilustrasi (data demo)',
     '',
     'Semua foto dari [Unsplash](https://unsplash.com) dengan [Unsplash License](https://unsplash.com/license).',
-    'Dipakai hanya sebagai ilustrasi untuk dokter dan faskes fiktif di data demo, dan selalu diberi keterangan',
-    '"Foto ilustrasi" di aplikasi. Orang di foto bukan dokter yang namanya tertulis.',
+    'Potret dan foto tempat dipakai hanya sebagai ilustrasi untuk dokter dan faskes fiktif di data demo, dan selalu',
+    'diberi keterangan "Foto ilustrasi" di aplikasi. Orang di foto bukan dokter yang namanya tertulis.',
+    'Berkas `kat-*` adalah foto ubin kategori layanan (benda atau ruangan, tanpa wajah).',
     '',
     '| Berkas | Fotografer | Sumber |',
     '| --- | --- | --- |',

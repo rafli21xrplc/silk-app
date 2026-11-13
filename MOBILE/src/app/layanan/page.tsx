@@ -33,6 +33,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: Sea
         minPrice: sum?.minPrice ?? null,
         maxPrice: sum?.maxPrice ?? null,
         facilityCount: sum?.facilityCount ?? 0,
+        cities: d ? d.data.cities.map((c) => ({ minPrice: c.minPrice, maxPrice: c.maxPrice, medianPrice: c.medianPrice })) : [],
       };
     })
     // Kategori menurut kebutuhan; layanan berharga lebih dulu dalam satu kategori (bukan pembayaran).
@@ -45,7 +46,11 @@ export default async function ServicesPage({ searchParams }: { searchParams: Sea
         <h1 className="m-0 pt-5 pb-1 text-2xl font-bold tracking-tight">{t.services.title}</h1>
       </header>
       <DemoNotice show={anyDemo(services, categories, ...details)} date={snapshotDate()} />
-      <ServiceCatalog items={items} categories={cats.map((c) => ({ slug: c.slug, name: c.name }))} initialCategory={typeof kategori === 'string' ? kategori : ''} />
+      <ServiceCatalog
+        items={items}
+        categories={cats.map((c) => ({ slug: c.slug, name: c.name, count: c.serviceCount }))}
+        initialCategory={typeof kategori === 'string' ? kategori : ''}
+      />
     </>
   );
 }

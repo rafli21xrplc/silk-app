@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import raw from '../demo/snapshot.json';
-import { DOCTOR_PHOTOS, FACILITY_PHOTOS, PHOTOS } from '../demo/photos';
+import { CATEGORY_PHOTOS, DOCTOR_PHOTOS, FACILITY_PHOTOS, PHOTOS } from '../demo/photos';
 import { doctorPhoto, facilityPhoto } from './photos';
 
 const snap = raw as { facilities: { slug: string }[]; practitioners: { slug: string }[] };
@@ -30,6 +30,11 @@ describe('foto ilustrasi data demo', () => {
     expect(new Set(used).size).toBe(used.length);
     for (const k of used) expect(PHOTOS[k].kind).toBe('portrait');
     for (const k of Object.values(FACILITY_PHOTOS)) expect(PHOTOS[k].kind).toBe('place');
+  });
+
+  it('ubin kategori memakai foto benda tanpa wajah; rumah duka tanpa foto', () => {
+    for (const k of Object.values(CATEGORY_PHOTOS)) expect(PHOTOS[k].kind).toBe('category');
+    expect(CATEGORY_PHOTOS['rumah-duka']).toBeUndefined();
   });
 
   it('foto dari API didahulukan; data sungguhan tidak pernah mendapat ilustrasi', () => {

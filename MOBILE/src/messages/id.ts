@@ -43,6 +43,7 @@ export const t = {
     copied: 'Tautan disalin',
     openMap: 'Buka di peta',
     illustrative: 'Foto ilustrasi',
+    illustrativeShort: 'Ilustrasi',
   },
   home: {
     heroTitle: 'Tahu biayanya, kenal dokternya, sebelum datang',
@@ -52,6 +53,9 @@ export const t = {
     pricesNote: 'Rentang perkiraan dari tarif terbit di Kota dan Kabupaten Malang. Konfirmasikan ke faskes.',
     shortcuts: { near: 'Faskes terdekat', doctors: 'Cari dokter', services: 'Semua layanan' },
     categoriesLabel: 'Kategori layanan',
+    shortcutsLabel: 'Pintasan',
+    serviceTotal: (n: number) => plural(n, 'layanan'),
+    facilitiesTitle: 'Faskes di Malang',
     footnote: 'Urutan tidak pernah dipengaruhi pembayaran.',
     footnoteLink: 'Cara SILK membaca angka',
     pricesHint: 'Rentang tarif terbit di Kota dan Kabupaten Malang.',
@@ -300,6 +304,8 @@ export const t = {
     noCompare: 'Belum ada faskes dengan tarif terbit untuk layanan ini di wilayah ini.',
     searchFacilities: 'Cari faskes untuk layanan ini',
     lastChecked: (date: string) => `Terakhir dicek ${date}`,
+    spreadLegend: 'Garis: rentang harga tiap wilayah. Titik: nilai tengahnya.',
+    noPriceTitle: (n: number) => `Belum ada harga tercantum · ${plural(n, 'layanan')}`,
   },
   articles: {
     title: 'Artikel',

@@ -276,3 +276,60 @@ Tidak ada overflow horizontal. Uji: 357 lolos.
 - Foto lebar menambah sekitar 40–170 KB per profil; belum memakai `next/image` agar tetap jalan tanpa pemroses
   gambar di server.
 
+
+## 10. Beranda dan Layanan: dari daftar ke ritme campuran (13 November 2026)
+
+Permintaan pemilik: "adjustment pada page dashboard dan layanan agar secara design UI tidak hanya list ... agar user
+tidak monoton". Arah yang dipilih: **ritme campuran** (Beranda) dan **kategori berfoto + kartu** (Layanan).
+
+### Temuan
+- Beranda: tiga bagian berturut-turut dengan bentuk sama (daftar putih berkelompok). Kategori hanya pil teks.
+- Layanan: 7 daftar berkelompok, 32 baris dengan tinggi dan perataan sama; 7 baris berisi "Belum ada" yang berulang.
+- Halaman terasa seperti tabel: mata tidak punya titik berhenti, dan tidak ada yang membedakan bagian satu dari
+  bagian lain selain judulnya.
+
+### Rujukan
+- Kategori sebagai ubin berfoto (pola Airbnb, Google Maps "Jelajahi"): pintu masuk lebih cepat dikenali daripada
+  pil teks.
+- Kartu dokter tegak berfoto + slot terdekat (pola Zocdoc): wajah, kapan bisa datang, berapa biayanya.
+- Harga dengan konteks sebaran (pola GoodRx): bukan hanya angka, tapi di mana angka itu di antara faskes lain.
+- Grid "bento" dengan ukuran ubin berbeda; tren 2026 menekankan hierarki, bukan dinding kotak yang sama besar.
+
+### Penerapan
+**Beranda**: setiap bagian punya bentuk sendiri.
+1. Ubin kategori berfoto, grid 3 kolom dengan ubin lebar bergantian (Cek lab, Rawat inap), ditutup ubin gelap
+   "Semua layanan · 32 layanan".
+2. "Sering dicek": karusel kartu harga (rentang besar + batang sebaran per wilayah + jumlah faskes).
+3. Dokter: karusel kartu tegak 4:5 berfoto, jadwal terdekat ("Besok 09.00–12.00", dihitung di peramban), biaya.
+   Foto ilustrasi diberi label kecil "Ilustrasi".
+4. "Faskes di Malang": satu-satunya daftar berkelompok, dengan foto mini (urut nama, bukan pembayaran).
+5. Bacaan: daftar teks tanpa kotak.
+
+**Layanan**:
+- Ubin kategori berfoto yang bisa digeser, berfungsi sebagai saringan; ubin "Semua" dan kategori tanpa foto
+  menampilkan jumlah layanan. Tautan `?kategori=` menggeser ubin terpilih ke layar.
+- Layanan berharga sebagai kartu 2 kolom; jumlah ganjil → kartu terakhir melebar (nama kiri, angka kanan), jadi
+  tidak ada sel kosong.
+- Layanan tanpa harga diringkas menjadi satu kotak bergaris putus per kategori ("Belum ada harga tercantum ·
+  4 layanan") berisi tautan, bukan baris "Belum ada" berulang.
+- Legenda sekali di atas: "Garis: rentang harga tiap wilayah. Titik: nilai tengahnya."
+
+**Batang sebaran** (`PriceSpread`, `spreadMarks`, diuji): skala bersama dari harga terendah sampai tertinggi semua
+wilayah, satu ruas per wilayah dan satu titik nilai tengah. Data dari `cities[].minPrice/maxPrice/medianPrice` yang
+sudah ada di API; tidak ada perubahan kontrak.
+
+**Foto kategori**: 6 foto Unsplash tanpa wajah (tabung sampel, stetoskop, tensimeter, ruang rawat, foto rontgen dada,
+semangkuk sayur). Berlaku untuk semua data, jadi tanpa label ilustrasi. Rumah duka sengaja tanpa foto.
+
+| Layar | Sebelum | Sesudah |
+| --- | --- | --- |
+| Beranda | 3 daftar berkelompok, pil kategori | 1 daftar, grid ubin, 2 karusel, daftar teks |
+| Layanan | 7 daftar, 32 baris, 7 baris "Belum ada" | grid ubin geser, 25 kartu, 2 kotak "belum ada harga" |
+| Gambar di Beranda | 4 | 6 ubin + 6 dokter + 3 faskes |
+
+Uji: 366 lolos. Tanpa overflow horizontal di 390 px; tanpa galat konsol.
+
+### Sisa risiko
+- Karusel menyembunyikan isi di luar layar; "Lihat semua" tetap ada di setiap bagian.
+- Beranda memanggil profil dokter (6) untuk jadwal terdekat; respons di-cache, tetapi saat API dingin beranda lebih
+  lambat. Bila jadi masalah, API daftar dokter bisa menambah `nextSession` (perubahan kontrak, perlu izin).

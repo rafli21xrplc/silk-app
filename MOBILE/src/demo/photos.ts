@@ -16,7 +16,8 @@ export interface PhotoSource {
   page: string;
   photographer: string;
   alt: string;
-  kind: 'portrait' | 'place';
+  /** portrait = wajah dokter, place = tempat, category = ubin kategori (benda, tanpa wajah). */
+  kind: 'portrait' | 'place' | 'category';
 }
 
 export const PHOTOS = {
@@ -195,6 +196,50 @@ export const PHOTOS = {
     alt: 'Tabung sampel di tangan petugas laboratorium',
     kind: 'place',
   },
+  // Ubin kategori layanan: benda atau ruangan, tanpa wajah. Berlaku untuk semua data (bukan ilustrasi
+  // dokter atau faskes tertentu), jadi tanpa label "Foto ilustrasi".
+  'kat-lab': {
+    unsplash: 'photo-1606206591513-adbfbdd7a177',
+    page: 'https://unsplash.com/photos/0jE8ynV4mis',
+    photographer: 'Testalize.me',
+    alt: '',
+    kind: 'category',
+  },
+  'kat-konsultasi': {
+    unsplash: 'photo-1584982751601-97dcc096659c',
+    page: 'https://unsplash.com/photos/IJ0KiXl4uys',
+    photographer: 'Markus Frieauff',
+    alt: '',
+    kind: 'category',
+  },
+  'kat-mcu': {
+    unsplash: 'photo-1615486511484-92e172cc4fe0',
+    page: 'https://unsplash.com/photos/i1iqQRLULlg',
+    photographer: 'Mockup Graphics',
+    alt: '',
+    kind: 'category',
+  },
+  'kat-rawat-inap': {
+    unsplash: 'photo-1538108149393-fbbd81895907',
+    page: 'https://unsplash.com/photos/zbpgmGe27p8',
+    photographer: 'Adhy Savala',
+    alt: '',
+    kind: 'category',
+  },
+  'kat-radiologi': {
+    unsplash: 'photo-1616012480717-fd9867059ca0',
+    page: 'https://unsplash.com/photos/tHS9j3HWT1s',
+    photographer: 'Umanoide',
+    alt: '',
+    kind: 'category',
+  },
+  'kat-gaya-hidup': {
+    unsplash: 'photo-1512621776951-a57141f2eefd',
+    page: 'https://unsplash.com/photos/IGfIGP5ONV0',
+    photographer: 'Anna Pelzer',
+    alt: '',
+    kind: 'category',
+  },
 } as const satisfies Record<string, PhotoSource>;
 
 export type PhotoKey = keyof typeof PHOTOS;
@@ -246,6 +291,7 @@ export const FACILITY_PHOTOS: Record<string, PhotoKey> = {
 export const PHOTO_SIZES = {
   portrait: { sq: [320, 320], wide: [960, 720] },
   place: { sq: [160, 160], wide: [960, 540] },
+  category: { sq: [240, 240], wide: [640, 400] },
 } as const;
 
 export interface DemoPhoto {
@@ -272,4 +318,19 @@ export function demoDoctorPhoto(slug: string): DemoPhoto | null {
 export function demoFacilityPhoto(slug: string): DemoPhoto | null {
   const key = FACILITY_PHOTOS[slug];
   return key ? toPhoto(key) : null;
+}
+
+/** Kategori layanan → foto ubin (benda, tanpa wajah). Rumah duka sengaja tanpa foto. */
+export const CATEGORY_PHOTOS: Record<string, PhotoKey> = {
+  laboratorium: 'kat-lab',
+  konsultasi: 'kat-konsultasi',
+  mcu: 'kat-mcu',
+  'rawat-inap': 'kat-rawat-inap',
+  'radiologi-penunjang': 'kat-radiologi',
+  'gaya-hidup-sehat': 'kat-gaya-hidup',
+};
+
+export function categoryPhoto(slug: string): { square: string; wide: string } | null {
+  const key = CATEGORY_PHOTOS[slug];
+  return key ? { square: `/demo/photos/${key}-sq.jpg`, wide: `/demo/photos/${key}-wide.jpg` } : null;
 }

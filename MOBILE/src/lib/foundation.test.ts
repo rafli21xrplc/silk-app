@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { priceRangeShort, priceRangeText } from './format';
 import { activeWeekdays, groupHours, jakartaClock, nextSession } from './schedule';
-import { rangePositions, relativeWidth } from './range';
+import { rangePositions, relativeWidth, spreadMarks } from './range';
 import { commonVerification, trustFlags } from './trust';
 
 describe('format rentang', () => {
@@ -65,6 +65,22 @@ describe('batang rentang', () => {
     expect(relativeWidth(15000, 45000)).toBe(33);
     expect(relativeWidth(100, 45000)).toBe(4);
     expect(relativeWidth(1, 0)).toBe(0);
+  });
+  it('sebaran ringkas: ruas dan nilai tengah per wilayah pada skala bersama', () => {
+    const r = spreadMarks([
+      { minPrice: 79000, maxPrice: 105000, medianPrice: 93000 },
+      { minPrice: 75000, maxPrice: 120000, medianPrice: 94000 },
+      { minPrice: null, maxPrice: null, medianPrice: null },
+    ]);
+    expect(r.segments).toEqual([
+      { left: 8.9, width: 57.8 },
+      { left: 0, width: 100 },
+    ]);
+    expect(r.medians).toEqual([40, 42.2]);
+  });
+  it('sebaran ringkas: satu harga di tengah, tanpa harga kosong', () => {
+    expect(spreadMarks([{ minPrice: 90000, maxPrice: null, medianPrice: 90000 }])).toEqual({ segments: [{ left: 50, width: 0 }], medians: [50] });
+    expect(spreadMarks([])).toEqual({ segments: [], medians: [] });
   });
 });
 

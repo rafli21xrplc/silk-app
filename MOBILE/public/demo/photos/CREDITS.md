@@ -1,8 +1,9 @@
 # Kredit foto ilustrasi (data demo)
 
 Semua foto dari [Unsplash](https://unsplash.com) dengan [Unsplash License](https://unsplash.com/license).
-Dipakai hanya sebagai ilustrasi untuk dokter dan faskes fiktif di data demo, dan selalu diberi keterangan
-"Foto ilustrasi" di aplikasi. Orang di foto bukan dokter yang namanya tertulis.
+Potret dan foto tempat dipakai hanya sebagai ilustrasi untuk dokter dan faskes fiktif di data demo, dan selalu
+diberi keterangan "Foto ilustrasi" di aplikasi. Orang di foto bukan dokter yang namanya tertulis.
+Berkas `kat-*` adalah foto ubin kategori layanan (benda atau ruangan, tanpa wajah).
 
 | Berkas | Fotografer | Sumber |
 | --- | --- | --- |
@@ -31,3 +32,9 @@ Dipakai hanya sebagai ilustrasi untuk dokter dan faskes fiktif di data demo, dan
 | lab-4 | Louis Reed | https://unsplash.com/photos/pwcKF7L4-no |
 | lab-5 | National Cancer Institute | https://unsplash.com/photos/JxoWb7wHqnA |
 | lab-6 | Vitaly Gariev | https://unsplash.com/photos/UJHANmlaHwc |
+| kat-lab | Testalize.me | https://unsplash.com/photos/0jE8ynV4mis |
+| kat-konsultasi | Markus Frieauff | https://unsplash.com/photos/IJ0KiXl4uys |
+| kat-mcu | Mockup Graphics | https://unsplash.com/photos/i1iqQRLULlg |
+| kat-rawat-inap | Adhy Savala | https://unsplash.com/photos/zbpgmGe27p8 |
+| kat-radiologi | Umanoide | https://unsplash.com/photos/tHS9j3HWT1s |
+| kat-gaya-hidup | Anna Pelzer | https://unsplash.com/photos/IGfIGP5ONV0 |

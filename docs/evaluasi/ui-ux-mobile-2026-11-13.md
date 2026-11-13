@@ -224,3 +224,55 @@ label perkiraan dan sumber per kelompok, format ringkas hanya di daftar ringkasa
 | Katalog layanan | 3.479 → 2.724 | 7 → 4 | 32 → 0 | 8 → 8 |
 
 Gradien di semua layar: 0. Uji: 350 lolos (termasuk jadwal terdekat, gabung jam buka, penanda kepercayaan, format rentang).
+
+## 9. Asesmen lanjutan: ikon dan foto (13 November 2026)
+
+Permintaan pemilik: "agar secara design UI tidak AI banget (banyak icon dll). gunakan foto real".
+
+### Temuan
+- Setelah §8, kotak ikon sudah 0, tetapi **gambar 0 di semua layar**. Daftar dokter dan faskes hanya berisi inisial
+  dan teks. Layar tanpa satu pun foto adalah ciri kuat UI buatan generator; aplikasi kesehatan sungguhan
+  (Halodoc, Alodokter, Google Maps) menampilkan wajah dokter dan foto tempat.
+- Ikon dekoratif yang masih ada: MapPin di samping wilayah (beranda, detail dokter), LocateFixed/Stethoscope di
+  pintasan beranda, BadgeCheck di "Profil: …" faskes, dan **22 chevron** di tab tarif profil RS (setiap baris tarif,
+  padahal baris itu membuka sheet, bukan halaman).
+- Ikon yang dipertahankan punya fungsi: tombol kembali/bagikan, Telepon/Rute, cari/filter, centang STR
+  (penanda kepercayaan), chevron hanya pada baris yang berpindah halaman.
+
+### Keputusan foto
+- **Foto stok + label** (pilihan pemilik): wajah dokter fiktif dari foto stok tidak boleh terlihat seperti dokter
+  sungguhan, jadi foto besar di profil selalu berlabel "Foto ilustrasi", dan Info menjelaskan asal fotonya.
+- Sumber: Unsplash, foto gratis berlisensi Unsplash License (bukan Unsplash+). Kredit fotografer dan tautan per
+  foto di `MOBILE/public/demo/photos/CREDITS.md`.
+- Hanya slug data demo yang dipetakan. Foto dari API selalu didahulukan; data sungguhan tanpa foto tetap memakai
+  inisial, tidak pernah ilustrasi. Diuji di `src/lib/photos.test.ts`.
+- 25 foto (7 potret dokter, 18 tempat: RS, klinik, ruang periksa, lab), masing-masing versi kotak (daftar) dan lebar
+  (profil), JPEG ±2,5 MB total. Satu wajah per dokter; foto faskes tanpa orang agar tidak tertukar dengan dokter.
+
+### Penerapan
+- Detail dokter: potret 4:3 di atas nama (menggantikan inisial).
+- Profil faskes: foto 16:9 di atas nama; dokter di tab Dokter memakai foto wajah.
+- Daftar dokter, beranda, cari faskes: foto wajah atau thumbnail tempat di setiap baris.
+- Detail layanan: thumbnail faskes di daftar banding.
+- Ikon dekoratif di atas dihapus; baris tarif tanpa chevron.
+
+| Layar | Ikon (di `<main>`) sebelum → sesudah | Gambar sebelum → sesudah |
+| --- | --- | --- |
+| Beranda | 9 → 6 | 0 → 4 |
+| Cari faskes | 3 → 3 | 0 → 20 |
+| Daftar dokter | 5 → 5 | 0 → 7 |
+| Detail dokter | 11 → 7 | 0 → 1 |
+| Profil RS Kepanjen, tab Tarif | 27 → 4 | 0 → 1 |
+| Profil RS Kepanjen, tab Dokter | 6 → 5 | 0 → 2 |
+| Detail layanan (darah lengkap) | 3 → 3 | 0 → 5 |
+| Info | 2 → 2 | 0 → 0 |
+
+Diukur di viewport 390×844, termasuk elemen di luar layar; navigasi bawah (5 ikon) tidak dihitung.
+Tidak ada overflow horizontal. Uji: 357 lolos.
+
+### Sisa risiko
+- Foto stok belum tentu mencerminkan dokter dan faskes di Malang; untuk produksi sebaiknya foto asli dari dokter dan
+  faskes mitra (unggah lewat portal, disetujui moderator).
+- Foto lebar menambah sekitar 40–170 KB per profil; belum memakai `next/image` agar tetap jalan tanpa pemroses
+  gambar di server.
+

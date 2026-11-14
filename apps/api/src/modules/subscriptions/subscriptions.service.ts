@@ -1,11 +1,12 @@
 import {
+  activeUntilOf,
   PAYMENT_EXPIRY_MINUTES,
-  SUBSCRIPTION_PLAN_IDS,
-  SUBSCRIPTION_PLANS,
+  SUBSCRIPTION_MONTHS,
+  subscriptionPrice,
+  trialEndOf,
   type PaymentOrder,
   type SubscriptionOrderInput,
   type SubscriptionOverview,
-  type SubscriptionPlan,
 } from '@silk/shared';
 import type { DbOrTx } from '@silk/db';
 import type { ActorContext } from '../../lib/context';
@@ -31,7 +32,7 @@ import type { OrderRow } from './subscriptions.repo';
 const toApi = (o: OrderRow): PaymentOrder => ({
   id: o.id,
   merchantOrderId: o.merchantOrderId,
-  plan: o.plan as SubscriptionPlan,
+  plan: o.plan,
   months: o.months,
   amount: o.amount,
   status: o.status,
@@ -49,12 +50,16 @@ async function myPartner(ctx: ActorContext) {
 
 export async function overview(ctx: ActorContext): Promise<SubscriptionOverview> {
   const partner = await myPartner(ctx);
-  const [until, periods, orders] = await Promise.all([repo.activeUntil(db(), partner.id), repo.listPeriods(db(), partner.id), repo.listOrders(db(), partner.id)]);
+  const [periods, orders] = await Promise.all([repo.listPeriods(db(), partner.id), repo.listOrders(db(), partner.id)]);
+  const trialEnd = trialEndOf(partner.verifiedAt);
+  const until = activeUntilOf(new Date(), trialEnd, periods);
   return {
     activeUntil: until?.toISOString() ?? null,
-    periods: periods.map((p) => ({ plan: p.plan as SubscriptionPlan, startsAt: p.startsAt.toISOString(), endsAt: p.endsAt.toISOString() })),
+    trialEndsAt: trialEnd?.toISOString() ?? null,
+    partnerType: partner.partnerType,
+    periods: periods.map((p) => ({ plan: p.plan, startsAt: p.startsAt.toISOString(), endsAt: p.endsAt.toISOString() })),
     orders: orders.map(toApi),
-    plans: SUBSCRIPTION_PLAN_IDS.map((id) => ({ id, ...SUBSCRIPTION_PLANS[id] })),
+    plans: [{ id: 'tahunan', months: SUBSCRIPTION_MONTHS, price: subscriptionPrice(partner.partnerType) }],
     providerMode: duitkuConfig().mode,
   };
 }
@@ -66,7 +71,8 @@ export async function createOrder(ctx: ActorContext, input: SubscriptionOrderInp
   const open = await repo.findOpenOrder(db(), partner.id, input.plan);
   if (open) return toApi(open);
 
-  const plan = SUBSCRIPTION_PLANS[input.plan];
+  // Harga dari jenis mitra di server; nominal dari klien tidak pernah dipakai.
+  const plan = { months: SUBSCRIPTION_MONTHS, price: subscriptionPrice(partner.partnerType) };
   const cfg = duitkuConfig();
   const e = env();
   const order = await db().transaction(async (tx) => {
@@ -88,7 +94,7 @@ export async function createOrder(ctx: ActorContext, input: SubscriptionOrderInp
     const invoice = await createInvoice({
       merchantOrderId: order.merchantOrderId,
       amount: order.amount,
-      productDetails: `Langganan SILK Mitra ${input.plan} (${plan.months} bulan)`,
+      productDetails: `Langganan SILK Mitra (${plan.months} bulan)`,
       email: partner.email,
       customerName: partner.businessName,
       callbackUrl: new URL('/v1/payments/duitku/callback', e.API_ORIGIN).toString(),
@@ -179,7 +185,9 @@ async function applyPaid(tx: DbOrTx, order: OrderRow, reference: string | null, 
   const paid = await repo.markPaid(tx, order.id, reference);
   await audit(tx, null, 'payment.paid', order, order, { ...paid, source });
   if (order.partnerId) {
-    const period = await repo.addPeriod(tx, { partnerId: order.partnerId, orderId: order.id, plan: order.plan, months: order.months });
+    // Periode berbayar menyambung setelah masa gratis 6 bulan, bukan memotongnya.
+    const notBefore = trialEndOf(await repo.partnerVerifiedAt(tx, order.partnerId));
+    const period = await repo.addPeriod(tx, { partnerId: order.partnerId, orderId: order.id, plan: order.plan, months: order.months, notBefore });
     if (period) {
       await recordAudit(tx, {
         actorId: null,

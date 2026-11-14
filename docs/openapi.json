@@ -6269,17 +6269,28 @@
                             "null"
                           ]
                         },
+                        "trialEndsAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "partnerType": {
+                          "type": "string",
+                          "enum": [
+                            "fasilitas",
+                            "tenaga_medis",
+                            "gaya_hidup",
+                            "apotek"
+                          ]
+                        },
                         "periods": {
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
                               "plan": {
-                                "type": "string",
-                                "enum": [
-                                  "bulanan",
-                                  "tahunan"
-                                ]
+                                "type": "string"
                               },
                               "startsAt": {
                                 "type": "string"
@@ -6308,11 +6319,7 @@
                                 "type": "string"
                               },
                               "plan": {
-                                "type": "string",
-                                "enum": [
-                                  "bulanan",
-                                  "tahunan"
-                                ]
+                                "type": "string"
                               },
                               "months": {
                                 "type": "integer"
@@ -6370,7 +6377,6 @@
                               "id": {
                                 "type": "string",
                                 "enum": [
-                                  "bulanan",
                                   "tahunan"
                                 ]
                               },
@@ -6399,6 +6405,8 @@
                       },
                       "required": [
                         "activeUntil",
+                        "trialEndsAt",
+                        "partnerType",
                         "periods",
                         "orders",
                         "plans",
@@ -6486,7 +6494,6 @@
                   "plan": {
                     "type": "string",
                     "enum": [
-                      "bulanan",
                       "tahunan"
                     ]
                   }
@@ -6517,11 +6524,7 @@
                           "type": "string"
                         },
                         "plan": {
-                          "type": "string",
-                          "enum": [
-                            "bulanan",
-                            "tahunan"
-                          ]
+                          "type": "string"
                         },
                         "months": {
                           "type": "integer"
@@ -6672,11 +6675,7 @@
                           "type": "string"
                         },
                         "plan": {
-                          "type": "string",
-                          "enum": [
-                            "bulanan",
-                            "tahunan"
-                          ]
+                          "type": "string"
                         },
                         "months": {
                           "type": "integer"

@@ -39,12 +39,26 @@ export type OrderRow = {
 /** Mitra milik pengguna beserta nama dan email akun (untuk data pelanggan di tagihan). */
 export async function findPartnerForUser(db: DbOrTx, userId: string) {
   const [row] = await db
-    .select({ id: partners.id, status: partners.status, businessName: partners.businessName, email: user.email, name: user.name })
+    .select({
+      id: partners.id,
+      status: partners.status,
+      partnerType: partners.partnerType,
+      verifiedAt: partners.verifiedAt,
+      businessName: partners.businessName,
+      email: user.email,
+      name: user.name,
+    })
     .from(partners)
     .innerJoin(user, eq(user.id, partners.userId))
     .where(eq(partners.userId, userId))
     .limit(1);
   return row ?? null;
+}
+
+/** Waktu verifikasi mitra (awal masa gratis). */
+export async function partnerVerifiedAt(db: DbOrTx, partnerId: string): Promise<Date | null> {
+  const [row] = await db.select({ verifiedAt: partners.verifiedAt }).from(partners).where(eq(partners.id, partnerId)).limit(1);
+  return row?.verifiedAt ?? null;
 }
 
 export async function listOrders(db: DbOrTx, partnerId: string, limit = 10): Promise<OrderRow[]> {
@@ -148,12 +162,18 @@ export async function insertEvent(
  * Tambah satu masa langganan untuk pesanan lunas. Dimulai dari akhir masa terakhir (atau sekarang bila sudah
  * habis). `ON CONFLICT` pada payment_order_id membuat aktivasi idempoten.
  */
-export async function addPeriod(db: DbOrTx, v: { partnerId: string; orderId: string; plan: string; months: number }) {
+/**
+ * Tambah periode berbayar yang menyambung dari akhir masa sebelumnya (periode lain atau masa gratis `notBefore`),
+ * bukan dari tanggal bayar. Idempoten per pesanan (`payment_order_id` unik).
+ */
+export async function addPeriod(db: DbOrTx, v: { partnerId: string; orderId: string; plan: string; months: number; notBefore: Date | null }) {
+  const notBefore = v.notBefore?.toISOString() ?? null;
   const result = await db.execute<{ id: string; starts_at: string; ends_at: string }>(sql`
     INSERT INTO subscriptions (partner_id, payment_order_id, plan, starts_at, ends_at)
     SELECT ${v.partnerId}, ${v.orderId}, ${v.plan}, s.start, s.start + make_interval(months => ${v.months})
     FROM (
-      SELECT greatest(now(), coalesce(max(ends_at), now())) AS start FROM subscriptions WHERE partner_id = ${v.partnerId}
+      SELECT greatest(now(), coalesce(max(ends_at), now()), coalesce(${notBefore}::timestamptz, now())) AS start
+      FROM subscriptions WHERE partner_id = ${v.partnerId}
     ) s
     ON CONFLICT (payment_order_id) DO NOTHING
     RETURNING id, starts_at, ends_at
@@ -167,18 +187,7 @@ export async function listPeriods(db: DbOrTx, partnerId: string) {
     .from(subscriptions)
     .where(eq(subscriptions.partnerId, partnerId))
     .orderBy(desc(subscriptions.startsAt))
-    .limit(12);
-}
-
-/** Akhir masa aktif (masa bersambung tanpa celah), atau null bila tidak aktif sekarang. */
-export async function activeUntil(db: DbOrTx, partnerId: string): Promise<Date | null> {
-  const result = await db.execute<{ until: Date | string | null }>(sql`
-    SELECT max(ends_at) AS until FROM subscriptions
-    WHERE partner_id = ${partnerId}
-    HAVING bool_or(starts_at <= now() AND ends_at > now())
-  `);
-  const until = result.rows[0]?.until;
-  return until ? new Date(until) : null;
+    .limit(24);
 }
 
 /**

@@ -78,7 +78,12 @@ export function SubscriptionView({ me }: { me: Me }) {
 
       <div role="status" className={cn('mb-6 rounded-2xl border p-4', s.activeUntil ? 'border-primary-200 bg-primary-50' : 'border-line bg-surface')}>
         <p className="m-0 font-semibold">{s.activeUntil ? m.activeUntil(formatDate(s.activeUntil)) : m.inactive}</p>
-        {s.activeUntil && <p className="m-0 mt-1 text-sm text-ink-soft">{m.extendNote}</p>}
+        {s.trialEndsAt && (
+          <p className="m-0 mt-1 text-sm text-ink-soft" data-trial>
+            {new Date(s.trialEndsAt).getTime() > Date.now() ? m.trialActive(formatDate(s.trialEndsAt)) : m.trialEnded(formatDate(s.trialEndsAt))}
+          </p>
+        )}
+        {s.activeUntil && <p className="m-0 mt-1 text-sm text-ink-soft">{s.trialEndsAt && new Date(s.trialEndsAt).getTime() > Date.now() ? m.trialExtendNote : m.extendNote}</p>}
       </div>
 
       {!verified ? (
@@ -96,19 +101,19 @@ export function SubscriptionView({ me }: { me: Me }) {
               </a>
             </p>
           )}
-          <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
+          <ul className="m-0 grid list-none gap-4 p-0 sm:max-w-md">
             {s.plans.map((p) => (
               <li key={p.id} className="flex flex-col rounded-2xl border border-line bg-white p-5">
                 <p className="m-0 text-lg font-semibold">{m.plans[p.id]?.name ?? p.id}</p>
                 <p className="m-0 mt-2 text-2xl font-bold tabular-nums">
                   {formatRupiah(p.price)} <span className="text-sm font-normal text-muted">{m.plans[p.id]?.period}</span>
                 </p>
-                <p className="m-0 mt-1 text-sm text-muted">{m.months(p.months)}</p>
+                <p className="m-0 mt-1 text-sm text-muted">{m.priceFor(t.partner.types[s.partnerType] ?? s.partnerType)}</p>
                 <button
                   type="button"
                   onClick={() => pay(p.id)}
                   disabled={busy !== null}
-                  className={cn(buttonVariants({ variant: p.id === 'tahunan' ? 'primary' : 'secondary' }), 'mt-5')}
+                  className={cn(buttonVariants({ variant: 'primary' }), 'mt-5')}
                   data-plan={p.id}
                 >
                   {busy === p.id ? m.paying : m.pay}

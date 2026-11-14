@@ -4,11 +4,20 @@ Cabang: `enablement/usp-rekomendasi`. Flag: `subscriptions_enabled` (default OFF
 menu portal tidak tampil). Penyedia pembayaran: Duitku POP, menggantikan Midtrans di spesifikasi
 (keputusan 2026-11-14).
 
+## Model harga (diperbarui 2026-11-14, mengikuti SILK versi lama)
+
+- Satu paket 12 bulan, harga per jenis mitra: tenaga medis Rp300.000; fasilitas, apotek, dan gaya hidup sehat
+  Rp1.500.000 (`SUBSCRIPTION_PRICES` di packages/shared).
+- Masa gratis 6 bulan sejak mitra diverifikasi, dihitung dari `partners.verified_at` (tanpa tabel baru).
+- Periode berbayar menyambung dari akhir masa aktif: setelah masa gratis atau periode sebelumnya, bukan memotongnya.
+- Pesanan lama berpaket lain (mis. `bulanan` di data dev) tetap terbaca; paket baru yang bisa dipesan hanya `tahunan`.
+- Halaman publik `/mitra` (web dan mobile) menampilkan harga hanya bila `subscriptions_enabled` menyala.
+
 ## Alur
 
 1. Mitra terverifikasi membuka `/portal/langganan`, memilih paket (bulanan / tahunan).
-2. Web memanggil `POST /v1/partners/me/subscription/orders` dengan `{ plan }` saja. Harga dan durasi
-   diambil server dari `SUBSCRIPTION_PLANS` (packages/shared), bukan dari klien.
+2. Web memanggil `POST /v1/partners/me/subscription/orders` dengan `{ plan: 'tahunan' }` saja. Harga diambil server
+   dari jenis mitra (`SUBSCRIPTION_PRICES`), bukan dari klien.
 3. API membuat `payment_orders` (status `pending`, kedaluwarsa 60 menit), menulis audit `payment.created`,
    lalu meminta tagihan ke Duitku POP (`createInvoice`). Klik ganda memakai ulang pesanan terbuka yang sama.
 4. Browser diarahkan ke `paymentUrl` Duitku. Mitra membayar (VA, QRIS, e-wallet, dst.).
@@ -64,13 +73,13 @@ berkas migrasi. Tabel lama tidak diubah.
 ## Pemeriksaan
 
 - `typecheck` dan `lint`: bersih (api, web, shared, db).
-- Uji: api 269 (termasuk 12 uji `fase11-subscriptions.test.ts`), web 319, shared 183, db 20.
+- Uji: api 270 (termasuk 13 uji `fase11-subscriptions.test.ts`), web 357, shared 188, db 20, mobile 395.
+- Duitku sandbox sungguhan (2026-11-14): tagihan dibuat, kartu uji dibayar, status lunas tersusul lewat cek status.
 - E2E browser (simulator): masuk → `/portal/langganan` → Bayar → simulator → Lunas → "Aktif sampai …";
   tampilan ponsel 390 px tanpa luapan horizontal.
 
 ## Belum dikerjakan / catatan
 
-- Harga paket (Rp99.000 / Rp990.000) adalah placeholder; ubah di `SUBSCRIPTION_PLANS`.
 - Fitur yang dibuka oleh langganan belum ada; fase ini hanya alur bayar dan masa aktif.
 - Tanda tangan mengikuti dokumentasi POP (HMAC-SHA256). Bila sandbox menolak, cocokkan ulang dengan
   dokumentasi terbaru Duitku sebelum produksi.

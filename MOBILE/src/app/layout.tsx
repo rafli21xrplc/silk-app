@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import { NavTracker } from '@/components/back-button';
 import { BottomNav } from '@/components/bottom-nav';
+import { indexingAllowed } from '@/lib/indexing';
 import { Providers } from '@/components/providers';
 import { t } from '@/messages/id';
 import './globals.css';
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: t.site.name, statusBarStyle: 'default' },
   formatDetection: { telephone: false },
   icons: { icon: '/icons/192', apple: '/icons/180' },
+  robots: indexingAllowed() ? undefined : { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
@@ -39,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </main>
           </div>
           <BottomNav />
+          <NavTracker />
         </Providers>
       </body>
     </html>

@@ -4,7 +4,7 @@ import type { NextConfig } from 'next';
  * SILK Mobile hanya memanggil API SILK dari server (route handler dan server component), jadi peramban
  * cukup terhubung ke origin sendiri. Gambar/video profil boleh dari https (R2) dan origin API saat dev.
  */
-const apiOrigin = process.env.SILK_API_ORIGIN ?? 'http://127.0.0.1:4000';
+const apiOrigin = process.env.SILK_API_ORIGIN || 'http://127.0.0.1:4000';
 const isProd = process.env.NODE_ENV === 'production';
 
 const csp = [

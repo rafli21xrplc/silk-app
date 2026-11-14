@@ -17,7 +17,7 @@ export default async function ArticlesPage() {
   const articles = await getArticles();
   return (
     <>
-      <TopBar title={t.articles.title} backHref="/info" />
+      <TopBar title={t.articles.title} backHref="/info" heading />
       <DemoNotice show={articles.source === 'demo'} date={snapshotDate()} />
       <p className="m-0 px-4 pt-4 pb-3 text-sm text-muted">{t.articles.intro}</p>
       {articles.data.length === 0 ? (

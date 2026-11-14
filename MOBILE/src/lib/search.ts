@@ -6,7 +6,16 @@ import { FACILITY_TYPES } from '@silk/shared';
  * hasil ketikan tetap membuka halaman. Kombinasi yang ditolak API (mis. urut harga tanpa layanan)
  * dinormalkan di sini, jadi permintaan ke API selalu sah.
  */
-const text = z.string().trim().min(1).max(100).optional().catch(undefined);
+// Karakter kontrol (mis. %00) dibuang: Postgres menolaknya dan API membalas 500, yang membuat semua pengunjung
+// beralih ke data cadangan selama masa jeda. Input ketikan tidak pernah butuh karakter ini.
+// eslint-disable-next-line no-control-regex -- justru mencari karakter kontrol.
+const CONTROL = /[\u0000-\u001f\u007f]/g;
+const text = z
+  .string()
+  .transform((v) => v.replace(CONTROL, ' '))
+  .pipe(z.string().trim().min(1).max(100))
+  .optional()
+  .catch(undefined);
 const slug = z
   .string()
   .trim()
@@ -15,11 +24,13 @@ const slug = z
   .optional()
   .catch(undefined);
 const coord = (min: number, max: number) => z.coerce.number().min(min).max(max).optional().catch(undefined);
-const flag = z
-  .enum(['1'])
+const flag = z.enum(['1']).optional().catch(undefined);
+const cursor = z
+  .string()
+  .regex(/^[\x21-\x7e]+$/)
+  .max(500)
   .optional()
   .catch(undefined);
-const cursor = z.string().min(1).max(500).optional().catch(undefined);
 
 export const FACILITY_SORTS = ['price_asc', 'price_desc', 'name', 'distance'] as const;
 export const DOCTOR_SORTS = ['name', 'fee_asc'] as const;

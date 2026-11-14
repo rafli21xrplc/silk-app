@@ -23,10 +23,10 @@ export const t = {
     skip: 'Langsung ke konten',
   },
   demo: {
-    banner: 'Mode demo: server SILK tidak terjangkau, jadi aplikasi menampilkan data cadangan.',
-    bannerDate: (date: string) => `Data cadangan per ${date}.`,
+    banner: 'Mode demo: aplikasi menampilkan data contoh, bukan data langsung dari server SILK.',
+    bannerDate: (date: string) => `Data contoh per ${date}.`,
     live: 'Terhubung ke server SILK',
-    offline: 'Memakai data cadangan',
+    offline: 'Memakai data contoh',
   },
   common: {
     loading: 'Memuat…',

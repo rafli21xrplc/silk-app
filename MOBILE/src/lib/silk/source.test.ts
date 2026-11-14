@@ -78,4 +78,26 @@ describe('sumber data: API dengan cadangan demo', () => {
     expect(page).toEqual({ items: [], nextCursor: 'abc', source: 'live' });
     expect(fetchMock.mock.calls[0]![0]).toBe('http://api.test/v1/facilities?city=Kota+Malang&limit=20&service=hemoglobin&sort=price_asc');
   });
+
+  it('slug tidak sah → 404 tanpa memanggil API; kunci prototipe tidak terbaca dari cadangan', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+    vi.stubGlobal('fetch', fetchMock);
+    const api = await load({ SILK_API_ORIGIN: 'http://api.test' });
+    expect(await api.getFacility('%00')).toBeNull();
+    expect(await api.getService('Bukan Slug')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+    // Slug sah tetapi API mati: cadangan dibaca, dan `constructor` bukan data.
+    expect(await api.getService('constructor')).toBeNull();
+    expect(await api.getPractitioner('constructor')).toBeNull();
+    expect(await api.getCompare('constructor', 'Kota Malang', false)).toBeNull();
+  });
+
+  it('di Vercel tanpa SILK_API_ORIGIN → mode demo, tidak mencoba API lokal', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubEnv('SILK_API_ORIGIN', '');
+    const api = await load({ VERCEL: '1' });
+    expect((await api.getServices()).source).toBe('demo');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

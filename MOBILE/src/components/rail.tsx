@@ -10,7 +10,7 @@ export function SectionHead({ id, title, href, className }: { id: string; title:
         {title}
       </h2>
       {href && (
-        <Link href={href} className="text-sm font-semibold text-primary-700 no-underline">
+        <Link href={href} className="-my-2.5 py-2.5 text-sm font-semibold text-primary-700 no-underline">
           {t.common.seeAll}
         </Link>
       )}

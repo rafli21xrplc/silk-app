@@ -24,6 +24,15 @@ describe('parseFacilityParams', () => {
     expect(parseFacilityParams({ sort: 'distance', lat: '-7.98', lng: '112.63' }).sort).toBe('distance');
   });
 
+  it('karakter kontrol dibuang dari teks (API membalas 500 untuk %00), kursor harus karakter cetak', () => {
+    expect(parseFacilityParams({ q: 'gula\u0000darah' }).q).toBe('gula darah');
+    expect(parseFacilityParams({ q: '\u0000\u001f' }).q).toBeUndefined();
+    expect(parseFacilityParams({ city: 'Kota\tMalang' }).city).toBe('Kota Malang');
+    expect(parseDoctorParams({ specialty: '\u0000' }).specialty).toBeUndefined();
+    expect(parseFacilityParams({ cursor: 'ab\u0000c' }).cursor).toBeUndefined();
+    expect(parseFacilityParams({ cursor: 'eyJ2IjoxfQ==' }).cursor).toBe('eyJ2IjoxfQ==');
+  });
+
   it('lat dan lng harus berpasangan', () => {
     const p = parseFacilityParams({ lat: '-7.98' });
     expect([p.lat, p.lng]).toEqual([undefined, undefined]);

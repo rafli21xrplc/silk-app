@@ -11,6 +11,7 @@ import {
   serviceCategorySchema,
   serviceDetailSchema,
   serviceListItemSchema,
+  slugSchema,
   type CompareResponse,
   type FacilityDetail,
   type FacilityListItem,
@@ -51,6 +52,13 @@ function settleList<T>(res: Fetched<T[]>, demo: () => T[]): Loaded<T[]> {
   return settle(res, demo) ?? { data: [], source: res.kind === 'ok' ? 'live' : 'demo' };
 }
 
+/**
+ * Slug dari URL dicek sebelum ke API: yang tidak sah pasti tidak ada (404), tanpa memakan permintaan API.
+ * Ini juga mencegah kunci seperti `constructor` atau `__proto__` terbaca dari objek data cadangan.
+ */
+const isSlug = (slug: string) => slugSchema.safeParse(slug).success;
+const own = <T>(map: Record<string, T>, slug: string): T | undefined => (Object.hasOwn(map, slug) ? map[slug] : undefined);
+
 export const anyDemo = (...results: ({ source: DataSource } | null | undefined)[]) => results.some((r) => r?.source === 'demo');
 
 export async function getCategories(): Promise<Loaded<ServiceCategory[]>> {
@@ -62,9 +70,9 @@ export async function getServices(): Promise<Loaded<ServiceListItem[]>> {
 }
 
 export async function getService(slug: string): Promise<Loaded<ServiceDetail> | null> {
-  return settle(
-    await fetchApi(`/services/${encodeURIComponent(slug)}`, serviceDetailSchema, { tags: [`service:${slug}`] }),
-    () => getSnapshot().serviceDetails[slug],
+  if (!isSlug(slug)) return null;
+  return settle(await fetchApi(`/services/${encodeURIComponent(slug)}`, serviceDetailSchema, { tags: [`service:${slug}`] }), () =>
+    own(getSnapshot().serviceDetails, slug),
   );
 }
 
@@ -94,9 +102,9 @@ export async function searchFacilities(p: FacilityParams, limit = PAGE_SIZE): Pr
 }
 
 export async function getFacility(slug: string): Promise<Loaded<FacilityDetail> | null> {
-  return settle(
-    await fetchApi(`/facilities/${encodeURIComponent(slug)}`, facilityDetailSchema, { tags: [`facility:${slug}`] }),
-    () => getSnapshot().facilityDetails[slug],
+  if (!isSlug(slug)) return null;
+  return settle(await fetchApi(`/facilities/${encodeURIComponent(slug)}`, facilityDetailSchema, { tags: [`facility:${slug}`] }), () =>
+    own(getSnapshot().facilityDetails, slug),
   );
 }
 
@@ -108,13 +116,16 @@ export async function searchPractitioners(p: DoctorParams, limit = PAGE_SIZE): P
 }
 
 export async function getSpecialties(): Promise<Loaded<PractitionerSpecialty[]>> {
-  return settleList(await fetchApi('/practitioner-specialties', practitionerSpecialtySchema.array(), { tags: ['practitioners'] }), () => getSnapshot().specialties);
+  return settleList(
+    await fetchApi('/practitioner-specialties', practitionerSpecialtySchema.array(), { tags: ['practitioners'] }),
+    () => getSnapshot().specialties,
+  );
 }
 
 export async function getPractitioner(slug: string): Promise<Loaded<PractitionerDetail> | null> {
-  return settle(
-    await fetchApi(`/practitioners/${encodeURIComponent(slug)}`, practitionerDetailSchema, { tags: ['practitioners'] }),
-    () => getSnapshot().practitionerDetails[slug],
+  if (!isSlug(slug)) return null;
+  return settle(await fetchApi(`/practitioners/${encodeURIComponent(slug)}`, practitionerDetailSchema, { tags: ['practitioners'] }), () =>
+    own(getSnapshot().practitionerDetails, slug),
   );
 }
 
@@ -123,9 +134,9 @@ export async function getArticles(): Promise<Loaded<PublicArticleSummary[]>> {
 }
 
 export async function getArticle(slug: string): Promise<Loaded<PublicArticle> | null> {
-  return settle(
-    await fetchApi(`/articles/${encodeURIComponent(slug)}`, publicArticleSchema, { tags: ['articles'] }),
-    () => getSnapshot().articleDetails[slug],
+  if (!isSlug(slug)) return null;
+  return settle(await fetchApi(`/articles/${encodeURIComponent(slug)}`, publicArticleSchema, { tags: ['articles'] }), () =>
+    own(getSnapshot().articleDetails, slug),
   );
 }
 

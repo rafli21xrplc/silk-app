@@ -67,10 +67,10 @@ export default async function HomePage() {
         <SearchForm placeholder={t.home.searchPlaceholder} />
       </div>
       <nav aria-label={t.home.shortcutsLabel} className="mt-3 flex gap-5 px-5 text-sm font-semibold">
-        <Link href="/cari?dekat=1" className="text-primary-700 no-underline">
+        <Link href="/cari?dekat=1" className="-my-2.5 py-2.5 text-primary-700 no-underline">
           {t.home.shortcuts.near}
         </Link>
-        <Link href="/dokter" className="text-primary-700 no-underline">
+        <Link href="/dokter" className="-my-2.5 py-2.5 text-primary-700 no-underline">
           {t.home.shortcuts.doctors}
         </Link>
       </nav>
@@ -148,7 +148,7 @@ export default async function HomePage() {
 }
 
 const SeeAll = ({ href }: { href: string }) => (
-  <Link href={href} className="text-sm font-semibold text-primary-700 no-underline">
+  <Link href={href} className="-my-2.5 py-2.5 text-sm font-semibold text-primary-700 no-underline">
     {t.common.seeAll}
   </Link>
 );

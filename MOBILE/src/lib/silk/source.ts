@@ -18,9 +18,11 @@ export type DataSource = 'live' | 'demo';
 
 export type Fetched<T> = { kind: 'ok'; data: T; nextCursor: string | null } | { kind: 'not_found' } | { kind: 'unavailable' };
 
-export const API_ORIGIN = (process.env.SILK_API_ORIGIN ?? 'http://127.0.0.1:4000').replace(/\/+$/, '');
+export const API_ORIGIN = (process.env.SILK_API_ORIGIN || 'http://127.0.0.1:4000').replace(/\/+$/, '');
 const TIMEOUT_MS = Number(process.env.SILK_API_TIMEOUT_MS) || 3500;
-const DEMO_ONLY = process.env.SILK_DEMO_ONLY === '1';
+// Di Vercel tanpa SILK_API_ORIGIN tidak ada API lokal yang bisa dihubungi: langsung pakai data cadangan
+// daripada mencoba 127.0.0.1 di setiap permintaan.
+const DEMO_ONLY = process.env.SILK_DEMO_ONLY === '1' || (!process.env.SILK_API_ORIGIN && Boolean(process.env.VERCEL));
 const COOLDOWN_MS = 15_000;
 let unavailableUntil = 0;
 

@@ -83,8 +83,7 @@ export function demoSearchFacilities(snap: Snapshot, p: FacilityParams, limit = 
 
 export function demoSearchPractitioners(snap: Snapshot, p: DoctorParams, limit = PAGE_SIZE): Page<PractitionerListItem> {
   const term = p.q ? normalizeTerm(p.q) : '';
-  const fee = (d: PractitionerListItem) =>
-    d.consultation && d.consultation.price.type !== 'tanya' ? d.consultation.price.min : null;
+  const fee = (d: PractitionerListItem) => (d.consultation && d.consultation.price.type !== 'tanya' ? d.consultation.price.min : null);
   const rows = snap.practitioners.filter((d) => {
     if (p.specialty && d.specialty !== p.specialty) return false;
     if (p.video && !d.hasVideo) return false;
@@ -105,9 +104,10 @@ export function demoSearchPractitioners(snap: Snapshot, p: DoctorParams, limit =
 }
 
 export function demoCompare(snap: Snapshot, service: string, city: string | undefined, hideStale: boolean): CompareResponse | null {
-  const detail = snap.serviceDetails[service];
-  if (!detail) return null;
-  const rows = (snap.compare[service] ?? [])
+  // hasOwn: `service` berasal dari URL; kunci seperti `constructor` tidak boleh terbaca dari prototipe objek.
+  if (!Object.hasOwn(snap.serviceDetails, service)) return null;
+  const detail = snap.serviceDetails[service]!;
+  const rows = (Object.hasOwn(snap.compare, service) ? snap.compare[service]! : [])
     .filter((r) => (!city || r.facility.city === city) && (!hideStale || !r.stale))
     .sort((a, b) => {
       const ka = a.price.type === 'tanya' ? null : a.price.min;

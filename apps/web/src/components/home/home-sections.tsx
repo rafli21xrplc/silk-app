@@ -1,17 +1,5 @@
 import Link from 'next/link';
-import {
-  ArrowRight,
-  BookOpenText,
-  Building2,
-  FlaskConical,
-  Hospital,
-  Leaf,
-  Pill,
-  Search,
-  Stethoscope,
-  Store,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight, Search, Stethoscope } from 'lucide-react';
 import { FACILITY_TYPES, formatPrice, type PractitionerSpecialty } from '@silk/shared';
 import { NearMeButton } from '@/components/search/near-me-button';
 import { ResultsMap, type MapPoint } from '@/components/search/results-map';
@@ -19,20 +7,21 @@ import { Select } from '@/components/ui/select';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import type { FacilityListItem } from '@/lib/types';
+import { photoSrc, TILE_PHOTOS } from '@/lib/photos';
 import { t } from '@/messages/id';
 
 const h = t.home;
 
 /** Ubin jenis layanan di bawah hero (dari SILK versi lama). Tautan ke direktori yang sudah ada, bukan halaman baru. */
-const TILES: { key: string; href: string; icon: LucideIcon; tone: string }[] = [
-  { key: 'dokter', href: '/dokter', icon: Stethoscope, tone: 'bg-mint text-mint-ink' },
-  { key: 'rumah_sakit', href: '/cari?type=rumah_sakit', icon: Hospital, tone: 'bg-sky text-sky-ink' },
-  { key: 'klinik', href: '/cari?type=klinik', icon: Building2, tone: 'bg-primary-50 text-primary-800' },
-  { key: 'puskesmas', href: '/cari?type=puskesmas', icon: Store, tone: 'bg-sky text-sky-ink' },
-  { key: 'laboratorium', href: '/cari?type=laboratorium', icon: FlaskConical, tone: 'bg-primary-50 text-primary-800' },
-  { key: 'apotek', href: '/cari?type=apotek', icon: Pill, tone: 'bg-mint text-mint-ink' },
-  { key: 'gaya_hidup', href: '/cari?type=gaya_hidup', icon: Leaf, tone: 'bg-mint text-mint-ink' },
-  { key: 'artikel', href: '/artikel', icon: BookOpenText, tone: 'bg-sky text-sky-ink' },
+const TILES: { key: string; href: string }[] = [
+  { key: 'dokter', href: '/dokter' },
+  { key: 'rumah_sakit', href: '/cari?type=rumah_sakit' },
+  { key: 'klinik', href: '/cari?type=klinik' },
+  { key: 'puskesmas', href: '/cari?type=puskesmas' },
+  { key: 'laboratorium', href: '/cari?type=laboratorium' },
+  { key: 'apotek', href: '/cari?type=apotek' },
+  { key: 'gaya_hidup', href: '/cari?type=gaya_hidup' },
+  { key: 'artikel', href: '/artikel' },
 ];
 
 export function CategoryTiles() {
@@ -43,7 +32,8 @@ export function CategoryTiles() {
       </h2>
       <nav aria-label={h.tilesLabel}>
         <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
-          {TILES.map(({ key, href, icon: Icon, tone }) => {
+          {TILES.map(({ key, href }) => {
+            const photo = TILE_PHOTOS[key];
             const c = h.tiles[key]!;
             return (
               <li key={key}>
@@ -52,8 +42,16 @@ export function CategoryTiles() {
                   data-home-tile={key}
                   className="group flex h-full items-center gap-2.5 rounded-card border border-line/80 bg-white p-3 text-ink sm:gap-3 sm:p-4 no-underline shadow-soft transition-[border-color,box-shadow,transform] duration-300 ease-soft hover:-translate-y-0.5 hover:border-primary-200 hover:text-ink hover:no-underline hover:shadow-lift"
                 >
-                  <span className={cn('grid size-10 shrink-0 place-items-center rounded-2xl sm:size-11', tone)}>
-                    <Icon className="size-5" aria-hidden="true" />
+                  <span className="size-12 shrink-0 overflow-hidden rounded-2xl bg-surface-2 sm:size-14">
+                    {photo && (
+                      <img
+                        src={photoSrc(photo, 'sq')}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="size-full object-cover transition-transform duration-500 ease-soft group-hover:scale-105"
+                      />
+                    )}
                   </span>
                   <span className="min-w-0">
                     <span className="block text-[0.95rem] leading-snug font-semibold sm:text-base">{c.title}</span>

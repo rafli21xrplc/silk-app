@@ -2,28 +2,21 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, BedDouble, BookOpenText, ChevronLeft, ChevronRight, ClipboardPlus, FlaskConical, Stethoscope, Store, type LucideIcon } from 'lucide-react';
-import type { Campaign, CampaignArt, CampaignTheme } from '@silk/shared';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import type { Campaign, CampaignTheme } from '@silk/shared';
 import { cn } from '@/lib/cn';
+import { CAMPAIGN_PHOTOS, photoSrc } from '@/lib/photos';
 import { t } from '@/messages/id';
 
-const THEMES: Record<CampaignTheme, { card: string; cta: string; blob: string }> = {
-  mint: { card: 'bg-mint text-mint-ink', cta: 'bg-mint-ink text-white', blob: 'bg-white/55' },
-  sky: { card: 'bg-sky text-sky-ink', cta: 'bg-sky-ink text-white', blob: 'bg-white/55' },
-  peach: { card: 'bg-peach text-peach-ink', cta: 'bg-peach-ink text-white', blob: 'bg-white/55' },
-  lilac: { card: 'bg-lilac text-lilac-ink', cta: 'bg-lilac-ink text-white', blob: 'bg-white/55' },
-  lemon: { card: 'bg-lemon text-lemon-ink', cta: 'bg-lemon-ink text-white', blob: 'bg-white/60' },
-  ink: { card: 'bg-primary-800 text-white', cta: 'bg-white text-primary-800', blob: 'bg-white/10' },
+const THEMES: Record<CampaignTheme, { card: string; cta: string }> = {
+  mint: { card: 'bg-mint text-mint-ink', cta: 'bg-mint-ink text-white' },
+  sky: { card: 'bg-sky text-sky-ink', cta: 'bg-sky-ink text-white' },
+  peach: { card: 'bg-peach text-peach-ink', cta: 'bg-peach-ink text-white' },
+  lilac: { card: 'bg-lilac text-lilac-ink', cta: 'bg-lilac-ink text-white' },
+  lemon: { card: 'bg-lemon text-lemon-ink', cta: 'bg-lemon-ink text-white' },
+  ink: { card: 'bg-primary-800 text-white', cta: 'bg-white text-primary-800' },
 };
 
-const ART: Record<CampaignArt, LucideIcon> = {
-  lab: FlaskConical,
-  mcu: ClipboardPlus,
-  doctor: Stethoscope,
-  hospital: BedDouble,
-  partner: Store,
-  guide: BookOpenText,
-};
 
 /**
  * Banner campaign SILK di beranda desktop: deret geser dengan tombol sebelumnya/berikutnya.
@@ -90,26 +83,32 @@ export function CampaignRail({ campaigns }: { campaigns: Campaign[] }) {
       >
         {campaigns.map((c) => {
           const theme = THEMES[c.theme];
-          const Icon = ART[c.art];
           return (
             <li key={c.id} data-campaign={c.id} className="w-[85%] shrink-0 snap-start sm:w-[calc(50%-0.5rem)] lg:w-[calc((100%-2rem)/3)]">
               <Link
                 href={c.href.web}
                 className={cn(
-                  'group relative flex h-full min-h-52 flex-col overflow-hidden rounded-[1.75rem] p-6 no-underline transition-transform duration-300 ease-soft hover:-translate-y-0.5 hover:no-underline',
+                  'group flex h-full flex-col overflow-hidden rounded-[1.75rem] no-underline shadow-soft transition-[transform,box-shadow] duration-300 ease-soft hover:-translate-y-0.5 hover:no-underline hover:shadow-lift',
                   theme.card,
                 )}
               >
-                <span aria-hidden="true" className={cn('absolute -top-12 -right-10 size-40 rounded-full', theme.blob)} />
-                <span aria-hidden="true" className={cn('absolute -right-4 -bottom-6 grid size-32 place-items-center rounded-full', theme.blob)}>
-                  <Icon className="size-14" strokeWidth={1.6} />
+                <span className="relative block h-40 overflow-hidden">
+                  <img
+                    src={photoSrc(CAMPAIGN_PHOTOS[c.art], 'wide')}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-full object-cover transition-transform duration-500 ease-soft group-hover:scale-[1.03]"
+                  />
+                  <span className="absolute top-3 left-3 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-ink shadow-soft">{c.eyebrow}</span>
                 </span>
-                <span className="relative max-w-[75%] text-xs font-bold tracking-wide uppercase opacity-80">{c.eyebrow}</span>
-                <span className="relative mt-2 max-w-[78%] text-xl leading-snug font-bold">{c.title}</span>
-                <span className="relative mt-1.5 mb-5 max-w-[70%] text-sm leading-snug opacity-85">{c.body}</span>
-                <span className={cn('relative mt-auto inline-flex items-center gap-1 self-start rounded-full px-4 py-2 text-sm font-bold', theme.cta)}>
-                  {c.cta}
-                  <ArrowRight className="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" aria-hidden="true" />
+                <span className="flex flex-1 flex-col p-5">
+                  <span className="text-lg leading-snug font-bold">{c.title}</span>
+                  <span className="mt-1 mb-4 text-sm leading-snug opacity-85">{c.body}</span>
+                  <span className={cn('mt-auto inline-flex items-center gap-1 self-start rounded-full px-4 py-2 text-sm font-bold', theme.cta)}>
+                    {c.cta}
+                    <ArrowRight className="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" aria-hidden="true" />
+                  </span>
                 </span>
               </Link>
             </li>

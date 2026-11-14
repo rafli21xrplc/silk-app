@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Flag } from 'lucide-react';
 import { useState } from 'react';
 import { REPORT_STATUSES } from '@silk/shared';
+import { ListSearch, ListToolbar, NoResults, withQuery } from '@/components/ui/list-search';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Select } from '@/components/ui/select';
@@ -31,8 +32,9 @@ export default function AdminReportsPage() {
 
 function Reports() {
   const [status, setStatus] = useState('baru');
+  const [q, setQ] = useState('');
   const { rows, busy, pagination, error, reload, handle } = useAdminList<ReportRow>(
-    `/admin/reports?status=${status}`,
+    withQuery(`/admin/reports?status=${status}`, q),
   );
   async function update(id: string, next: string, note: string) {
     try {
@@ -44,15 +46,19 @@ function Reports() {
   }
   return (
     <>
-      <StatusFilter
-        value={status}
-        options={REPORT_STATUSES}
-        onChange={setStatus}
-        labels={t.admin.reportStatus}
-      />
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.reports} onSearch={setQ} />
+        <StatusFilter
+          value={status}
+          options={REPORT_STATUSES}
+          onChange={setStatus}
+          labels={t.admin.reportStatus}
+        />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={3} />}
-      {rows?.length === 0 && (
+      {rows?.length === 0 && q && <NoResults q={q} />}
+      {rows?.length === 0 && !q && (
         <EmptyState icon={Flag} title={t.admin.emptyState.reports.title}>
           {t.admin.emptyState.reports.body(t.admin.reportStatus[status] ?? status)}
         </EmptyState>

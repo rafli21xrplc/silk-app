@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ENTITY_STATUSES, VERIFICATION_LEVELS } from '@silk/shared';
 import { Building2 } from 'lucide-react';
+import { ListSearch, ListToolbar } from '@/components/ui/list-search';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Select } from '@/components/ui/select';
@@ -30,7 +31,6 @@ export default function AdminFacilitiesPage() {
 
 function Facilities({ isAdmin }: { isAdmin: boolean }) {
   const [status, setStatus] = useState('');
-  const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
   const params = new URLSearchParams();
   if (status) params.set('status', status);
@@ -50,33 +50,22 @@ function Facilities({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <>
-      <form
-        className="filters row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setQuery(q.trim());
-        }}
-      >
-        <label className="grow">
-          {t.admin.search}
-          <input value={q} onChange={(e) => setQ(e.target.value)} maxLength={100} />
-        </label>
-        <label>
+      <ListToolbar>
+        <ListSearch placeholder={t.admin.search} onSearch={setQuery} />
+        <label className="grid gap-1.5 text-[0.925rem] font-semibold text-ink-soft">
           {t.common.status}
           <Select
             value={status}
             onValueChange={setStatus}
             label={t.common.status}
+            className="min-w-[200px]"
             options={[
               { value: '', label: '–' },
               ...ENTITY_STATUSES.map((s) => ({ value: s, label: t.portal.status[s] ?? s })),
             ]}
           />
         </label>
-        <button type="submit" className="btn">
-          {t.search.submit}
-        </button>
-      </form>
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={4} />}
       {rows?.length === 0 && (

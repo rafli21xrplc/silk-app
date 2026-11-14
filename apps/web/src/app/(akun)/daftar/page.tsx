@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { Mail, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import type { AccountType } from '@silk/shared';
+import { useEffect, useState } from 'react';
+import { ACCOUNT_TYPES, type AccountType } from '@silk/shared';
 import { AccountTypePicker } from '@/components/auth/account-type-picker';
 import { AuthAlert, AuthFooter, AuthHeading, AuthInput, PasswordInput, SubmitButton } from '@/components/auth/auth-ui';
 import { useCaptcha } from '@/components/turnstile';
@@ -17,6 +17,11 @@ export default function RegisterPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const captcha = useCaptcha();
+  // Tautan "Daftar sebagai …" (halaman mitra, footer) memilihkan jenis akun lewat ?jenis=.
+  useEffect(() => {
+    const jenis = new URLSearchParams(window.location.search).get('jenis');
+    if (jenis && (ACCOUNT_TYPES as readonly string[]).includes(jenis)) setAccountType(jenis as AccountType);
+  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

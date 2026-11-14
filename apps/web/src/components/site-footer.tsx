@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
+import { PARTNER_TYPES } from '@silk/shared';
 import { t } from '@/messages/id';
 import { Logo } from './logo';
 
@@ -8,7 +9,7 @@ const linkCls = 'text-ink-soft no-underline hover:text-primary-800 hover:underli
 export function SiteFooter() {
   return (
     <footer className="mt-8 border-t border-line bg-surface">
-      <div className="container grid gap-10 py-12 md:grid-cols-[1.2fr_1fr]">
+      <div className="container grid gap-10 py-12 lg:grid-cols-[1fr_1.6fr]">
         <div className="max-w-sm">
           <Logo />
           <p className="mt-4 text-[0.925rem] text-muted">{t.footer.blurb}</p>
@@ -17,7 +18,7 @@ export function SiteFooter() {
             {t.footer.note}
           </p>
         </div>
-        <nav aria-label={t.footer.label} className="grid grid-cols-2 gap-8">
+        <nav aria-label={t.footer.label} className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           <div>
             <h2 className="mt-0 mb-3 text-sm font-semibold tracking-wide text-muted uppercase">{t.footer.explore}</h2>
             <ul className="m-0 grid list-none gap-2 p-0 text-[0.95rem]">
@@ -35,6 +36,15 @@ export function SiteFooter() {
               <li><Link className={linkCls} href="/tentang">{t.footer.about}</Link></li>
               <li><Link className={linkCls} href="/privasi">{t.footer.privacy}</Link></li>
               <li><Link className={linkCls} href="/syarat">{t.footer.terms}</Link></li>
+            </ul>
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <h2 className="mt-0 mb-3 text-sm font-semibold tracking-wide text-muted uppercase">{t.footer.partners}</h2>
+            <ul className="m-0 grid list-none gap-2 p-0 text-[0.95rem]">
+              <li><Link className={linkCls} href="/mitra">{t.footer.partnerHome}</Link></li>
+              {PARTNER_TYPES.map((type) => (
+                <li key={type}><Link className={linkCls} href={`/daftar?jenis=${type}`}>{t.footer.registerAs[type]}</Link></li>
+              ))}
             </ul>
           </div>
         </nav>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { ConsentBanner } from '@/components/consent-banner';
+import { PartnerBar } from '@/components/partner-bar';
 import { SiteChrome } from '@/components/site-chrome';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {t.nav.skip}
         </a>
         <SiteChrome>
+          <PartnerBar />
           <SiteHeader />
         </SiteChrome>
         {/* Halaman akun ([data-akun]) mengatur jaraknya sendiri. */}

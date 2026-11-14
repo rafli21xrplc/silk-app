@@ -26,9 +26,12 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <NavLink href="/mitra" className="hidden lg:inline-flex">
+            {t.nav.partner}
+          </NavLink>
           <AccountLink className="min-h-10" />
           <MobileMenu>
-            {LINKS.map((l) => (
+            {[...LINKS, { href: '/mitra', label: t.nav.partner }].map((l) => (
               <NavLink key={l.href} href={l.href} className="rounded-xl px-4 py-3 text-base">
                 {l.label}
               </NavLink>

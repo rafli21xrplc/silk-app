@@ -99,6 +99,29 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
           <ArrowRight className="size-3.5" aria-hidden="true" />
         </Link>
       </p>
+      {/* Jenis faskes sebagai pilihan cepat (direktori /fasilitas di SILK versi lama). Tautan biasa: jalan tanpa JavaScript. */}
+      <nav aria-label={t.search.type} className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
+        <ul className="m-0 flex w-max list-none gap-2 p-0 sm:w-auto sm:flex-wrap">
+          {['', ...FACILITY_TYPES].map((ft) => {
+            const active = (s.type ?? '') === ft;
+            return (
+              <li key={ft || 'semua'}>
+                <Link
+                  href={searchHref(s, { type: ft || null, ...viewPatch })}
+                  aria-current={active ? 'page' : undefined}
+                  data-type-chip={ft || 'semua'}
+                  className={cn(
+                    'inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold whitespace-nowrap no-underline transition-colors hover:no-underline',
+                    active ? 'border-primary-600 bg-primary-600 text-white hover:text-white' : 'border-line bg-white text-ink-soft hover:border-primary-200 hover:text-primary-800',
+                  )}
+                >
+                  {ft ? (t.facilityType[ft] ?? ft) : t.search.allTypes}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
       <form action="/cari" method="get" className="mb-5 grid gap-3" aria-label="Filter">
         {q && <input type="hidden" name="q" value={q} />}
         {city && <input type="hidden" name="city" value={city} />}
@@ -115,14 +138,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
             <SlidersHorizontal className="size-4" aria-hidden="true" />
             Filter
           </span>
-          <Select
-            variant="chip"
-            name="type"
-            defaultValue={s.type ?? ''}
-            label={t.search.type}
-            autoSubmit
-            options={[{ value: '', label: t.search.allTypes }, ...FACILITY_TYPES.map((ft) => ({ value: ft, label: t.facilityType[ft] ?? ft }))]}
-          />
+          {s.type && <input type="hidden" name="type" value={s.type} />}
           <Select
             variant="chip"
             name="category"

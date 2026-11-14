@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Store } from 'lucide-react';
+import { ChipLink } from '@/components/chip-link';
 import { CategoryBento } from '@/components/category-tiles';
 import { DemoNotice } from '@/components/demo-notice';
 import { DoctorTile } from '@/components/doctor-tile';
@@ -10,7 +11,7 @@ import { SearchForm } from '@/components/search-form';
 import { ServiceCard } from '@/components/service-card';
 import { formatShortDate } from '@/lib/format';
 import { HOME_PRICE_SLUGS } from '@/lib/home';
-import { anyDemo, getArticles, getCategories, getPractitioner, getService, searchFacilities, searchPractitioners, snapshotDate } from '@/lib/silk/api';
+import { anyDemo, getArticles, getCategories, getPractitioner, getService, getSpecialties, searchFacilities, searchPractitioners, snapshotDate } from '@/lib/silk/api';
 import { summarizeCities } from '@/lib/summary';
 import { t } from '@/messages/id';
 
@@ -23,7 +24,7 @@ export const dynamic = 'force-dynamic';
  * karusel kartu harga, karusel dokter, satu daftar faskes, lalu bacaan. Penjelasan metodologi ada di Info.
  */
 export default async function HomePage() {
-  const [services, doctors, facilities, categories, articles] = await Promise.all([
+  const [services, doctors, facilities, categories, articles, specialties] = await Promise.all([
     Promise.all(HOME_PRICE_SLUGS.map((slug) => getService(slug))),
     // Dokter dengan biaya konsultasi tercantum, urut nama (bawaan). Tidak pernah memakai data pembayaran.
     searchPractitioners({ fee: '1' }, 6),
@@ -31,7 +32,10 @@ export default async function HomePage() {
     searchFacilities({}, 3),
     getCategories(),
     getArticles(),
+    getSpecialties(),
   ]);
+  // Pintasan spesialisasi: yang punya dokter terbanyak (jumlah dari data, bukan pembayaran).
+  const topSpecialties = [...specialties.data].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'id')).slice(0, 6);
   // Jadwal untuk "jadwal terdekat" di kartu dokter (profil di-cache oleh fetchApi).
   const profiles = await Promise.all(doctors.items.map((d) => getPractitioner(d.slug)));
   const prices = services
@@ -75,7 +79,7 @@ export default async function HomePage() {
         </Link>
       </nav>
 
-      <DemoNotice show={anyDemo(...services, doctors, facilities, categories, articles)} date={snapshotDate()} />
+      <DemoNotice show={anyDemo(...services, doctors, facilities, categories, articles, specialties)} date={snapshotDate()} />
 
       <div className="mt-6">
         <CategoryBento serviceTotal={serviceTotal} />
@@ -110,6 +114,19 @@ export default async function HomePage() {
         </section>
       )}
 
+      {topSpecialties.length > 0 && (
+        <section aria-labelledby="spesialis" className="mt-8">
+          <SectionHead id="spesialis" title={t.home.specialtiesTitle} href="/dokter" />
+          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4" data-home-specialties>
+            {topSpecialties.map((s) => (
+              <ChipLink key={s.name} href={`/dokter?specialty=${encodeURIComponent(s.name)}`} active={false}>
+                {s.name}
+              </ChipLink>
+            ))}
+          </div>
+        </section>
+      )}
+
       {facilities.items.length > 0 && (
         <ListGroup id="faskes" title={t.home.facilitiesTitle} aside={<SeeAll href="/cari" />} className="mt-8">
           {facilities.items.map((f) => (
@@ -135,6 +152,24 @@ export default async function HomePage() {
           </ul>
         </section>
       )}
+
+      <Link
+        href="/mitra"
+        className="mx-4 mt-8 flex items-center gap-3 rounded-2xl border border-primary-100 bg-primary-50 p-4 text-ink no-underline active:opacity-90"
+        data-partner-card
+      >
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-primary-700">
+          <Store className="size-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm leading-snug font-semibold">{t.home.partnerTitle}</span>
+          <span className="block text-xs text-ink-soft">{t.home.partnerBody}</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center text-sm font-semibold text-primary-700">
+          {t.home.partnerCta}
+          <ChevronRight className="size-4" aria-hidden="true" />
+        </span>
+      </Link>
 
       <p className="m-0 mt-6 px-5 text-xs text-muted">
         {t.home.footnote}{' '}

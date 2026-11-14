@@ -2,13 +2,15 @@ import Link from 'next/link';
 import { ArrowRight, CalendarCheck2, MapPin, Scale } from 'lucide-react';
 import { DoctorAvatar } from '@/components/doctor/doctor-avatar';
 import { DoctorCard } from '@/components/doctor/doctor-card';
+import { CategoryTiles, NearbySection, SpecialtyShortcuts } from '@/components/home/home-sections';
 import { HeroGlow } from '@/components/motion/hero-glow';
 import { Reveal } from '@/components/motion/reveal';
 import { PriceDisplay } from '@/components/price-display';
 import { SearchBar } from '@/components/search-bar';
 import { categoryTone, IconTile, serviceIcon } from '@/components/service/service-visual';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiGetOrNull } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import { MAP_STYLE_URL } from '@/lib/config';
 import { formatDate } from '@/lib/format';
 import { HOME_PRICE_SLUGS, HOME_TILE_SLUGS, pickHomeServices } from '@/lib/home';
 import {
@@ -18,7 +20,8 @@ import {
   type ServiceSummary,
 } from '@/lib/service-summary';
 import { listServices, loadService } from '@/lib/services';
-import type { PractitionerListItem, ServiceListItem } from '@/lib/types';
+import type { ScheduleSlot } from '@/lib/schedule-today';
+import type { FacilityListItem, PractitionerDetail, PractitionerListItem, PractitionerSpecialty, ServiceListItem } from '@/lib/types';
 import { t } from '@/messages/id';
 
 export const revalidate = 3600;
@@ -45,14 +48,31 @@ async function loadPopularPrices(): Promise<PopularPrice[]> {
 
 export default async function HomePage() {
   // Masing-masing di-cache ISR per tag dan gagal secara terpisah tanpa menjatuhkan beranda.
-  const [allServices, prices, doctors] = await Promise.all([
+  const mapOn = !!MAP_STYLE_URL;
+  const [allServices, prices, doctors, specialties, nearby] = await Promise.all([
     listServices().catch(() => [] as ServiceListItem[]),
     loadPopularPrices().catch(() => [] as PopularPrice[]),
     // Dokter dengan biaya konsultasi tercantum, urut nama (bawaan API). Tidak pernah memakai data pembayaran.
     apiGet<PractitionerListItem[]>('/practitioners?fee=1&limit=3', { tags: ['practitioners'] })
       .then((r) => r.data)
       .catch(() => [] as PractitionerListItem[]),
+    apiGet<PractitionerSpecialty[]>('/practitioner-specialties', { tags: ['practitioners'] })
+      .then((r) => r.data)
+      .catch(() => [] as PractitionerSpecialty[]),
+    // Titik peta "di sekitar Anda": urut nama (bawaan), tidak pernah pembayaran. Hanya dimuat bila peta aktif.
+    mapOn
+      ? apiGet<FacilityListItem[]>('/facilities?limit=100', { tags: ['facilities'] })
+          .then((r) => r.data)
+          .catch(() => [] as FacilityListItem[])
+      : Promise.resolve([] as FacilityListItem[]),
   ]);
+  // Jadwal untuk "Hari ini …" di kartu dokter; profil di-cache per tag dokter.
+  const slots = await Promise.all(
+    doctors.map(async (d): Promise<ScheduleSlot[]> => {
+      const p = await apiGetOrNull<PractitionerDetail>(`/practitioners/${encodeURIComponent(d.slug)}`, { tags: [`practitioner:${d.slug}`, 'practitioners'] }).catch(() => null);
+      return p?.practices.flatMap((x) => x.schedules) ?? [];
+    }),
+  );
   const services = pickHomeServices(allServices, HOME_TILE_SLUGS, 8);
   const heroDoctor = doctors.find((d) => d.consultation) ?? null;
   return (
@@ -85,6 +105,8 @@ export default async function HomePage() {
       </section>
 
       <div className="container">
+        <CategoryTiles />
+
         {/* Bukti USP tepat di bawah judul (evaluasi UI/UX C1): angka dulu, lalu dokternya. */}
         {prices.length > 0 && (
           <section aria-labelledby="biaya-populer" className="mt-12">
@@ -135,6 +157,8 @@ export default async function HomePage() {
           </section>
         )}
 
+        <SpecialtyShortcuts specialties={specialties} />
+
         {doctors.length > 0 && (
           <section aria-labelledby="kenali-dokter" className="mt-14">
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -152,14 +176,16 @@ export default async function HomePage() {
               </Link>
             </div>
             <ul className="mt-6 grid list-none gap-4 p-0 md:grid-cols-2 lg:grid-cols-3">
-              {doctors.map((d) => (
+              {doctors.map((d, i) => (
                 <li key={d.slug}>
-                  <DoctorCard doctor={d} />
+                  <DoctorCard doctor={d} slots={slots[i]} />
                 </li>
               ))}
             </ul>
           </section>
         )}
+
+        <NearbySection facilities={nearby} mapOn={mapOn} />
 
         {services.length > 0 && (
           <section aria-labelledby="pemeriksaan" className="mt-14">

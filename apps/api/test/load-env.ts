@@ -24,7 +24,7 @@ export function loadTestEnv(): void {
   process.env.BETTER_AUTH_URL = 'http://localhost:4000';
   process.env.STALE_AFTER_DAYS = '180';
   // Uji tidak boleh memakai layanan eksternal.
-  for (const k of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'R2_MEDIA_BUCKET', 'MEDIA_PUBLIC_BASE_URL', 'RESEND_API_KEY', 'TURNSTILE_SECRET', 'REVALIDATE_SECRET']) {
+  for (const k of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'R2_MEDIA_BUCKET', 'MEDIA_PUBLIC_BASE_URL', 'RESEND_API_KEY', 'TURNSTILE_SECRET', 'REVALIDATE_SECRET', 'DUITKU_MERCHANT_CODE', 'DUITKU_API_KEY', 'DUITKU_ENV']) {
     delete process.env[k];
   }
 }

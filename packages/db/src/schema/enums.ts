@@ -8,6 +8,7 @@ import {
   MEDIA_KINDS,
   PARTNER_STATUSES,
   PARTNER_TYPES,
+  PAYMENT_STATUSES,
   PRICE_TYPES,
   REVIEW_STATUSES,
   SCHEDULE_KINDS,
@@ -27,6 +28,7 @@ export const reviewStatus = pgEnum('review_status', REVIEW_STATUSES);
 export const consentMethod = pgEnum('consent_method', CONSENT_METHODS);
 export const articleStatus = pgEnum('article_status', ARTICLE_STATUSES);
 export const tariffRequestKind = pgEnum('tariff_request_kind', TARIFF_REQUEST_KINDS);
+export const paymentStatus = pgEnum('payment_status', PAYMENT_STATUSES);
 
 /**
  * Kolom PostGIS `geography(Point, 4326)`. Tulis dengan `pointSql(lat, lng)` dari `../geo`,

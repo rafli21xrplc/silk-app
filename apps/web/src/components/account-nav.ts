@@ -8,7 +8,7 @@ export interface NavItem {
 }
 
 /** Navigasi samping area akun/portal per role (menu admin lengkap ada di AdminShell). */
-export function accountNav(me: Me): NavItem[] {
+export function accountNav(me: Me, opts: { subscriptions?: boolean } = {}): NavItem[] {
   const nav: NavItem[] = [];
   if (isPartnerRole(me.user.role)) {
     const faskes = me.user.role === 'faskes';
@@ -16,6 +16,8 @@ export function accountNav(me: Me): NavItem[] {
     if (faskes) nav.push({ href: '/portal/klaim', label: t.portal.claims });
     if (can(me.user.role, 'portal.articles')) nav.push({ href: '/portal/artikel', label: t.articleEditor.nav });
     nav.push({ href: '/portal/mitra', label: t.partner.title });
+    // Fase 11: hanya bila flag subscriptions_enabled menyala (dibaca di server, diteruskan lewat layout portal).
+    if (opts.subscriptions) nav.push({ href: '/portal/langganan', label: t.subscription.nav });
   }
   if (isStaffRole(me.user.role)) nav.push({ href: '/admin', label: t.admin.title });
   nav.push({ href: '/akun', label: t.account.title });

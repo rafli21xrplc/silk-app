@@ -205,7 +205,7 @@ export async function seedPrimaryLocations(db: Database): Promise<void> {
 export async function truncateAll(db: Database): Promise<void> {
   await db.execute(sql`
     TRUNCATE TABLE
-      audit_logs, reviews, facility_ratings, partner_articles, media_consents, profile_media, profile_revisions, schedules, profile_locations, tariff_change_requests,
+      audit_logs, subscriptions, payment_events, payment_orders, reviews, facility_ratings, partner_articles, media_consents, profile_media, profile_revisions, schedules, profile_locations, tariff_change_requests,
       partners, jwks, data_reports, import_rows, import_batches, documents, facility_claims,
       memberships, tariff_versions, tariffs, package_components, packages, data_sources,
       facility_practitioners, practitioners, facilities, services, service_categories,

@@ -30,6 +30,11 @@ const schema = z.object({
   SENTRY_DSN: optional,
   POSTHOG_KEY: optional,
   STALE_AFTER_DAYS: z.coerce.number().int().min(1).max(3650).default(DEFAULT_STALE_AFTER_DAYS),
+  /** Duitku (Fase 11). Kunci kosong di dev/uji = simulator lokal; di produksi wajib bila langganan aktif. */
+  DUITKU_MERCHANT_CODE: optional,
+  DUITKU_API_KEY: optional,
+  /** `sandbox` (bawaan) atau `production`. Produksi harus dipilih eksplisit. */
+  DUITKU_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
   /** Feature flag (dipisah koma), default semua OFF. Lihat packages/shared/src/flags.ts. */
   FEATURE_FLAGS: optional,
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
@@ -53,6 +58,10 @@ function load(): Env {
   }
   const flags = parseFeatureFlags(env.FEATURE_FLAGS);
   if (flags.unknown.length) throw new Error(`FEATURE_FLAGS berisi nama tidak dikenal: ${flags.unknown.join(', ')}`);
+  // Simulator pembayaran tidak boleh dipakai di produksi: kunci Duitku wajib bila langganan dinyalakan.
+  if (isProd && flags.enabled.has('subscriptions_enabled') && (!env.DUITKU_MERCHANT_CODE || !env.DUITKU_API_KEY)) {
+    throw new Error('subscriptions_enabled aktif tetapi DUITKU_MERCHANT_CODE/DUITKU_API_KEY belum diisi');
+  }
   return {
     ...env,
     flags: flags.enabled,

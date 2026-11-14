@@ -2,6 +2,7 @@
 
 import { accountNav } from '@/components/account-nav';
 import { AppShell, Loading } from '@/components/app-shell';
+import { usePortalFlags } from '@/components/portal/portal-flags';
 import type { AreaRequirement } from '@/lib/role-home';
 import type { Me } from '@/lib/types';
 import { useMe } from '@/lib/use-me';
@@ -23,9 +24,10 @@ export function PortalShell({
   children: (me: Me) => React.ReactNode;
 }) {
   const { me, error } = useMe({ require });
+  const flags = usePortalFlags();
   if (!me) return <Loading error={error} />;
   const facility = facilityId ? me.memberships.find((m) => m.id === facilityId) : undefined;
-  const nav = accountNav(me);
+  const nav = accountNav(me, flags);
   if (facility) {
     nav.splice(
       1,

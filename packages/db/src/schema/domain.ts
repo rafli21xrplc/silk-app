@@ -36,6 +36,7 @@ import {
   consentMethod,
   partnerStatus,
   partnerType,
+  paymentStatus,
   priceType,
   reviewStatus,
   scheduleKind,
@@ -868,5 +869,92 @@ export const reviews = pgTable(
     check('reviews_aspects_object', sql`jsonb_typeof(${t.aspects}) = 'object'`),
     check('reviews_sample_author', sql`${t.isSample} = (${t.authorId} IS NULL)`),
     check('reviews_rejection_reason', sql`${t.status} <> 'rejected' OR ${t.rejectionReason} IS NOT NULL`),
+  ],
+);
+
+/* ---------- Fase 11: langganan mitra dan pembayaran (flag `subscriptions_enabled`) ---------- */
+
+/**
+ * Pesanan pembayaran ke penyedia (Duitku POP). Nominal diambil dari SUBSCRIPTION_PLANS di server, bukan dari
+ * klien. Catatan keuangan disimpan walau akun mitra dihapus (`partner_id` menjadi NULL).
+ * Status hanya berubah lewat callback bertanda tangan atau cek status ke penyedia, bukan dari URL kembali.
+ */
+export const paymentOrders = pgTable(
+  'payment_orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    partnerId: uuid('partner_id').references(() => partners.id, { onDelete: 'set null' }),
+    createdBy: uuid('created_by').references(() => user.id, { onDelete: 'set null' }),
+    /** ID pesanan yang dikirim ke penyedia; unik dan tidak bisa ditebak. */
+    merchantOrderId: text('merchant_order_id').notNull().unique(),
+    plan: text('plan').notNull(),
+    months: smallint('months').notNull(),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    status: paymentStatus('status').notNull().default('pending'),
+    provider: text('provider').notNull().default('duitku'),
+    /** `sandbox` | `production` | `simulator`, dicatat agar pesanan uji tidak tercampur dengan transaksi nyata. */
+    providerMode: text('provider_mode').notNull(),
+    providerReference: text('provider_reference'),
+    paymentUrl: text('payment_url'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('payment_orders_partner_idx').on(t.partnerId, t.createdAt.desc()),
+    index('payment_orders_pending_idx').on(t.status, t.createdAt).where(sql`${t.status} = 'pending'`),
+    check('payment_orders_amount_positive', sql`${t.amount} > 0`),
+    check('payment_orders_months_positive', sql`${t.months} > 0`),
+    check('payment_orders_paid_at', sql`(${t.status} = 'paid') = (${t.paidAt} IS NOT NULL)`),
+  ],
+);
+
+/**
+ * Log mentah setiap callback dan cek status dari penyedia (append-only), untuk audit dan penelusuran sengketa.
+ * Callback yang tanda tangannya salah tetap dicatat dengan `signature_valid = false`.
+ */
+export const paymentEvents = pgTable(
+  'payment_events',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    orderId: uuid('order_id').references(() => paymentOrders.id, { onDelete: 'set null' }),
+    merchantOrderId: text('merchant_order_id'),
+    /** `callback` | `status_check` */
+    kind: text('kind').notNull(),
+    signatureValid: boolean('signature_valid'),
+    /** Hasil pemrosesan: `paid`, `failed`, `duplicate`, `ignored`, `rejected`, ... */
+    outcome: text('outcome').notNull(),
+    payload: jsonb('payload').notNull(),
+    ip: inet('ip'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('payment_events_order_idx').on(t.orderId, t.createdAt)],
+);
+
+/**
+ * Masa langganan yang sudah dibayar. Satu baris per pesanan lunas (`payment_order_id` unik = aktivasi idempoten).
+ * Perpanjangan dimulai dari akhir masa sebelumnya. Tabel ini sengaja tidak dibaca oleh query pencarian publik.
+ */
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    partnerId: uuid('partner_id')
+      .notNull()
+      .references(() => partners.id, { onDelete: 'cascade' }),
+    paymentOrderId: uuid('payment_order_id')
+      .notNull()
+      .unique()
+      .references(() => paymentOrders.id, { onDelete: 'restrict' }),
+    plan: text('plan').notNull(),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('subscriptions_partner_idx').on(t.partnerId, t.endsAt.desc()),
+    check('subscriptions_period', sql`${t.endsAt} > ${t.startsAt}`),
   ],
 );

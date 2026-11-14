@@ -162,6 +162,9 @@ export const t = {
     mapOpen: 'Buka profil',
   },
   home: {
+    campaignsTitle: 'Info dari SILK',
+    campaignsPrev: 'Info sebelumnya',
+    campaignsNext: 'Info berikutnya',
     heroTitle: 'Tahu biayanya, kenal dokternya, sebelum datang',
     heroBody:
       'Bandingkan perkiraan biaya laboratorium, medical check-up, rawat inap, dan konsultasi dokter di Kota dan Kabupaten Malang, lalu kenali dokternya lewat profil dan video. Setiap angka menyertakan tanggal berlaku, sumber, dan status verifikasi.',

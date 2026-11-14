@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { ArrowRight, CalendarCheck2, MapPin, Scale } from 'lucide-react';
+import { activeCampaigns } from '@silk/shared';
 import { DoctorAvatar } from '@/components/doctor/doctor-avatar';
 import { DoctorCard } from '@/components/doctor/doctor-card';
+import { CampaignRail } from '@/components/home/campaign-rail';
 import { CategoryTiles, NearbySection, SpecialtyShortcuts } from '@/components/home/home-sections';
 import { HeroGlow } from '@/components/motion/hero-glow';
 import { Reveal } from '@/components/motion/reveal';
@@ -105,6 +107,8 @@ export default async function HomePage() {
       </section>
 
       <div className="container">
+        {/* Campaign SILK sendiri (bukan promo berbayar). Disaring per tanggal saat halaman dibangun ulang (ISR 1 jam). */}
+        <CampaignRail campaigns={activeCampaigns(new Date())} />
         <CategoryTiles />
 
         {/* Bukti USP tepat di bawah judul (evaluasi UI/UX C1): angka dulu, lalu dokternya. */}

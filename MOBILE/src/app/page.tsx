@@ -1,7 +1,8 @@
+import type { Viewport } from 'next';
 import Link from 'next/link';
-import { ChevronRight, Store } from 'lucide-react';
+import { ChevronRight, MapPin, Store } from 'lucide-react';
 import { ChipLink } from '@/components/chip-link';
-import { CategoryBento } from '@/components/category-tiles';
+import { CampaignCarousel } from '@/components/campaign-carousel';
 import { DemoNotice } from '@/components/demo-notice';
 import { DoctorTile } from '@/components/doctor-tile';
 import { FacilityRow } from '@/components/facility-card';
@@ -9,6 +10,8 @@ import { ListGroup } from '@/components/list';
 import { Rail, RailItem, SectionHead } from '@/components/rail';
 import { SearchForm } from '@/components/search-form';
 import { ServiceCard } from '@/components/service-card';
+import { ServiceGrid } from '@/components/service-grid';
+import { campaignSlides } from '@/lib/campaigns';
 import { formatShortDate } from '@/lib/format';
 import { HOME_PRICE_SLUGS } from '@/lib/home';
 import { anyDemo, getArticles, getCategories, getPractitioner, getService, getSpecialties, searchFacilities, searchPractitioners, snapshotDate } from '@/lib/silk/api';
@@ -19,9 +22,12 @@ import { t } from '@/messages/id';
 // Respons API yang berhasil tetap di-cache 5 menit oleh fetchApi.
 export const dynamic = 'force-dynamic';
 
+// Bilah status ponsel menyatu dengan kepala hijau beranda.
+export const viewport: Viewport = { themeColor: '#0b6b64' };
+
 /**
- * Beranda sebagai alat, dengan ritme bentuk yang berganti (evaluasi UI/UX §10): ubin kategori berfoto,
- * karusel kartu harga, karusel dokter, satu daftar faskes, lalu bacaan. Penjelasan metodologi ada di Info.
+ * Beranda ala aplikasi super: kepala hijau dengan kotak cari, grid layanan berikon, banner campaign SILK,
+ * lalu ritme bentuk yang berganti (evaluasi UI/UX §10): karusel harga, karusel dokter, daftar faskes, bacaan. Penjelasan metodologi ada di Info.
  */
 export default async function HomePage() {
   const [services, doctors, facilities, categories, articles, specialties] = await Promise.all([
@@ -42,13 +48,16 @@ export default async function HomePage() {
     .filter((s) => s !== null)
     .map((s) => ({ ...s.data, ...summarizeCities(s.data.cities) }))
     .filter((s) => s.minPrice !== null);
-  const serviceTotal = categories.data.reduce((n, c) => n + c.serviceCount, 0);
+  // Campaign SILK sendiri (bukan promo berbayar), disaring per tanggal tayang saat permintaan.
+  const slides = campaignSlides(new Date());
 
   return (
     <>
-      <header className="pt-safe px-5">
-        <div className="flex h-14 items-center justify-between">
-          <span className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-primary-800">
+      <header className="pt-safe relative overflow-hidden rounded-b-[2rem] bg-linear-to-br from-primary-800 via-primary-700 to-primary-500 px-5 pb-12 text-white">
+        <span aria-hidden="true" className="absolute -top-16 -right-14 size-48 rounded-full bg-white/10" />
+        <span aria-hidden="true" className="absolute -bottom-20 -left-10 size-40 rounded-full bg-white/5" />
+        <div className="relative flex h-14 items-center justify-between gap-3">
+          <span className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
             <svg
               viewBox="0 0 24 24"
               className="size-5"
@@ -63,27 +72,30 @@ export default async function HomePage() {
             </svg>
             {t.site.name}
           </span>
-          <span className="text-xs font-medium text-muted">{t.site.region}</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/15 py-1.5 pr-3 pl-2 text-xs font-semibold" data-home-location>
+            <MapPin className="size-3.5" aria-hidden="true" />
+            <span className="sr-only">{t.home.locationLabel}: </span>
+            {t.home.location}
+          </span>
         </div>
-        <h1 className="mt-4 mb-5 text-3xl leading-[1.1] font-bold tracking-tight">{t.home.heroTitle}</h1>
+        <h1 className="relative mt-4 text-[1.65rem] leading-tight font-bold tracking-tight">{t.home.greeting}</h1>
+        <p className="relative m-0 mt-1 text-sm text-white/80">{t.site.tagline}</p>
       </header>
-      <div className="px-4">
-        <SearchForm placeholder={t.home.searchPlaceholder} />
+      <div className="relative -mt-7 px-4">
+        <SearchForm placeholder={t.home.searchPlaceholder} elevated />
       </div>
-      <nav aria-label={t.home.shortcutsLabel} className="mt-3 flex gap-5 px-5 text-sm font-semibold">
-        <Link href="/cari?dekat=1" className="-my-2.5 py-2.5 text-primary-700 no-underline">
-          {t.home.shortcuts.near}
-        </Link>
-        <Link href="/dokter" className="-my-2.5 py-2.5 text-primary-700 no-underline">
-          {t.home.shortcuts.doctors}
-        </Link>
-      </nav>
+
+      <div className="mt-5 px-4">
+        <ServiceGrid />
+      </div>
 
       <DemoNotice show={anyDemo(...services, doctors, facilities, categories, articles, specialties)} date={snapshotDate()} />
 
-      <div className="mt-6">
-        <CategoryBento serviceTotal={serviceTotal} />
-      </div>
+      {slides.length > 0 && (
+        <div className="mt-6">
+          <CampaignCarousel slides={slides} />
+        </div>
+      )}
 
       {prices.length > 0 && (
         <section aria-labelledby="biaya" className="mt-8">

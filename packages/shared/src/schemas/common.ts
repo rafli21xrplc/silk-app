@@ -13,6 +13,8 @@ export const rupiahSchema = z.number().int().nonnegative().max(1_000_000_000_000
 
 export const limitSchema = z.coerce.number().int().min(1).max(100).default(20);
 export const cursorSchema = z.string().max(500).optional();
+/** Kata kunci pencarian daftar admin (cocok sebagian; kosong = semua). */
+export const searchTextSchema = z.string().trim().max(100).optional();
 
 export const booleanQuerySchema = z
   .union([z.boolean(), z.enum(['1', '0', 'true', 'false'])])

@@ -1,4 +1,5 @@
 import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import { partners, user, type DbOrTx } from '@silk/db';
 import type { PartnerStatus, PartnerType, PartnerUpsertInput } from '@silk/shared';
 
@@ -105,10 +106,12 @@ export async function decidePartner(
 
 export function partnerQueue(
   db: DbOrTx,
-  f: { status: PartnerStatus; type?: PartnerType; limit: number; offset: number },
+  f: { status: PartnerStatus; type?: PartnerType; q?: string; limit: number; offset: number },
 ) {
   const where: SQL[] = [eq(partners.status, f.status)];
   if (f.type) where.push(eq(partners.partnerType, f.type));
+  const search = searchAny(f.q, [partners.businessName, user.name, user.email]);
+  if (search) where.push(search);
   return db
     .select({ ...columns, userEmail: user.email, userName: user.name })
     .from(partners)

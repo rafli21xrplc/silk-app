@@ -52,9 +52,9 @@ export async function upsertMyPartner(ctx: ActorContext, input: PartnerUpsertInp
 
 /* ---------- Admin ---------- */
 
-export async function partnerQueue(q: { status: PartnerStatus; type?: PartnerType; limit: number; cursor?: string }) {
+export async function partnerQueue(q: { status: PartnerStatus; type?: PartnerType; q?: string; limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
-  const rows = await repo.partnerQueue(db(), { status: q.status, type: q.type, limit: q.limit, offset });
+  const rows = await repo.partnerQueue(db(), { status: q.status, type: q.type, q: q.q, limit: q.limit, offset });
   return pageOf(rows, q.limit, offset);
 }
 

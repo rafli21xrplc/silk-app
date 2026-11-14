@@ -16,7 +16,7 @@ import {
   CONSENT_DOC_MAX_BYTES,
   CONSENT_SCOPES,
 } from '../constants';
-import { cursorSchema, limitSchema, slugSchema, uuidSchema } from './common';
+import { cursorSchema, limitSchema, searchTextSchema, slugSchema, uuidSchema } from './common';
 
 /* ---------- Fase 2 (F-02): profil layanan ---------- */
 
@@ -180,6 +180,7 @@ export const tariffActiveSchema = z.object({ active: z.boolean() });
 
 export const reviewQueueQuerySchema = z.object({
   status: z.enum(REVIEW_STATUSES).default('pending'),
+  q: searchTextSchema,
   limit: limitSchema,
   cursor: cursorSchema,
 });

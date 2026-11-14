@@ -1,4 +1,5 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import { facilities, reviews, user, type DbOrTx } from '@silk/db';
 import type { ReviewAspects, ReviewStatus } from '@silk/shared';
 
@@ -91,7 +92,7 @@ export async function decide(
   return row!;
 }
 
-export function queue(db: DbOrTx, f: { status: ReviewStatus; limit: number; offset: number }) {
+export function queue(db: DbOrTx, f: { status: ReviewStatus; q?: string; limit: number; offset: number }) {
   return db
     .select({
       id: reviews.id,
@@ -110,7 +111,7 @@ export function queue(db: DbOrTx, f: { status: ReviewStatus; limit: number; offs
     .from(reviews)
     .innerJoin(facilities, eq(facilities.id, reviews.facilityId))
     .leftJoin(user, eq(user.id, reviews.authorId))
-    .where(eq(reviews.status, f.status))
+    .where(and(eq(reviews.status, f.status), searchAny(f.q, [facilities.name, reviews.comment, user.name])))
     // Antrean: yang paling lama menunggu dulu.
     .orderBy(reviews.updatedAt, reviews.id)
     .limit(f.limit + 1)

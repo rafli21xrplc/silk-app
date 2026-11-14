@@ -314,9 +314,9 @@ export async function reorderMedia(ctx: ActorContext, facilityId: string, ids: s
 
 /* ---------- Admin: moderasi ---------- */
 
-export async function mediaQueue(q: { status: ReviewStatus; limit: number; cursor?: string }) {
+export async function mediaQueue(q: { status: ReviewStatus; q?: string; limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
-  const rows = await repo.queue(db(), { status: q.status, limit: q.limit, offset });
+  const rows = await repo.queue(db(), { status: q.status, q: q.q, limit: q.limit, offset });
   const page = pageOf(rows, q.limit, offset);
   const consents = await repo.activeConsentsFor(
     db(),

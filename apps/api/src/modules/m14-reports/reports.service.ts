@@ -24,9 +24,9 @@ export async function createReport(input: ReportCreateInput, ip: string | null) 
   return { id: report.id, status: report.status };
 }
 
-export async function queue(q: { status?: string; limit: number; cursor?: string }) {
+export async function queue(q: { status?: string; q?: string; limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
-  const rows = await repo.reportQueue(db(), { status: q.status ?? 'baru', limit: q.limit, offset });
+  const rows = await repo.reportQueue(db(), { status: q.status ?? 'baru', q: q.q, limit: q.limit, offset });
   const page = pageOf(rows, q.limit, offset);
   // Email pelapor tidak ditampilkan di antrean; cukup penanda ada/tidaknya kontak.
   return { ...page, items: page.items.map(({ hasContact, ...r }) => ({ ...r, hasContact: Boolean(hasContact) })) };

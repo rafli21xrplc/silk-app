@@ -6,7 +6,7 @@ import {
   REPORT_STATUSES,
 } from '../constants';
 import { validateRulePattern } from '../content-filter';
-import { cursorSchema, dataSourceKindSchema, limitSchema, verificationSchema } from './common';
+import { cursorSchema, dataSourceKindSchema, limitSchema, searchTextSchema, verificationSchema } from './common';
 
 export const claimRejectSchema = z.object({ reason: z.string().trim().min(5).max(1000) });
 export const claimApproveSchema = z.object({ note: z.string().trim().max(1000).optional() });
@@ -70,6 +70,7 @@ export type AuditQuery = z.infer<typeof auditQuerySchema>;
 
 export const queueQuerySchema = z.object({
   status: z.string().max(40).optional(),
+  q: searchTextSchema,
   limit: limitSchema,
   cursor: cursorSchema,
 });

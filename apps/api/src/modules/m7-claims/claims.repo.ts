@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import { documents, facilities, facilityClaims, user, type DbOrTx } from '@silk/db';
 
 export async function findFacilityForClaim(db: DbOrTx, facilityId: string) {
@@ -44,7 +45,7 @@ export function claimsOfUser(db: DbOrTx, userId: string) {
     .orderBy(desc(facilityClaims.createdAt));
 }
 
-export function claimQueue(db: DbOrTx, f: { status: string; limit: number; offset: number }) {
+export function claimQueue(db: DbOrTx, f: { status: string; q?: string; limit: number; offset: number }) {
   return db
     .select({
       id: facilityClaims.id,
@@ -64,7 +65,7 @@ export function claimQueue(db: DbOrTx, f: { status: string; limit: number; offse
     .from(facilityClaims)
     .innerJoin(facilities, eq(facilities.id, facilityClaims.facilityId))
     .innerJoin(user, eq(user.id, facilityClaims.userId))
-    .where(eq(facilityClaims.status, f.status))
+    .where(and(eq(facilityClaims.status, f.status), searchAny(f.q, [facilities.name, user.name, user.email])))
     .orderBy(asc(facilityClaims.createdAt))
     .limit(f.limit + 1)
     .offset(f.offset);

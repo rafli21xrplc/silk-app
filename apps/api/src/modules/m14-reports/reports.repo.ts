@@ -1,4 +1,5 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import { dataReports, facilities, services, tariffs, type DbOrTx } from '@silk/db';
 
 export async function insertReport(
@@ -9,7 +10,7 @@ export async function insertReport(
   return row!;
 }
 
-export function reportQueue(db: DbOrTx, f: { status: string; limit: number; offset: number }) {
+export function reportQueue(db: DbOrTx, f: { status: string; q?: string; limit: number; offset: number }) {
   return db
     .select({
       id: dataReports.id,
@@ -29,7 +30,7 @@ export function reportQueue(db: DbOrTx, f: { status: string; limit: number; offs
     .innerJoin(tariffs, eq(tariffs.id, dataReports.tariffId))
     .innerJoin(facilities, eq(facilities.id, tariffs.facilityId))
     .innerJoin(services, eq(services.id, tariffs.serviceId))
-    .where(eq(dataReports.status, f.status))
+    .where(and(eq(dataReports.status, f.status), searchAny(f.q, [facilities.name, services.name, dataReports.reason, dataReports.note])))
     .orderBy(asc(dataReports.createdAt))
     .limit(f.limit + 1)
     .offset(f.offset);

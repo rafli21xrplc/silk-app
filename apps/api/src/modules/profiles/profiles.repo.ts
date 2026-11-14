@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import {
   facilities,
   facilityPractitioners,
@@ -363,7 +364,7 @@ export async function decideRevision(
   return row!;
 }
 
-export function revisionQueue(db: DbOrTx, f: { status: ReviewStatus; limit: number; offset: number }) {
+export function revisionQueue(db: DbOrTx, f: { status: ReviewStatus; q?: string; limit: number; offset: number }) {
   return db
     .select({
       id: profileRevisions.id,
@@ -381,7 +382,7 @@ export function revisionQueue(db: DbOrTx, f: { status: ReviewStatus; limit: numb
     .from(profileRevisions)
     .innerJoin(facilities, eq(facilities.id, profileRevisions.facilityId))
     .leftJoin(user, eq(user.id, profileRevisions.submittedBy))
-    .where(eq(profileRevisions.status, f.status))
+    .where(and(eq(profileRevisions.status, f.status), searchAny(f.q, [facilities.name, user.email])))
     .orderBy(asc(profileRevisions.createdAt), asc(profileRevisions.id))
     .limit(f.limit + 1)
     .offset(f.offset);

@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import { facilities, services, tariffs, tariffVersions, type DbOrTx } from '@silk/db';
 import type { EntityStatus, VerificationLevel } from '@silk/shared';
 import { pointSql } from '@silk/db';
@@ -52,7 +53,7 @@ export async function updateFacility(
     .where(eq(facilities.id, id));
 }
 
-export function tariffQueue(db: DbOrTx, f: { status: EntityStatus; limit: number; offset: number }) {
+export function tariffQueue(db: DbOrTx, f: { status: EntityStatus; q?: string; limit: number; offset: number }) {
   return db
     .select({
       id: tariffs.id,
@@ -74,7 +75,7 @@ export function tariffQueue(db: DbOrTx, f: { status: EntityStatus; limit: number
     .innerJoin(facilities, eq(facilities.id, tariffs.facilityId))
     .innerJoin(services, eq(services.id, tariffs.serviceId))
     .leftJoin(tariffVersions, eq(tariffVersions.id, tariffs.currentVersionId))
-    .where(eq(tariffs.status, f.status))
+    .where(and(eq(tariffs.status, f.status), searchAny(f.q, [facilities.name, services.name])))
     .orderBy(asc(tariffVersions.createdAt))
     .limit(f.limit + 1)
     .offset(f.offset);

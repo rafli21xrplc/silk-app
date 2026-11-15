@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { CSV_COLUMNS, DATA_SOURCE_KINDS } from '@silk/shared';
 import { FileUp } from 'lucide-react';
 import { FormError } from '@/components/app-shell';
+import { ListSearch, ListToolbar, NoResults, withQuery } from '@/components/ui/list-search';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Select } from '@/components/ui/select';
@@ -33,7 +34,8 @@ export default function AdminImportsPage() {
 
 function Imports() {
   const router = useRouter();
-  const { rows, busy: paging, pagination, error } = useAdminList<BatchRow>('/admin/imports');
+  const [q, setQ] = useState('');
+  const { rows, busy: paging, pagination, error } = useAdminList<BatchRow>(withQuery('/admin/imports', q));
   const [busy, setBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -93,9 +95,13 @@ function Imports() {
           {busy ? t.common.loading : t.portal.csvUpload}
         </button>
       </form>
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.imports} onSearch={setQ} />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={4} />}
-      {rows?.length === 0 && (
+      {rows?.length === 0 && q && <NoResults q={q} />}
+      {rows?.length === 0 && !q && (
         <EmptyState icon={FileUp} title={t.admin.emptyState.imports.title}>
           {t.admin.emptyState.imports.body}
         </EmptyState>

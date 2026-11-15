@@ -274,9 +274,9 @@ export async function getBatch(batchId: string, cursor: string | undefined, limi
   };
 }
 
-export async function listAdminBatches(q: { status?: string; limit: number; cursor?: string }) {
+export async function listAdminBatches(q: { status?: string; q?: string; limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
-  const rows = await repo.listBatches(db(), { status: q.status, facilityId: null, limit: q.limit, offset });
+  const rows = await repo.listBatches(db(), { status: q.status, q: q.q, facilityId: null, limit: q.limit, offset });
   return pageOf(rows, q.limit, offset);
 }
 

@@ -3,6 +3,7 @@
 import { ClipboardCheck } from 'lucide-react';
 import { useState } from 'react';
 import { ENTITY_STATUSES, formatPrice, type PriceType } from '@silk/shared';
+import { ListSearch, ListToolbar, NoResults, withQuery } from '@/components/ui/list-search';
 import { buttonVariants } from '@/components/ui/button';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -33,8 +34,9 @@ export default function AdminTariffsPage() {
 
 function Queue() {
   const [status, setStatus] = useState('menunggu_tinjauan');
+  const [q, setQ] = useState('');
   const { rows, busy, pagination, error, reload, handle } = useAdminList<QueueRow>(
-    `/admin/tariffs?status=${status}`,
+    withQuery(`/admin/tariffs?status=${status}`, q),
   );
   const [acting, setActing] = useState<string | null>(null);
   async function act(id: string, action: 'publish' | 'withdraw') {
@@ -50,15 +52,19 @@ function Queue() {
   }
   return (
     <>
-      <StatusFilter
-        value={status}
-        options={ENTITY_STATUSES}
-        onChange={setStatus}
-        labels={t.portal.status}
-      />
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.tariffs} onSearch={setQ} />
+        <StatusFilter
+          value={status}
+          options={ENTITY_STATUSES}
+          onChange={setStatus}
+          labels={t.portal.status}
+        />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={4} />}
-      {rows?.length === 0 && (
+      {rows?.length === 0 && q && <NoResults q={q} />}
+      {rows?.length === 0 && !q && (
         <EmptyState icon={ClipboardCheck} title={t.admin.emptyState.tariffs.title}>
           {t.admin.emptyState.tariffs.body(t.portal.status[status] ?? status)}
         </EmptyState>

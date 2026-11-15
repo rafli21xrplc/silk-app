@@ -8,6 +8,7 @@ import { ARTICLE_STATUSES, formatPrice, REVIEW_STATUSES, type AdminArticleListIt
 import { FormError } from '@/components/app-shell';
 import { ConsentSummary } from '@/components/portal/video-consent-fields';
 import { Stars } from '@/components/reviews/review-parts';
+import { ListSearch, ListToolbar, NoResults, withQuery } from '@/components/ui/list-search';
 import { buttonVariants } from '@/components/ui/button';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -82,7 +83,8 @@ interface FacilityRow {
 }
 
 function NewProfiles() {
-  const { rows, busy, pagination, error, reload, handle } = useAdminList<FacilityRow>('/admin/facilities?status=menunggu_tinjauan');
+  const [q, setQ] = useState('');
+  const { rows, busy, pagination, error, reload, handle } = useAdminList<FacilityRow>(withQuery('/admin/facilities?status=menunggu_tinjauan', q));
   const [working, setWorking] = useState<string | null>(null);
 
   async function setStatus(id: string, status: 'terbit' | 'draft') {
@@ -100,10 +102,13 @@ function NewProfiles() {
 
   return (
     <>
+      <ListToolbar>
+        <ListSearch placeholder={t.admin.search} onSearch={setQ} />
+      </ListToolbar>
       <p className="small muted">{t.moderation.newProfiles}</p>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={4} />}
-      {rows?.length === 0 && <Empty tab="profil" />}
+      {rows?.length === 0 && (q ? <NoResults q={q} /> : <Empty tab="profil" />)}
       {rows && rows.length > 0 && (
         <DataPanel pagination={pagination} busy={busy} label={t.moderation.tabs.profil}>
           <table>
@@ -161,13 +166,17 @@ interface RevisionRow {
 
 function Revisions() {
   const [status, setStatus] = useState<string>('pending');
-  const { rows, busy, pagination, error } = useAdminList<RevisionRow>(`/admin/profile-revisions?status=${status}`);
+  const [q, setQ] = useState('');
+  const { rows, busy, pagination, error } = useAdminList<RevisionRow>(withQuery(`/admin/profile-revisions?status=${status}`, q));
   return (
     <>
-      <StatusFilter value={status} options={REVIEW_STATUSES} onChange={setStatus} labels={t.priceRequest.status} />
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.moderation} onSearch={setQ} />
+        <StatusFilter value={status} options={REVIEW_STATUSES} onChange={setStatus} labels={t.priceRequest.status} />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={4} />}
-      {rows?.length === 0 && <Empty tab="revisi" />}
+      {rows?.length === 0 && (q ? <NoResults q={q} /> : <Empty tab="revisi" />)}
       {rows && rows.length > 0 && (
         <DataPanel pagination={pagination} busy={busy} label={t.moderation.tabs.revisi}>
           <table>
@@ -231,7 +240,8 @@ interface MediaRow {
 
 function Media() {
   const [status, setStatus] = useState<string>('pending');
-  const { rows, busy, pagination, error, reload, handle } = useAdminList<MediaRow>(`/admin/media?status=${status}`);
+  const [q, setQ] = useState('');
+  const { rows, busy, pagination, error, reload, handle } = useAdminList<MediaRow>(withQuery(`/admin/media?status=${status}`, q));
   const [working, setWorking] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -252,11 +262,14 @@ function Media() {
 
   return (
     <>
-      <StatusFilter value={status} options={REVIEW_STATUSES.filter((s) => s !== 'superseded')} onChange={setStatus} labels={t.profile.mediaStatus} />
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.moderation} onSearch={setQ} />
+        <StatusFilter value={status} options={REVIEW_STATUSES.filter((s) => s !== 'superseded')} onChange={setStatus} labels={t.profile.mediaStatus} />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       <FormError error={actionError} />
       {rows === null && !error && <LoadingTable cols={3} />}
-      {rows?.length === 0 && <Empty tab="media" />}
+      {rows?.length === 0 && (q ? <NoResults q={q} /> : <Empty tab="media" />)}
       {rows && rows.length > 0 && (
         <DataPanel pagination={pagination} busy={busy} scroll={false} label={t.moderation.tabs.media}>
           <ul className="plain grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -305,7 +318,8 @@ function Media() {
 
 function Reviews() {
   const [status, setStatus] = useState<string>('pending');
-  const { rows, busy, pagination, error, reload, handle } = useAdminList<AdminReview>(`/admin/reviews?status=${status}`);
+  const [q, setQ] = useState('');
+  const { rows, busy, pagination, error, reload, handle } = useAdminList<AdminReview>(withQuery(`/admin/reviews?status=${status}`, q));
   const [working, setWorking] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -325,11 +339,14 @@ function Reviews() {
 
   return (
     <>
-      <StatusFilter value={status} options={REVIEW_STATUSES.filter((s) => s !== 'superseded')} onChange={setStatus} labels={t.reviews.form.status} />
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.moderation} onSearch={setQ} />
+        <StatusFilter value={status} options={REVIEW_STATUSES.filter((s) => s !== 'superseded')} onChange={setStatus} labels={t.reviews.form.status} />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       <FormError error={actionError} />
       {rows === null && !error && <LoadingTable cols={3} />}
-      {rows?.length === 0 && <Empty tab="ulasan" />}
+      {rows?.length === 0 && (q ? <NoResults q={q} /> : <Empty tab="ulasan" />)}
       {rows && rows.length > 0 && (
         <DataPanel pagination={pagination} busy={busy} scroll={false} label={t.moderation.tabs.ulasan}>
           <ul className="plain grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -401,13 +418,17 @@ interface PriceRequestRow {
 
 function PriceRequests() {
   const [status, setStatus] = useState<string>('pending');
-  const { rows, busy, pagination, error } = useAdminList<PriceRequestRow>(`/admin/tariff-requests?status=${status}`);
+  const [q, setQ] = useState('');
+  const { rows, busy, pagination, error } = useAdminList<PriceRequestRow>(withQuery(`/admin/tariff-requests?status=${status}`, q));
   return (
     <>
-      <StatusFilter value={status} options={REVIEW_STATUSES} onChange={setStatus} labels={t.priceRequest.status} />
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.moderation} onSearch={setQ} />
+        <StatusFilter value={status} options={REVIEW_STATUSES} onChange={setStatus} labels={t.priceRequest.status} />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={5} />}
-      {rows?.length === 0 && <Empty tab="harga" />}
+      {rows?.length === 0 && (q ? <NoResults q={q} /> : <Empty tab="harga" />)}
       {rows && rows.length > 0 && (
         <DataPanel pagination={pagination} busy={busy} label={t.moderation.tabs.harga}>
           <table>
@@ -463,13 +484,17 @@ function PriceRequests() {
 
 function Articles() {
   const [status, setStatus] = useState<string>('pending');
-  const { rows, busy, pagination, error } = useAdminList<AdminArticleListItem>(`/admin/articles?status=${status}`);
+  const [q, setQ] = useState('');
+  const { rows, busy, pagination, error } = useAdminList<AdminArticleListItem>(withQuery(`/admin/articles?status=${status}`, q));
   return (
     <>
-      <StatusFilter value={status} options={ARTICLE_STATUSES} onChange={setStatus} labels={t.articleEditor.status} />
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.moderation} onSearch={setQ} />
+        <StatusFilter value={status} options={ARTICLE_STATUSES} onChange={setStatus} labels={t.articleEditor.status} />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={4} />}
-      {rows?.length === 0 && <Empty tab="artikel" />}
+      {rows?.length === 0 && (q ? <NoResults q={q} /> : <Empty tab="artikel" />)}
       {rows && rows.length > 0 && (
         <DataPanel pagination={pagination} busy={busy} label={t.moderation.tabs.artikel}>
           <table>

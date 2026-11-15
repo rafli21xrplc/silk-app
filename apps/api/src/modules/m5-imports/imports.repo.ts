@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { facilities, importBatches, importRows, type DbOrTx } from '@silk/db';
 import type { ImportRowError } from '@silk/shared';
-import { likeEscape } from '../../lib/sql';
+import { likeEscape, searchAny } from '../../lib/sql';
 
 export async function facilitySlugs(db: DbOrTx, ids: string[]): Promise<string[]> {
   if (ids.length === 0) return [];
@@ -37,9 +37,11 @@ export async function updateBatch(db: DbOrTx, id: string, v: Partial<typeof impo
   return row ?? null;
 }
 
-export function listBatches(db: DbOrTx, f: { status?: string; facilityId?: string | null; limit: number; offset: number }) {
+export function listBatches(db: DbOrTx, f: { status?: string; q?: string; facilityId?: string | null; limit: number; offset: number }) {
   const conds = [];
   if (f.status) conds.push(eq(importBatches.status, f.status));
+  const search = searchAny(f.q, [importBatches.fileName, importBatches.sourceKind]);
+  if (search) conds.push(search);
   if (f.facilityId === null) conds.push(sql`${importBatches.facilityId} IS NULL`);
   else if (f.facilityId) conds.push(eq(importBatches.facilityId, f.facilityId));
   return db

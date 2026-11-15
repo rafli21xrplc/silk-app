@@ -6,7 +6,7 @@ import {
   PARTNER_TYPES,
   USER_ROLES,
 } from '../constants';
-import { cursorSchema, limitSchema, uuidSchema } from './common';
+import { cursorSchema, limitSchema, searchTextSchema, uuidSchema } from './common';
 
 /* ---------- Akun (F-01) ---------- */
 
@@ -90,6 +90,7 @@ export type Partner = z.infer<typeof partnerSchema>;
 export const partnerQueueQuerySchema = z.object({
   status: z.enum(PARTNER_STATUSES).default('pending'),
   type: z.enum(PARTNER_TYPES).optional(),
+  q: searchTextSchema,
   limit: limitSchema,
   cursor: cursorSchema,
 });

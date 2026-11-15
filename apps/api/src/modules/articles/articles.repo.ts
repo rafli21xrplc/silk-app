@@ -1,4 +1,5 @@
 import { desc, eq, sql } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import { partnerArticles, type DbOrTx } from '@silk/db';
 import type { ArticleStatus, PartnerType } from '@silk/shared';
 import { publicPractitionerCondition } from '../m1-directory/directory.repo';
@@ -98,12 +99,13 @@ export type QueueRow = AuthorRow & {
   updated_at: string;
 };
 
-export async function queue(db: DbOrTx, f: { status: ArticleStatus; limit: number; offset: number }): Promise<QueueRow[]> {
+export async function queue(db: DbOrTx, f: { status: ArticleStatus; q?: string; limit: number; offset: number }): Promise<QueueRow[]> {
+  const search = searchAny(f.q, [sql`a.title`, sql`p.business_name`, sql`pr.name`]);
   const r = await db.execute<QueueRow>(sql`
     SELECT a.id, a.slug, a.status, a.title, a.needs_review, a.published_body IS NOT NULL AS revision,
       a.submitted_at::text AS submitted_at, a.updated_at::text AS updated_at, ${AUTHOR_COLS}
     FROM partner_articles a ${AUTHOR_JOIN}
-    WHERE a.status = ${f.status}::article_status
+    WHERE a.status = ${f.status}::article_status ${search ? sql`AND ${search}` : sql``}
     ORDER BY a.submitted_at ASC NULLS LAST, a.updated_at ASC, a.id
     LIMIT ${f.limit + 1} OFFSET ${f.offset}
   `);

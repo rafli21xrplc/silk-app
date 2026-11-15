@@ -113,9 +113,9 @@ export async function confirmDocument(ctx: ActorContext, claimId: string, docume
 
 /* ---------- Admin ---------- */
 
-export async function claimQueue(q: { status?: string; limit: number; cursor?: string }) {
+export async function claimQueue(q: { status?: string; q?: string; limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
-  const rows = await repo.claimQueue(db(), { status: q.status ?? 'menunggu', limit: q.limit, offset });
+  const rows = await repo.claimQueue(db(), { status: q.status ?? 'menunggu', q: q.q, limit: q.limit, offset });
   return pageOf(rows, q.limit, offset);
 }
 

@@ -47,6 +47,8 @@ Utama" (PWA manifest + ikon).
 | `SILK_API_TIMEOUT_MS` | `3500` | Batas waktu per permintaan sebelum beralih ke data cadangan |
 | `SILK_DEMO_ONLY` | kosong | `1` = tidak memanggil API sama sekali, selalu data cadangan |
 | `SILK_ALLOW_INDEXING` | kosong | `1` = boleh diindeks mesin pencari. Kosong = `robots.txt` menolak semua + meta `noindex` |
+| `SILK_WEB_ORIGIN` | kosong | Situs web SILK untuk tombol "Daftar" di `/mitra`. Kosong = tombol disembunyikan |
+| `FEATURE_FLAGS` | kosong | `subscriptions_enabled` = tampilkan harga langganan mitra di `/mitra` (dibaca saat build) |
 
 - Setiap respons API divalidasi dengan skema Zod `@silk/shared`.
 - API mati, lambat, 5xx, atau respons tidak lolos skema → data cadangan `src/demo/snapshot.json`, dengan banner

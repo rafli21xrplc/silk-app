@@ -4,6 +4,7 @@ import { ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { CONTENT_RULE_KINDS, CONTENT_RULE_LEVELS } from '@silk/shared';
 import { FormError } from '@/components/app-shell';
+import { ListSearch, ListToolbar, NoResults } from '@/components/ui/list-search';
 import { Select } from '@/components/ui/select';
 import { api, errorMessage } from '@/lib/client-api';
 import { t } from '@/messages/id';
@@ -26,7 +27,11 @@ export default function AdminRulesPage() {
 
 function Rules() {
   const { items, error, reload, handle } = useAdminData<Rule[]>('/admin/content-rules');
-  const { rows, pagination } = useLocalPages(items);
+  const [q, setQ] = useState('');
+  const needle = q.toLowerCase();
+  // API mengirim daftar utuh: saring di browser, lalu paginasi.
+  const filtered = items && needle ? items.filter((r) => r.pattern.toLowerCase().includes(needle)) : items;
+  const { rows, pagination } = useLocalPages(filtered);
   const [formError, setFormError] = useState<string | null>(null);
 
   async function create(e: React.FormEvent<HTMLFormElement>) {
@@ -90,9 +95,13 @@ function Rules() {
           {t.admin.addRule}
         </button>
       </form>
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.rules} onSearch={setQ} />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {items === null && !error && <LoadingTable />}
-      {rows?.length === 0 && (
+      {rows?.length === 0 && q && <NoResults q={q} />}
+      {rows?.length === 0 && !q && (
         <EmptyState icon={ShieldCheck} title={t.admin.emptyState.rules.title}>
           {t.admin.emptyState.rules.body}
         </EmptyState>

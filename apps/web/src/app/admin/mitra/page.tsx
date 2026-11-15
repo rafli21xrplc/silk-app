@@ -3,6 +3,7 @@
 import { UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { PARTNER_STATUSES, PARTNER_TYPES, type Partner } from '@silk/shared';
+import { ListSearch, ListToolbar, NoResults, withQuery } from '@/components/ui/list-search';
 import { buttonVariants } from '@/components/ui/button';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -35,8 +36,9 @@ function details(r: PartnerRow): string {
 function Partners() {
   const [status, setStatus] = useState('pending');
   const [type, setType] = useState('');
+  const [q, setQ] = useState('');
   const { rows, busy, pagination, error, reload, handle } = useAdminList<PartnerRow>(
-    `/admin/partners?status=${status}${type ? `&type=${type}` : ''}`,
+    withQuery(`/admin/partners?status=${status}${type ? `&type=${type}` : ''}`, q),
   );
   const [working, setWorking] = useState<string | null>(null);
 
@@ -54,9 +56,10 @@ function Partners() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end gap-4">
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.partners} onSearch={setQ} />
         <StatusFilter value={status} options={PARTNER_STATUSES} onChange={setStatus} labels={t.partner.statusLabel} />
-        <label className="filters">
+        <label className="grid gap-1.5 text-[0.925rem] font-semibold text-ink-soft">
           {t.admin.partnerType}
           <Select
             value={type}
@@ -66,10 +69,11 @@ function Partners() {
             options={[{ value: '', label: t.admin.allTypes }, ...PARTNER_TYPES.map((v) => ({ value: v, label: t.partner.types[v] ?? v }))]}
           />
         </label>
-      </div>
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={3} />}
-      {rows?.length === 0 && (
+      {rows?.length === 0 && q && <NoResults q={q} />}
+      {rows?.length === 0 && !q && (
         <EmptyState icon={UserCheck} title={t.admin.emptyState.partners.title}>
           {t.admin.emptyState.partners.body(t.partner.statusLabel[status] ?? status)}
         </EmptyState>

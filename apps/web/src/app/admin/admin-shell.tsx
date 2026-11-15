@@ -1,8 +1,23 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { AppShell, Loading } from '@/components/app-shell';
+import {
+  Building2,
+  ClipboardCheck,
+  Cog,
+  FileCheck2,
+  Flag,
+  Handshake,
+  LayoutDashboard,
+  ScrollText,
+  ShieldAlert,
+  Tags,
+  Upload,
+  UserRound,
+} from 'lucide-react';
+import type { NavItem } from '@/components/account-nav';
+import { activeHref, AppShell, Loading } from '@/components/app-shell';
 import type { PaginationState } from '@/components/ui/data-panel';
 import { Select } from '@/components/ui/select';
 import { ClientApiError, errorMessage } from '@/lib/client-api';
@@ -12,19 +27,38 @@ import type { Me } from '@/lib/types';
 import { useMe } from '@/lib/use-me';
 import { t } from '@/messages/id';
 
-const NAV = [
-  { href: '/admin', label: t.admin.overview },
-  { href: '/admin/moderasi', label: t.moderation.title },
-  { href: '/admin/klaim', label: t.admin.claims },
-  { href: '/admin/mitra', label: t.admin.partners },
-  { href: '/admin/tarif', label: t.admin.tariffs },
-  { href: '/admin/laporan', label: t.admin.reports },
-  { href: '/admin/impor', label: t.admin.imports },
-  { href: '/admin/faskes', label: t.admin.facilities },
-  { href: '/admin/aturan-konten', label: t.admin.rules },
-  { href: '/admin/audit', label: t.admin.audit },
-  { href: '/admin/jobs', label: t.admin.jobs },
-  { href: '/akun', label: t.account.title },
+/** Jumlah item menunggu per antrean (GET /admin/overview). */
+export interface QueueCounts {
+  claims: number;
+  tariffs: number;
+  reports: number;
+  imports: number;
+  profiles: number;
+  revisions: number;
+  media: number;
+  tariffRequests: number;
+  articles: number;
+}
+
+const NAV: (NavItem & { count?: (q: QueueCounts) => number })[] = [
+  { href: '/admin', label: t.admin.overview, icon: LayoutDashboard, group: 'main' },
+  {
+    href: '/admin/moderasi',
+    label: t.moderation.title,
+    icon: ClipboardCheck,
+    group: 'moderation',
+    count: (q) => q.tariffRequests + q.revisions + q.articles + q.media + q.profiles,
+  },
+  { href: '/admin/klaim', label: t.admin.claims, icon: FileCheck2, group: 'moderation', count: (q) => q.claims },
+  { href: '/admin/mitra', label: t.admin.partners, icon: Handshake, group: 'moderation' },
+  { href: '/admin/tarif', label: t.admin.tariffs, icon: Tags, group: 'moderation', count: (q) => q.tariffs },
+  { href: '/admin/laporan', label: t.admin.reports, icon: Flag, group: 'moderation', count: (q) => q.reports },
+  { href: '/admin/impor', label: t.admin.imports, icon: Upload, group: 'data', count: (q) => q.imports },
+  { href: '/admin/faskes', label: t.admin.facilities, icon: Building2, group: 'data' },
+  { href: '/admin/aturan-konten', label: t.admin.rules, icon: ShieldAlert, group: 'data' },
+  { href: '/admin/audit', label: t.admin.audit, icon: ScrollText, group: 'system' },
+  { href: '/admin/jobs', label: t.admin.jobs, icon: Cog, group: 'system' },
+  { href: '/akun', label: t.account.title, icon: UserRound, group: 'account' },
 ];
 
 /** Panel admin: wajib staf (admin/moderator) dengan MFA aktif; tanpa MFA diarahkan ke /admin/mfa. */
@@ -35,9 +69,19 @@ export function AdminShell({ children }: { children: (me: Me) => React.ReactNode
     if (me && !me.user.twoFactorEnabled) router.replace('/admin/mfa');
   }, [me, router]);
   if (!me || !me.user.twoFactorEnabled) return <Loading error={error} />;
+  return <AdminFrame me={me}>{children(me)}</AdminFrame>;
+}
+
+/** Kerangka dengan angka antrean di menu; judul halaman = menu yang aktif. */
+function AdminFrame({ me, children }: { me: Me; children: React.ReactNode }) {
+  const pathname = usePathname() ?? '/admin';
+  const { items: counts } = useAdminData<QueueCounts>('/admin/overview');
+  const nav: NavItem[] = NAV.map(({ count, ...n }) => ({ ...n, badge: counts && count ? count(counts) : undefined }));
+  const active = activeHref(pathname, nav);
+  const title = nav.find((n) => n.href === active)?.label ?? t.admin.title;
   return (
-    <AppShell me={me} title={t.admin.title} nav={NAV}>
-      {children(me)}
+    <AppShell me={me} area={t.admin.title} title={title} nav={nav}>
+      {children}
     </AppShell>
   );
 }
@@ -188,7 +232,7 @@ export function StatusFilter({
   labels?: Record<string, string>;
 }) {
   return (
-    <label className="filters">
+    <label className="grid gap-1.5 text-[0.925rem] font-semibold text-ink-soft">
       {t.common.status}
       <Select
         value={value}

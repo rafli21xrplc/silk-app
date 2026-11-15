@@ -9,7 +9,7 @@ import { getAuth } from './auth/auth';
 import { jobsRoutes } from './jobs/jobs.routes';
 import { db } from './lib/db';
 import { devStorageRouter } from './lib/dev-storage.routes';
-import { env } from './lib/env';
+import { env, isProduction } from './lib/env';
 import { logger } from './lib/logger';
 import { generateOpenApiDocument } from './lib/openapi';
 import { loadSession, requireAdmin, requireAuth, requireFlag, requirePermission } from './middleware/auth';
@@ -29,6 +29,7 @@ import { adminArticleRoutes, portalArticleRoutes, publicArticleRoutes } from './
 import { accountRoutes } from './modules/account/account.routes';
 import { partnerRoutes } from './modules/partners/partners.routes';
 import { adminReviewRoutes, publicReviewRoutes, reviewWriteRoutes } from './modules/reviews/reviews.routes';
+import { devDuitkuSimulator, partnerSubscriptionRoutes, paymentWebhookRoutes } from './modules/subscriptions/subscriptions.routes';
 
 const VERSION = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? process.env.npm_package_version ?? 'dev';
 
@@ -75,6 +76,10 @@ export function createApp(): Express {
 
   // Rute yang membutuhkan body mentah dipasang sebelum parser JSON.
   app.use('/v1/webhooks', router(contentRoutes));
+  // Fase 11: callback Duitku (form-urlencoded, tanda tangan HMAC). Flag dicek di rute.
+  app.use('/v1/payments', router(paymentWebhookRoutes));
+  // Halaman bayar tiruan saat kunci Duitku kosong; tidak pernah dipasang di produksi.
+  if (!isProduction()) app.use('/v1/dev/duitku', devDuitkuSimulator());
   const devStorage = devStorageRouter();
   if (devStorage) app.use('/v1/dev/storage', devStorage);
 
@@ -113,7 +118,10 @@ export function createApp(): Express {
   app.use('/v1/me', loadSession, router(accountRoutes));
   // Fase 6 ramping (evaluasi USP R8): flag dicek sebelum sesi agar saat OFF semua rute 404 tanpa kerja lain.
   app.use('/v1/reviews', requireFlag('reviews_enabled'), loadSession, requirePermission('review.write'), verifyCsrf, router(reviewWriteRoutes));
-  app.use('/v1/partners', loadSession, requirePermission('partner.self'), verifyCsrf, router(partnerRoutes));
+  app.use('/v1/partners', loadSession, requirePermission('partner.self'), verifyCsrf, router((r) => {
+      partnerRoutes(r);
+      partnerSubscriptionRoutes(r);
+    }));
   app.use('/v1/portal', loadSession, requirePermission('portal.facility'), verifyCsrf, router((r) => {
       portalRoutes(r);
       portalArticleRoutes(r);

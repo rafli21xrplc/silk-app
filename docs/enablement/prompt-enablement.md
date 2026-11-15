@@ -328,6 +328,7 @@ FASE 9A: katalog dan ketersediaan, tanpa transaksi
 - Harga produk punya tanggal pembaruan. Obat resep tidak dipromosikan. Tidak ada diskon atau iklan yang memengaruhi urutan.
 
 FASE 9B: pesanan dan pembayaran (kerjakan hanya setelah 9A disetujui, gate hukum terpenuhi, dan akun merchant Midtrans siap)
+- Catatan 2026-11-14: penyedia pembayaran diganti ke Duitku. Pakai ulang modul pembayaran Fase 11 (lib/duitku.ts, payment_orders, payment_events); aturan webhook di bawah berlaku dengan tanda tangan HMAC Duitku menggantikan signature_key Midtrans.
 - Keranjang -> checkout -> Pesanan (kode_pesanan unik, status, total_bayar bigint rupiah, resep_url) -> Pembayaran Midtrans Snap (snap_token, order_id_midtrans, metode, status, paid_at).
 - Satu keranjang hanya untuk satu apotek. Harga dan stok diverifikasi ulang di server saat checkout. Stok dikurangi atomik (transaksi + constraint) dan dikembalikan saat batal atau kedaluwarsa.
 - Obat resep: wajib unggah resep (R2 signed URL, bucket privat, akses hanya pasien pemilik dan apotek terkait, retensi terbatas). Apotek memeriksa resep dan stok. Pesanan tidak valid dibatalkan dan pembayaran dikembalikan lewat mekanisme yang didukung Midtrans.
@@ -374,7 +375,7 @@ Baca: kelas Langganan (paket, biayaBulanan, tanggalMulai, tanggalAkhir, aktifkan
 Lingkup:
 - Paket mitra dengan fitur NON-peringkat saja: statistik kunjungan profil, jumlah foto lebih banyak, jadwal lanjutan, ekspor data. Dilarang: posisi lebih tinggi, badge 'rekomendasi', penandaan khusus di hasil pencarian, atau bobot apa pun di algoritma.
 - Tabel subscriptions (partner_id, paket, biaya bigint, tanggal_mulai, tanggal_akhir, status). aktifkan() dan cekMasaAktif() sebagai fungsi service; masa aktif dihitung di server dalam UTC.
-- Pembayaran memakai Midtrans: gunakan ulang modul Fase 9B bila sudah ada; bila belum, tunda fase ini. Cron pengingat dan kedaluwarsa bersifat idempoten.
+- Pembayaran memakai Duitku POP (keputusan 2026-11-14, menggantikan Midtrans): tagihan dibuat di server, status hanya dari callback bertanda tangan HMAC atau cek status, sandbox dulu. Cron pengingat dan kedaluwarsa bersifat idempoten. Hasil: docs/enablement/11-hasil-fase-11.md.
 - Saat langganan berakhir, profil dan posisi di hasil pencarian tidak berubah; hanya fitur tambahan yang berhenti.
 - Uji regresi wajib: urutan hasil pencarian identik untuk mitra berlangganan dan tidak berlangganan.
 

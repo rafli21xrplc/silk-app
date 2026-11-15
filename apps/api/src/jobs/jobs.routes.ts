@@ -3,10 +3,16 @@ import { z } from 'zod';
 import { requireCronSecret } from '../middleware/cron';
 import { defineRoute } from '../lib/route';
 import { AppError } from '../lib/errors';
+import { featureEnabled } from '../lib/env';
+import { reconcilePayments } from '../modules/subscriptions/subscriptions.service';
 import { retention, runQueue, staleReminders } from './handlers';
 
 export const CRON_JOBS = {
-  'process-queue': () => runQueue(),
+  // Setiap 10 menit: antrean job, lalu cocokkan pesanan pembayaran pending (Fase 11) bila langganan aktif.
+  'process-queue': async () => ({
+    ...(await runQueue()),
+    payments: featureEnabled('subscriptions_enabled') ? await reconcilePayments() : null,
+  }),
   'stale-reminders': () => staleReminders(),
   retention: () => retention(),
 } as const;

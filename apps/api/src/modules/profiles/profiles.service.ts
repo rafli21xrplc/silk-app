@@ -294,9 +294,9 @@ export async function submitProfile(ctx: ActorContext, facilityId: string) {
 
 /* ---------- Admin: moderasi revisi ---------- */
 
-export async function revisionQueue(q: { status: ReviewStatus; limit: number; cursor?: string }) {
+export async function revisionQueue(q: { status: ReviewStatus; q?: string; limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
-  const rows = await repo.revisionQueue(db(), { status: q.status, limit: q.limit, offset });
+  const rows = await repo.revisionQueue(db(), { status: q.status, q: q.q, limit: q.limit, offset });
   return pageOf(rows, q.limit, offset);
 }
 

@@ -1,4 +1,5 @@
 import { and, asc, eq, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import { facilities, mediaConsents, profileMedia, type DbOrTx } from '@silk/db';
 import type { ConsentMethod, ConsentScope, MediaKind, ReviewStatus } from '@silk/shared';
 
@@ -108,7 +109,7 @@ export async function decide(
   return row!;
 }
 
-export function queue(db: DbOrTx, f: { status: ReviewStatus; limit: number; offset: number }) {
+export function queue(db: DbOrTx, f: { status: ReviewStatus; q?: string; limit: number; offset: number }) {
   return db
     .select({
       id: profileMedia.id,
@@ -129,7 +130,7 @@ export function queue(db: DbOrTx, f: { status: ReviewStatus; limit: number; offs
     })
     .from(profileMedia)
     .innerJoin(facilities, eq(facilities.id, profileMedia.facilityId))
-    .where(and(eq(profileMedia.status, f.status), isNotNull(profileMedia.confirmedAt)))
+    .where(and(eq(profileMedia.status, f.status), isNotNull(profileMedia.confirmedAt), searchAny(f.q, [facilities.name, profileMedia.fileName, profileMedia.caption])))
     .orderBy(asc(profileMedia.createdAt), asc(profileMedia.id))
     .limit(f.limit + 1)
     .offset(f.offset);

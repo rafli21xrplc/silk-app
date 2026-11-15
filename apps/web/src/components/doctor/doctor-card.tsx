@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, CalendarDays, MapPin, Navigation, PlayCircle } from 'lucide-react';
+import type { ScheduleSlot } from '@/lib/schedule-today';
 import type { PractitionerListItem } from '@/lib/types';
 import { formatDate } from '@/lib/format';
 import { t } from '@/messages/id';
@@ -7,9 +8,13 @@ import { EstimateBadge } from '../estimate-badge';
 import { PriceDisplay } from '../price-display';
 import { DoctorAvatar } from './doctor-avatar';
 import { DoctorBadges } from './doctor-badges';
+import { TodaySchedule } from './today-schedule';
 
-/** Kartu hasil pencarian dokter. Tanpa iklan atau peringkat; seluruh kartu bisa diketuk. */
-export function DoctorCard({ doctor }: { doctor: PractitionerListItem }) {
+/**
+ * Kartu hasil pencarian dokter. Tanpa iklan atau peringkat; seluruh kartu bisa diketuk.
+ * `slots` (opsional, dari profil) menampilkan jadwal hari ini menggantikan penanda "Jadwal tersedia".
+ */
+export function DoctorCard({ doctor, slots }: { doctor: PractitionerListItem; slots?: readonly ScheduleSlot[] }) {
   const more = doctor.practiceCount - doctor.practices.length;
   return (
     <article className="group relative flex h-full flex-col gap-4 rounded-card border border-line/80 bg-white p-5 shadow-soft transition-[border-color,box-shadow,transform] duration-300 ease-soft focus-within:border-primary-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lift sm:p-6">
@@ -46,7 +51,9 @@ export function DoctorCard({ doctor }: { doctor: PractitionerListItem }) {
               {t.search.distance(doctor.distanceM)}
             </span>
           )}
-          {doctor.hasSchedule && (
+          {slots && slots.length > 0 ? (
+            <TodaySchedule slots={slots} />
+          ) : doctor.hasSchedule && (
             <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-0.5 font-medium text-ink-soft">
               <CalendarDays className="size-3" aria-hidden="true" />
               {t.doctors.hasSchedule}

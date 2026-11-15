@@ -44,7 +44,7 @@ pnpm lint && pnpm typecheck && pnpm test
 
 - Dua proyek Vercel dari repo yang sama: root `apps/api` dan root `apps/web`. Deploy API lebih dulu agar build web bisa mengambil data; bila API belum bisa dihubungi saat build, halaman dirender saat request.
 - Variabel lingkungan: lihat `.env.example`. Produksi wajib `BETTER_AUTH_SECRET`, `CRON_SECRET`, `REVALIDATE_SECRET` (sama di web dan API), `TURNSTILE_SECRET`.
-- Cron (`apps/api/vercel.json`): `process-queue` tiap 10 menit butuh paket Vercel Pro; di Hobby jalankan job manual dari `/admin/jobs`.
+- Cron (`apps/api/vercel.json`): `process-queue` berjalan sekali sehari (00.00 UTC) agar bisa di-deploy di paket Vercel Hobby, yang hanya mengizinkan cron harian. Antrean yang perlu cepat (impor, email) jalankan manual dari `/admin/jobs`. Di paket Pro, kembalikan ke `*/10 * * * *`.
 - **Domain satu situs.** Cookie sesi memakai `SameSite=Lax`, jadi web dan API harus berada di domain induk yang sama, misalnya `silk.id` dan `api.silk.id`. Dua alamat `*.vercel.app` yang berbeda dianggap situs berbeda (vercel.app ada di Public Suffix List), sehingga login dari web ke API tidak berfungsi di sana.
 - **Region harus sama.** API dideploy di `sin1` (Singapura, `apps/api/vercel.json`). Database Neon sebaiknya di AWS `ap-southeast-1` (Singapura). Database di `us-east-2` menambah ±200–300 ms pada setiap query dari Singapura.
 - Migrasi produksi adalah langkah terpisah sebelum deploy aplikasi.

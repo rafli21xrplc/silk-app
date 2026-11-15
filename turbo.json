@@ -3,7 +3,22 @@
   "globalEnv": ["NODE_ENV"],
   "globalPassThroughEnv": ["DATABASE_URL", "DATABASE_URL_UNPOOLED", "TEST_DATABASE_URL"],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": [".next/**", "!.next/cache/**", "dist/**"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "FEATURE_FLAGS",
+        "SILK_NOINDEX",
+        "SILK_ALLOW_INDEXING",
+        "SILK_API_ORIGIN",
+        "SILK_WEB_ORIGIN",
+        "SILK_DEMO_ONLY",
+        "SILK_API_TIMEOUT_MS",
+        "SANITY_PROJECT_ID",
+        "SANITY_DATASET"
+      ],
+      "passThroughEnv": ["REVALIDATE_SECRET", "SANITY_READ_TOKEN"]
+    },
     "typecheck": { "dependsOn": ["^typecheck"] },
     "lint": {},
     "test": { "cache": false },

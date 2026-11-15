@@ -16,3 +16,6 @@ test-results
 
 # Video demo dan formulir persetujuan (data pribadi; evaluasi USP R7)
 demo-media/
+
+# Hasil build Vercel API (scripts/bundle-vercel.ts)
+apps/api/public/

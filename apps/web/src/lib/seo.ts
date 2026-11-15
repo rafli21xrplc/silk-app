@@ -5,6 +5,12 @@ import { t } from '../messages/id';
 export const absoluteUrl = (path: string) => `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 
 /**
+ * Seluruh situs tidak boleh diindeks (SILK_NOINDEX=1), mis. preview publik di *.vercel.app yang memakai data demo.
+ * Dibaca di server saat build/render; kosong = perilaku biasa.
+ */
+export const siteNoIndex = () => process.env.SILK_NOINDEX === '1';
+
+/**
  * JSON-LD MedicalOrganization (M1-4). Tidak memakai Review/AggregateRating karena SILK tidak punya ulasan.
  */
 export function medicalOrganizationLd(f: FacilityDetail) {

@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { searchAny } from '../../lib/sql';
 import {
   documents,
   facilities,
@@ -144,7 +145,7 @@ export function listForFacility(db: DbOrTx, facilityId: string, limit: number) {
     .limit(limit);
 }
 
-export function queue(db: DbOrTx, f: { status: ReviewStatus; limit: number; offset: number }) {
+export function queue(db: DbOrTx, f: { status: ReviewStatus; q?: string; limit: number; offset: number }) {
   return db
     .select({
       ...listColumns,
@@ -158,7 +159,7 @@ export function queue(db: DbOrTx, f: { status: ReviewStatus; limit: number; offs
     .leftJoin(services, eq(services.id, tariffChangeRequests.serviceId))
     .leftJoin(importBatches, eq(importBatches.id, tariffChangeRequests.importBatchId))
     .leftJoin(user, eq(user.id, tariffChangeRequests.submittedBy))
-    .where(eq(tariffChangeRequests.status, f.status))
+    .where(and(eq(tariffChangeRequests.status, f.status), searchAny(f.q, [facilities.name, services.name, user.email])))
     .orderBy(asc(tariffChangeRequests.createdAt), asc(tariffChangeRequests.id))
     .limit(f.limit + 1)
     .offset(f.offset);

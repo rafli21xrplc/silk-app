@@ -9,6 +9,7 @@ import { AutoSubmitCheckbox } from '@/components/auto-submit-checkbox';
 import { ArrowUpDown, MapPin } from 'lucide-react';
 import { TrackView } from '@/components/track-view';
 import { apiGet, apiGetOrNull, ApiError } from '@/lib/api';
+import { siteNoIndex } from '@/lib/seo';
 import type { CompareResponse, ServiceDetail } from '@/lib/types';
 import { t } from '@/messages/id';
 
@@ -43,7 +44,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
     description: `Bandingkan tarif dan isi paket ${s.name}${city ? ` di ${city}` : ''}, lengkap dengan tanggal verifikasi dan sumber data.`,
     alternates: { canonical: canonicalOf(service, q) },
     // Variasi filter/urutan tidak diindeks supaya tidak ada konten duplikat.
-    robots: { index: !q.hideStale && q.sort === 'price_asc', follow: true },
+    robots: { index: !siteNoIndex() && !q.hideStale && q.sort === 'price_asc', follow: true },
   };
 }
 

@@ -64,6 +64,7 @@ export default async function InfoPage() {
       <ListGroup id="tautan" title={t.info.linksTitle} className="mt-7">
         <ListRow href="/layanan" title={t.info.services} />
         <ListRow href="/artikel" title={t.info.articles} />
+        <ListRow href="/mitra" title={t.info.partner} />
       </ListGroup>
 
       <section aria-labelledby="pasang" className="mt-7 px-5">

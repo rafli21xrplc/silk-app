@@ -19,6 +19,7 @@ export const ERROR_CODES = {
   REVISION_NOT_FOUND: 404,
   ARTICLE_NOT_FOUND: 404,
   TARIFF_REQUEST_NOT_FOUND: 404,
+  PAYMENT_NOT_FOUND: 404,
   PARTNER_NOT_VERIFIED: 403,
   PROFILE_LIMIT_REACHED: 409,
   PROFILE_NOT_EDITABLE: 409,
@@ -41,6 +42,8 @@ export const ERROR_CODES = {
   TURNSTILE_FAILED: 422,
   RATE_LIMITED: 429,
   INTERNAL: 500,
+  /** Penyedia pembayaran (Duitku) menolak atau tidak terjangkau saat membuat tagihan. */
+  PAYMENT_PROVIDER_ERROR: 502,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

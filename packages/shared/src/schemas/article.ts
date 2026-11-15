@@ -9,7 +9,7 @@ import {
   ARTICLE_TITLE_MIN,
   PARTNER_TYPES,
 } from '../constants';
-import { cursorSchema, limitSchema, uuidSchema } from './common';
+import { cursorSchema, limitSchema, searchTextSchema, uuidSchema } from './common';
 
 /* ---------- Fase 4 (F-05): artikel mitra ---------- */
 
@@ -41,6 +41,7 @@ export const articleStaffWithdrawSchema = z.object({ reason: z.string().trim().m
 
 export const articleQueueQuerySchema = z.object({
   status: articleStatusSchema.default('pending'),
+  q: searchTextSchema,
   limit: limitSchema,
   cursor: cursorSchema,
 });

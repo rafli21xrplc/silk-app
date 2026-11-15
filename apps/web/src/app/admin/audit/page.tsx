@@ -19,7 +19,8 @@ interface AuditRow {
   after: unknown;
   ip: string | null;
   requestId: string | null;
-  createdAt: string;
+  /** Waktu kejadian (API: `at`). */
+  at: string;
 }
 
 export default function AdminAuditPage() {
@@ -74,7 +75,7 @@ function Audit() {
                     <strong>{r.action}</strong> · {r.entity}{' '}
                     <code className="break-all">{r.entityId}</code>
                   </p>
-                  <span className="muted whitespace-nowrap">{formatDateTime(r.createdAt)}</span>
+                  <span className="muted whitespace-nowrap">{formatDateTime(r.at)}</span>
                 </div>
                 <p className="muted m-0">
                   {t.admin.actor}: <code>{r.actorId ?? 'sistem'}</code>

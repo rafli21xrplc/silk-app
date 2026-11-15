@@ -15,3 +15,17 @@ export function cityCondition(city: string, facilityAlias = 'f', regionAlias = '
   const r = sql.raw(regionAlias);
   return sql`(${r}.slug = ${city.toLowerCase()} OR ${r}.name ILIKE ${pattern} OR ${f}.city ILIKE ${pattern})`;
 }
+
+/**
+ * Pencarian teks bebas di daftar admin: `q` cocok sebagian (tanpa beda huruf besar/kecil) dengan salah satu kolom.
+ * `q` kosong = tanpa syarat (undefined, aman dimasukkan ke `and(...)`).
+ */
+export function searchAny(q: string | undefined, columns: (SQL | SQL.Aliased | { getSQL(): SQL })[]): SQL | undefined {
+  const term = q?.trim();
+  if (!term) return undefined;
+  const pattern = `%${likeEscape(term)}%`;
+  return sql`(${sql.join(
+    columns.map((c) => sql`${c} ILIKE ${pattern}`),
+    sql` OR `,
+  )})`;
+}

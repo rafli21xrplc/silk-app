@@ -241,9 +241,9 @@ async function withdraw(ctx: ActorContext, id: string, reason: string | null, pa
 
 /* ---------- Moderasi ---------- */
 
-export async function queue(q: { status: ArticleStatus; limit: number; cursor?: string }) {
+export async function queue(q: { status: ArticleStatus; q?: string; limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
-  const rows = await repo.queue(db(), { status: q.status, limit: q.limit, offset });
+  const rows = await repo.queue(db(), { status: q.status, q: q.q, limit: q.limit, offset });
   const page = pageOf(rows, q.limit, offset);
   const items: AdminArticleListItem[] = page.items.map((r) => ({
     id: r.id,

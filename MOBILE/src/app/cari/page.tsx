@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { FACILITY_TYPES } from '@silk/shared';
+import { ChipLink } from '@/components/chip-link';
 import { DemoNotice } from '@/components/demo-notice';
 import { FacilityFilters } from '@/components/facility-filters';
 import { FacilityResults } from '@/components/facility-results';
@@ -40,6 +42,18 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           <Suspense>
             <NearMe active={hasPoint} />
           </Suspense>
+        </div>
+        {/* Jenis faskes sebagai pilihan cepat (direktori /fasilitas di SILK versi lama). */}
+        <div className="no-scrollbar -mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4" role="group" aria-label={t.search.type}>
+          {['', ...FACILITY_TYPES].map((ft) => (
+            <ChipLink
+              key={ft || 'semua'}
+              href={`/cari?${toQueryString({ q: p.q, city: p.city, type: ft || undefined, service: p.service, category: p.category, sort: p.sort, lat: p.lat, lng: p.lng })}`}
+              active={(p.type ?? '') === ft}
+            >
+              {ft ? (t.facilityType[ft] ?? ft) : t.search.allTypes}
+            </ChipLink>
+          ))}
         </div>
       </header>
 

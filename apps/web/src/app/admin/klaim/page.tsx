@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Inbox } from 'lucide-react';
 import { useState } from 'react';
 import { CLAIM_STATUSES } from '@silk/shared';
+import { ListSearch, ListToolbar, NoResults, withQuery } from '@/components/ui/list-search';
 import { buttonVariants } from '@/components/ui/button';
 import { DataPanel } from '@/components/ui/data-panel';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -29,20 +30,25 @@ export default function AdminClaimsPage() {
 
 function Claims() {
   const [status, setStatus] = useState('menunggu');
+  const [q, setQ] = useState('');
   const { rows, busy, pagination, error } = useAdminList<ClaimRow>(
-    `/admin/claims?status=${status}`,
+    withQuery(`/admin/claims?status=${status}`, q),
   );
   return (
     <>
-      <StatusFilter
-        value={status}
-        options={CLAIM_STATUSES}
-        onChange={setStatus}
-        labels={t.portal.claimStatus}
-      />
+      <ListToolbar>
+        <ListSearch placeholder={t.listSearch.claims} onSearch={setQ} />
+        <StatusFilter
+          value={status}
+          options={CLAIM_STATUSES}
+          onChange={setStatus}
+          labels={t.portal.claimStatus}
+        />
+      </ListToolbar>
       {error && <p className="error">{error}</p>}
       {rows === null && !error && <LoadingTable cols={4} />}
-      {rows?.length === 0 && (
+      {rows?.length === 0 && q && <NoResults q={q} />}
+      {rows?.length === 0 && !q && (
         <EmptyState icon={Inbox} title={t.admin.emptyState.claims.title}>
           {t.admin.emptyState.claims.body(t.portal.claimStatus[status] ?? status)}
         </EmptyState>

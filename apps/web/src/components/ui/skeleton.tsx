@@ -106,26 +106,25 @@ export function TableSkeleton({ rows = 5, cols = 3, className }: { rows?: number
 /** Kerangka portal/admin (profil + navigasi samping + isi) selagi sesi dimuat. */
 export function AppShellSkeleton() {
   return (
-    <SkeletonRegion className="container grid gap-6 lg:grid-cols-[240px_1fr] lg:gap-10">
-      <div className="grid content-start gap-4">
-        <div className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-soft">
-          <Skeleton className="size-10 shrink-0 rounded-xl" />
-          <div className="grid flex-1 gap-2">
-            <Skeleton className="h-3.5 w-3/4" />
-            <Skeleton className="h-3 w-full" />
-          </div>
-        </div>
-        <div className="hidden gap-3 px-1 lg:grid">
-          {['w-4/5', 'w-3/5', 'w-11/12', 'w-2/3', 'w-1/2'].map((w) => (
-            <Skeleton key={w} className={cn('h-4', w)} />
+    <div data-akun className="flex min-h-dvh bg-canvas">
+      <SkeletonRegion className="hidden h-dvh w-[272px] shrink-0 flex-col gap-4 border-r border-line bg-white p-5 lg:flex">
+        <Skeleton className="h-9 w-28 rounded-xl" />
+        <Skeleton className="h-11 w-full rounded-xl" />
+        <div className="mt-2 grid gap-3">
+          {['w-4/5', 'w-3/5', 'w-11/12', 'w-2/3', 'w-1/2', 'w-3/4'].map((w) => (
+            <Skeleton key={w} className={cn('h-5', w)} />
           ))}
         </div>
+      </SkeletonRegion>
+      <div className="min-w-0 flex-1">
+        <div className="flex h-16 items-center border-b border-line bg-white px-4 sm:px-6 lg:px-8">
+          <Skeleton className="h-6 w-48 rounded-lg" />
+        </div>
+        <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <TableSkeleton rows={6} />
+        </div>
       </div>
-      <div className="min-w-0">
-        <Skeleton className="mb-6 h-9 w-1/2 rounded-2xl" />
-        <TableSkeleton rows={6} />
-      </div>
-    </SkeletonRegion>
+    </div>
   );
 }
 

@@ -44,10 +44,10 @@ export async function updateFacility(
   return after;
 }
 
-export async function tariffQueue(q: { status?: string; limit: number; cursor?: string }) {
+export async function tariffQueue(q: { status?: string; q?: string; limit: number; cursor?: string }) {
   const offset = decodeOffsetCursor(q.cursor);
   const status = (q.status as EntityStatus | undefined) ?? 'menunggu_tinjauan';
-  return pageOf(await repo.tariffQueue(db(), { status, limit: q.limit, offset }), q.limit, offset);
+  return pageOf(await repo.tariffQueue(db(), { status, q: q.q, limit: q.limit, offset }), q.limit, offset);
 }
 
 /** Moderator menerbitkan atau menarik tarif (status tarif; versi tidak diubah). */

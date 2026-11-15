@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { ConsentBanner } from '@/components/consent-banner';
+import { PartnerBar } from '@/components/partner-bar';
 import { SiteChrome } from '@/components/site-chrome';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { SITE_URL } from '@/lib/config';
+import { siteNoIndex } from '@/lib/seo';
 import { t } from '@/messages/id';
 import './globals.css';
 
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
   title: { default: `${t.site.name}: ${t.site.tagline}`, template: `%s | ${t.site.name}` },
   description: t.site.description,
   openGraph: { siteName: t.site.name, locale: 'id_ID', type: 'website' },
-  robots: { index: true, follow: true },
+  robots: siteNoIndex() ? { index: false, follow: false } : { index: true, follow: true },
 };
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#fafaf7' };
@@ -29,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {t.nav.skip}
         </a>
         <SiteChrome>
+          <PartnerBar />
           <SiteHeader />
         </SiteChrome>
         {/* Halaman akun ([data-akun]) mengatur jaraknya sendiri. */}

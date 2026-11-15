@@ -42,6 +42,8 @@ export async function apiGet<T>(path: string, opts: FetchOpts = {}): Promise<{ d
     throw err;
   }
   if (!res.ok) {
+    // Sama untuk API yang menjawab galat saat build (alamat salah, deploy API belum jadi): render saat request.
+    if (process.env.NEXT_PHASE === 'phase-production-build') await connection();
     let code = 'INTERNAL';
     let message = res.statusText;
     try {

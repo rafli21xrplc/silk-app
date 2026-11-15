@@ -19,7 +19,7 @@
   "crons": [
     {
       "path": "/v1/internal/jobs/process-queue",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/v1/internal/jobs/stale-reminders",

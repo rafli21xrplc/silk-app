@@ -88,7 +88,8 @@ Keterangan: **W** = wajib di produksi (API menolak start bila kosong atau fitur 
 6. **Proyek Vercel API dulu.** Root `apps/api`, Framework Preset *Other*, region sin1 (sudah di `vercel.json`).
    Build command diambil dari `vercel.json` (`pnpm run build:vercel`): API dibundel jadi `dist/vercel.js` karena paket
    workspace mengekspor berkas `.ts` yang tidak bisa dimuat Node langsung. Isi env bagian 1.
-   Cron `process-queue` tiap 10 menit butuh paket Pro; di Hobby jalankan job manual dari `/admin/jobs`.
+   Cron `process-queue` diset harian (00.00 UTC) untuk paket Hobby; jalankan manual dari `/admin/jobs` bila perlu cepat.
+   Di paket Pro, kembalikan ke `*/10 * * * *` di `apps/api/vercel.json`.
    Cek: `curl https://api.silk.id/v1/health`.
 7. **Proyek Vercel web.** Root `apps/web`, region sin1. Isi env, deploy, pasang domain `silk.id`.
 8. **Proyek Vercel mobile.** Root `MOBILE`. Isi env, deploy, pasang `m.silk.id`.

@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 
 const apiOrigin = process.env.NEXT_PUBLIC_API_ORIGIN ?? 'http://localhost:4000';
 const isProd = process.env.NODE_ENV === 'production';
+/** Lihat API_PROXY di src/lib/config.ts. */
+const apiProxy = process.env.NEXT_PUBLIC_API_PROXY === '1';
 
 /** CSP ketat (bagian 8). Peta dan analitik diizinkan sesuai variabel lingkungan. */
 const csp = [
@@ -24,6 +26,9 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@silk/shared'],
   poweredByHeader: false,
   reactStrictMode: true,
+  async rewrites() {
+    return apiProxy ? [{ source: '/v1/:path*', destination: `${apiOrigin}/v1/:path*` }] : [];
+  },
   async headers() {
     return [
       {

@@ -2,7 +2,7 @@
 
 import { ChevronDown, History } from 'lucide-react';
 import { useState } from 'react';
-import { API_ORIGIN } from '@/lib/config';
+import { BROWSER_API_ORIGIN } from '@/lib/config';
 import { formatDate, formatDateTime } from '@/lib/format';
 import type { TariffHistoryItem } from '@/lib/types';
 import { t } from '@/messages/id';
@@ -18,7 +18,7 @@ export function TariffHistoryDrawer({ tariffId }: { tariffId: string }) {
   async function load() {
     if (items) return;
     try {
-      const res = await fetch(`${API_ORIGIN}/v1/tariffs/${tariffId}/history`);
+      const res = await fetch(`${BROWSER_API_ORIGIN}/v1/tariffs/${tariffId}/history`);
       if (!res.ok) throw new Error();
       setItems(((await res.json()) as { data: TariffHistoryItem[] }).data);
     } catch {

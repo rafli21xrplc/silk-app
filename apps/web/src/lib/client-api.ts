@@ -1,6 +1,6 @@
 'use client';
 
-import { API_ORIGIN } from './config';
+import { BROWSER_API_ORIGIN } from './config';
 
 export interface ApiErrorBody {
   code: string;
@@ -21,7 +21,7 @@ let csrfToken: string | null = null;
 
 async function getCsrf(): Promise<string> {
   if (csrfToken) return csrfToken;
-  const res = await fetch(`${API_ORIGIN}/v1/csrf`, { credentials: 'include' });
+  const res = await fetch(`${BROWSER_API_ORIGIN}/v1/csrf`, { credentials: 'include' });
   const body = (await res.json()) as { data: { token: string } };
   csrfToken = body.data.token;
   return csrfToken;
@@ -32,7 +32,7 @@ export async function api<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   const headers: Record<string, string> = { accept: 'application/json' };
   if (body !== undefined) headers['content-type'] = 'application/json';
   if (method !== 'GET') headers['x-csrf-token'] = await getCsrf();
-  const res = await fetch(`${API_ORIGIN}${path.startsWith('/v1') ? path : `/v1${path}`}`, {
+  const res = await fetch(`${BROWSER_API_ORIGIN}${path.startsWith('/v1') ? path : `/v1${path}`}`, {
     method,
     headers,
     credentials: 'include',
@@ -53,7 +53,7 @@ export async function api<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
  * `headers` dipakai untuk token Turnstile (`x-captcha-response`).
  */
 export async function authApi<T>(path: string, body?: unknown, opts: { headers?: Record<string, string> } = {}): Promise<T> {
-  const res = await fetch(`${API_ORIGIN}/v1/auth${path}`, {
+  const res = await fetch(`${BROWSER_API_ORIGIN}/v1/auth${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...opts.headers },
     credentials: 'include',
